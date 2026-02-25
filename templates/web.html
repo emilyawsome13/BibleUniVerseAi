@@ -95,6 +95,28 @@
                         linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
             color: var(--text);
             overflow-x: hidden;
+            background-attachment: fixed;
+        }
+
+        body.animated-bg {
+            background: 
+                radial-gradient(720px 460px at 8% 10%, rgba(10, 132, 255, 0.2), transparent 66%),
+                radial-gradient(620px 420px at 92% -4%, rgba(52, 198, 255, 0.18), transparent 68%),
+                radial-gradient(520px 420px at 50% 110%, rgba(18, 209, 142, 0.16), transparent 70%),
+                linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+            animation: bgShift 15s ease infinite;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { 
+                background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+            }
+            33% { 
+                background-position: 2% 3%, -1% 2%, 1% -2%, 0% 0%;
+            }
+            66% { 
+                background-position: -1% 2%, 2% -1%, -2% 1%, 0% 0%;
+            }
         }
 
         body {
@@ -845,6 +867,12 @@
             font-size: 22px;
             font-weight: 700;
             letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease infinite;
         }
 
         @media (min-width: 1024px) {
@@ -3711,6 +3739,480 @@
             100% { background-position: -200% 0; }
         }
 
+        /* Enhanced Skeleton with Glow */
+        .skeleton-glow {
+            background: linear-gradient(90deg, var(--surface) 0%, var(--primary) 50%, var(--surface) 100%);
+            background-size: 200% 100%;
+            animation: shimmerGlow 2s infinite;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(10, 132, 255, 0.3);
+        }
+
+        @keyframes shimmerGlow {
+            0% { 
+                background-position: 200% 0;
+                box-shadow: 0 0 10px rgba(10, 132, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(10, 132, 255, 0.5);
+            }
+            100% { 
+                background-position: -200% 0;
+                box-shadow: 0 0 10px rgba(10, 132, 255, 0.2);
+            }
+        }
+
+        /* ===== ADVANCED TEXT ANIMATIONS ===== */
+        
+        /* Gradient Text Animation */
+        .gradient-text {
+            background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Rainbow Text */
+        .rainbow-text {
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+            background-size: 400% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rainbowFlow 5s linear infinite;
+        }
+
+        @keyframes rainbowFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 400% 50%; }
+        }
+
+        /* Glitch Text Effect */
+        .glitch-text {
+            position: relative;
+            animation: glitchSkew 3s infinite;
+        }
+
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glitch-text::before {
+            animation: glitchTop 2s infinite linear alternate-reverse;
+            clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+            color: #ff00ff;
+            opacity: 0.8;
+        }
+
+        .glitch-text::after {
+            animation: glitchBottom 2.5s infinite linear alternate-reverse;
+            clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+            color: #00ffff;
+            opacity: 0.8;
+        }
+
+        @keyframes glitchSkew {
+            0%, 90%, 100% { transform: skew(0deg); }
+            92% { transform: skew(-2deg); }
+            94% { transform: skew(2deg); }
+            96% { transform: skew(-1deg); }
+        }
+
+        @keyframes glitchTop {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-3px); }
+            40% { transform: translateX(3px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(1px); }
+        }
+
+        @keyframes glitchBottom {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(3px); }
+            40% { transform: translateX(-3px); }
+            60% { transform: translateX(2px); }
+            80% { transform: translateX(-1px); }
+        }
+
+        /* Wave Text Animation */
+        .wave-text span {
+            display: inline-block;
+            animation: wave 1.5s ease-in-out infinite;
+        }
+
+        .wave-text span:nth-child(1) { animation-delay: 0s; }
+        .wave-text span:nth-child(2) { animation-delay: 0.1s; }
+        .wave-text span:nth-child(3) { animation-delay: 0.2s; }
+        .wave-text span:nth-child(4) { animation-delay: 0.3s; }
+        .wave-text span:nth-child(5) { animation-delay: 0.4s; }
+        .wave-text span:nth-child(6) { animation-delay: 0.5s; }
+        .wave-text span:nth-child(7) { animation-delay: 0.6s; }
+        .wave-text span:nth-child(8) { animation-delay: 0.7s; }
+        .wave-text span:nth-child(9) { animation-delay: 0.8s; }
+        .wave-text span:nth-child(10) { animation-delay: 0.9s; }
+
+        @keyframes wave {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.1); }
+        }
+
+        /* Text Reveal Animation */
+        .text-reveal {
+            overflow: hidden;
+        }
+
+        .text-reveal-inner {
+            display: inline-block;
+            animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        @keyframes textReveal {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Fade Up Stagger */
+        .fade-up-stagger > * {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 0.6s ease forwards;
+        }
+
+        .fade-up-stagger > *:nth-child(1) { animation-delay: 0s; }
+        .fade-up-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+        .fade-up-stagger > *:nth-child(3) { animation-delay: 0.2s; }
+        .fade-up-stagger > *:nth-child(4) { animation-delay: 0.3s; }
+        .fade-up-stagger > *:nth-child(5) { animation-delay: 0.4s; }
+        .fade-up-stagger > *:nth-child(6) { animation-delay: 0.5s; }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Magnetic Button Effect */
+        .magnetic-btn {
+            transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .magnetic-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Shine Effect */
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 100%
+            );
+            transform: rotate(30deg) translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .shine-effect:hover::after {
+            transform: rotate(30deg) translateX(100%);
+        }
+
+        /* Neon Glow Text */
+        .neon-text {
+            color: #fff;
+            text-shadow: 
+                0 0 5px #fff,
+                0 0 10px #fff,
+                0 0 20px var(--primary),
+                0 0 30px var(--primary),
+                0 0 40px var(--primary);
+            animation: neonPulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes neonPulse {
+            from {
+                text-shadow: 
+                    0 0 5px #fff,
+                    0 0 10px #fff,
+                    0 0 20px var(--primary),
+                    0 0 30px var(--primary);
+            }
+            to {
+                text-shadow: 
+                    0 0 10px #fff,
+                    0 0 20px #fff,
+                    0 0 30px var(--primary),
+                    0 0 40px var(--primary),
+                    0 0 50px var(--primary),
+                    0 0 60px var(--primary);
+            }
+        }
+
+        /* Letter Spacing Animation */
+        .letter-space {
+            transition: letter-spacing 0.4s ease;
+        }
+
+        .letter-space:hover {
+            letter-spacing: 3px;
+        }
+
+        /* Bouncing Text */
+        .bounce-text {
+            animation: bounceText 1s ease infinite;
+        }
+
+        @keyframes bounceText {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* ===== ENHANCED TAB ANIMATIONS ===== */
+
+        /* Tab Slide Animation */
+        .tab-view {
+            display: none;
+            opacity: 0;
+            transform: translateX(30px) scale(0.98);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .tab-view.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            animation: tabSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes tabSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(40px) scale(0.95);
+                filter: blur(10px);
+            }
+            50% {
+                filter: blur(2px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* Tab Button Hover Effect */
+        .tab-btn, .nav-item {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-btn::before, .nav-item::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .tab-btn:hover::before, .nav-item:hover::before {
+            width: 60%;
+        }
+
+        .tab-btn.active::before, .nav-item.active::before {
+            width: 80%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        /* Tab Icon Bounce */
+        .tab-btn .tab-icon {
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .tab-btn:hover .tab-icon {
+            transform: scale(1.3) rotate(-10deg);
+        }
+
+        .tab-btn.active .tab-icon {
+            animation: tabIconPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes tabIconPop {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.4) rotate(-15deg); }
+            100% { transform: scale(1.2) rotate(0deg); }
+        }
+
+        /* Smooth Card Stagger Animation */
+        .glass-card {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: cardFadeUp 0.6s ease forwards;
+        }
+
+        .glass-card:nth-child(1) { animation-delay: 0.05s; }
+        .glass-card:nth-child(2) { animation-delay: 0.1s; }
+        .glass-card:nth-child(3) { animation-delay: 0.15s; }
+        .glass-card:nth-child(4) { animation-delay: 0.2s; }
+        .glass-card:nth-child(5) { animation-delay: 0.25s; }
+        .glass-card:nth-child(6) { animation-delay: 0.3s; }
+
+        @keyframes cardFadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Parallax Scroll Effect */
+        .parallax-element {
+            will-change: transform;
+            transition: transform 0.1s linear;
+        }
+
+        /* Floating Animation */
+        .float-animation {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(2deg); }
+            50% { transform: translateY(-5px) rotate(0deg); }
+            75% { transform: translateY(-15px) rotate(-2deg); }
+        }
+
+        /* Pulse Ring Effect */
+        .pulse-ring {
+            position: relative;
+        }
+
+        .pulse-ring::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: inherit;
+            border: 2px solid var(--primary);
+            animation: pulseRing 2s ease-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes pulseRing {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        /* Ripple Effect for Buttons */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple span {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(0);
+            animation: rippleEffect 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Text Scramble Effect Container */
+        .scramble-text {
+            font-family: monospace;
+        }
+
+        /* 3D Flip Card Effect */
+        .flip-card {
+            perspective: 1000px;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+
+        .flip-card:hover .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+        }
+
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* Elastic Bounce */
+        .elastic-bounce {
+            animation: elasticBounce 1s ease infinite;
+        }
+
+        @keyframes elasticBounce {
+            0%, 100% { transform: scale(1); }
+            30% { transform: scale(1.15); }
+            50% { transform: scale(0.9); }
+            70% { transform: scale(1.05); }
+        }
+
+        /* Shake Animation for Errors */
+        .shake {
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
         .comment-input::-webkit-scrollbar {
             display: none;
         }
@@ -4089,7 +4591,7 @@
                     <span class="role-badge" id="roleBadge"></span>
                 </div>
                 <div class="brand-copy">
-                    <div class="brand-text">Bible AI</div>
+                    <div class="brand-text wave-text" id="brandText">Bible AI</div>
                     <a class="mobile-donate-btn" href="https://buy.stripe.com/7sY00j7sh4Do6Plaap4ko0b" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
                         <span>&#128176;</span>
                         <span>Donate</span>
@@ -4240,15 +4742,15 @@
                     <div class="filter-chip" onclick="filterDiscover('recent')">🕐 Recent</div>
                 </div>
 
-                <div class="glass-card verse-container glow-pulse" onclick="toggleFullscreen()" id="mainVerseCard">
+                <div class="glass-card verse-container glow-pulse shine-effect" onclick="toggleFullscreen()" id="mainVerseCard">
                     <div style="position: absolute; top: -30%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(10,132,255,0.1) 0%, transparent 70%); pointer-events: none;"></div>
-                    <div class="verse-text typewriter-text" id="verseText">
+                    <div class="verse-text typewriter-text letter-space" id="verseText" style="font-weight: 500; line-height: 1.7;">
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 100%;"></div>
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 90%;"></div>
                         <div class="skeleton" style="height: 32px; width: 70%;"></div>
                     </div>
                     <div class="verse-meta">
-                        <div class="verse-ref" id="verseRef">Loading...</div>
+                        <div class="verse-ref gradient-text" id="verseRef" style="cursor: pointer; transition: all 0.3s;" onmouseenter="this.classList.add('neon-text')" onmouseleave="this.classList.remove('neon-text')">Loading...</div>
                         <div class="verse-source-wrapper">
                             <span class="signed-by">-Signed By George-</span>
                             <span class="verse-badge" id="verseSource">...</span>
@@ -4258,19 +4760,19 @@
 
                 <div class="glass-card">
                     <div class="action-grid">
-                        <button class="action-btn" onclick="toggleLike()">
-                            <span class="action-icon" id="likeIcon">&#9825;</span>
+                        <button class="action-btn magnetic-btn ripple" onclick="toggleLike(); createRipple(event, this);">
+                            <span class="action-icon elastic-bounce" id="likeIcon">&#9825;</span>
                             <span>Like</span>
                         </button>
-                        <button class="action-btn" onclick="toggleSave()">
-                            <span class="action-icon" id="saveIcon">&#128278;</span>
+                        <button class="action-btn magnetic-btn ripple" onclick="toggleSave(); createRipple(event, this);">
+                            <span class="action-icon elastic-bounce" id="saveIcon">&#128278;</span>
                             <span>Save</span>
                         </button>
-                        <button class="action-btn" onclick="copyVerse()">
+                        <button class="action-btn magnetic-btn ripple" onclick="copyVerse(); createRipple(event, this);">
                             <span class="action-icon">&#128203;</span>
                             <span>Copy</span>
                         </button>
-                        <button class="action-btn" onclick="shareVerse()">
+                        <button class="action-btn magnetic-btn ripple" onclick="shareVerse(); createRipple(event, this);">
                             <span class="action-icon">&#128228;</span>
                             <span>Share</span>
                         </button>
@@ -5053,6 +5555,26 @@
 
             <div class="setting-item">
                 <div>
+                    <div class="setting-label">Advanced Animations</div>
+                    <div class="setting-desc">Text scramble, magnetic buttons, ripple effects</div>
+                </div>
+                <div class="toggle" id="advancedAnimToggle" onclick="toggleAdvancedAnimations()">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Animated Background</div>
+                    <div class="setting-desc">Subtle gradient movement in background</div>
+                </div>
+                <div class="toggle" id="animatedBgToggle" onclick="toggleAnimatedBackground()">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
                     <div class="setting-label">High Contrast</div>
                     <div class="setting-desc">Stronger colors for accessibility</div>
                 </div>
@@ -5230,7 +5752,9 @@
             autoCopyVerse: false,
             keepAwake: false,
             ttsEnabled: false,
-            ttsSpeed: 1
+            ttsSpeed: 1,
+            advancedAnimations: false,
+            animatedBackground: false
         };
         let commentRestriction = { restricted: false, reason: '', expires_at: null };
         let notificationsCache = [];
@@ -5408,6 +5932,16 @@
             if (notificationPollInterval) clearInterval(notificationPollInterval);
             notificationPollInterval = setInterval(pollNotifications, 30000);
             handleDeepLinkParams();
+            
+            // Apply wave animation to brand text
+            const brandText = document.getElementById('brandText');
+            if (brandText) applyWaveText(brandText);
+            
+            // Add magnetic effect to buttons
+            document.querySelectorAll('.action-btn, .tab-btn').forEach(btn => {
+                btn.classList.add('magnetic-btn', 'ripple');
+            });
+            
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) stopVersePolling();
                 else startVersePolling();
@@ -9851,6 +10385,39 @@ async function checkAchievement(type, value) {
             saveSettings();
             showToast(settings.particles ? 'Crosses ON ✝️' : 'Crosses OFF');
         }
+
+        function toggleAdvancedAnimations() {
+            settings.advancedAnimations = !settings.advancedAnimations;
+            document.getElementById('advancedAnimToggle').classList.toggle('active');
+            
+            document.body.classList.toggle('advanced-animations', settings.advancedAnimations);
+            
+            if (settings.advancedAnimations) {
+                // Apply advanced effects
+                document.querySelectorAll('.tab-btn, .action-btn').forEach(btn => {
+                    btn.classList.add('magnetic-btn', 'ripple');
+                });
+                showToast('Advanced animations ON ✨');
+            } else {
+                document.querySelectorAll('.magnetic-btn, .ripple').forEach(btn => {
+                    btn.classList.remove('magnetic-btn', 'ripple');
+                });
+                showToast('Advanced animations OFF');
+            }
+            
+            AudioSys.playClick();
+            saveSettings();
+        }
+
+        function toggleAnimatedBackground() {
+            settings.animatedBackground = !settings.animatedBackground;
+            document.getElementById('animatedBgToggle').classList.toggle('active');
+            document.body.classList.toggle('animated-bg', settings.animatedBackground);
+            
+            AudioSys.playClick();
+            saveSettings();
+            showToast(settings.animatedBackground ? 'Animated background ON 🌊' : 'Animated background OFF');
+        }
         
         function toggleHighContrast() {
             settings.highContrast = !settings.highContrast;
@@ -10663,6 +11230,218 @@ async function checkAchievement(type, value) {
                 stats: userStats
             }));
         }
+
+        // ===== ADVANCED ANIMATION SYSTEMS =====
+
+        // Ripple Effect for Buttons
+        function createRipple(event, button) {
+            const circle = document.createElement('span');
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+
+            const rect = button.getBoundingClientRect();
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - rect.left - radius}px`;
+            circle.style.top = `${event.clientY - rect.top - radius}px`;
+            circle.classList.add('ripple');
+
+            const ripple = button.getElementsByClassName('ripple')[0];
+            if (ripple) {
+                ripple.remove();
+            }
+
+            button.appendChild(circle);
+            setTimeout(() => circle.remove(), 600);
+        }
+
+        // Magnetic Button Effect
+        document.querySelectorAll('.magnetic-btn').forEach(btn => {
+            btn.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                this.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) scale(1.05)`;
+            });
+
+            btn.addEventListener('mouseleave', function() {
+                this.style.transform = 'translate(0, 0) scale(1)';
+            });
+        });
+
+        // Parallax Scroll Effect
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            document.querySelectorAll('.parallax-element').forEach(el => {
+                const speed = el.dataset.speed || 0.5;
+                el.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+
+        // Text Scramble Effect
+        class TextScramble {
+            constructor(el) {
+                this.el = el;
+                this.chars = '!<>-_\\/[]{}—=+*^?#________';
+                this.update = this.update.bind(this);
+            }
+
+            setText(newText) {
+                const oldText = this.el.innerText;
+                const length = Math.max(oldText.length, newText.length);
+                const promise = new Promise(resolve => this.resolve = resolve);
+                this.queue = [];
+                for (let i = 0; i < length; i++) {
+                    const from = oldText[i] || '';
+                    const to = newText[i] || '';
+                    const start = Math.floor(Math.random() * 20);
+                    const end = start + Math.floor(Math.random() * 20);
+                    this.queue.push({ from, to, start, end });
+                }
+                cancelAnimationFrame(this.frameRequest);
+                this.frame = 0;
+                this.update();
+                return promise;
+            }
+
+            update() {
+                let output = '';
+                let complete = 0;
+                for (let i = 0, n = this.queue.length; i < n; i++) {
+                    let { from, to, start, end, char } = this.queue[i];
+                    if (this.frame >= end) {
+                        complete++;
+                        output += to;
+                    } else if (this.frame >= start) {
+                        if (!char || Math.random() < 0.28) {
+                            char = this.randomChar();
+                            this.queue[i].char = char;
+                        }
+                        output += `<span style="color: var(--primary)">${char}</span>`;
+                    } else {
+                        output += from;
+                    }
+                }
+                this.el.innerHTML = output;
+                if (complete === this.queue.length) {
+                    this.resolve();
+                } else {
+                    this.frameRequest = requestAnimationFrame(this.update);
+                    this.frame++;
+                }
+            }
+
+            randomChar() {
+                return this.chars[Math.floor(Math.random() * this.chars.length)];
+            }
+        }
+
+        // Apply scramble effect to verse reference on hover
+        document.addEventListener('DOMContentLoaded', () => {
+            const verseRef = document.getElementById('verseRef');
+            if (verseRef) {
+                const scrambler = new TextScramble(verseRef);
+                const originalText = verseRef.textContent;
+                
+                verseRef.addEventListener('mouseenter', () => {
+                    scrambler.setText(originalText);
+                });
+            }
+        });
+
+        // Wave Text Animation Helper
+        function applyWaveText(element) {
+            const text = element.textContent;
+            element.innerHTML = '';
+            text.split('').forEach((char, i) => {
+                const span = document.createElement('span');
+                span.textContent = char === ' ' ? '\u00A0' : char;
+                span.style.animationDelay = `${i * 0.1}s`;
+                element.appendChild(span);
+            });
+            element.classList.add('wave-text');
+        }
+
+        // Intersection Observer for Scroll Animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all glass cards for scroll animation
+        document.querySelectorAll('.glass-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // Enhanced Tab Switch with Sound
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabName, btn = null) {
+            // Play subtle sound effect
+            if (settings.sound) {
+                const audio = new Audio();
+                audio.volume = 0.1;
+                // Create a soft click sound using Web Audio API
+                playClickSound();
+            }
+            
+            // Call original function
+            originalSwitchTab(tabName, btn);
+            
+            // Add stagger animation to new tab content
+            const activeTab = document.querySelector('.tab-view.active');
+            if (activeTab) {
+                const children = activeTab.children;
+                Array.from(children).forEach((child, index) => {
+                    child.style.opacity = '0';
+                    child.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        child.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                        child.style.opacity = '1';
+                        child.style.transform = 'translateY(0)';
+                    }, index * 50);
+                });
+            }
+        };
+
+        // Soft click sound using Web Audio API
+        function playClickSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {}
+        }
+
+        // Floating animation for elements
+        function addFloatingAnimation(selector) {
+            document.querySelectorAll(selector).forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.2}s`;
+                el.classList.add('float-animation');
+            });
+        }
+
+        // Add floating to stat cards
+        setTimeout(() => addFloatingAnimation('.stat-card'), 1000);
 
         // ===== TESTIMONY SPOTLIGHT =====
         const testimonies = [
