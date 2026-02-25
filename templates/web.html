@@ -4571,6 +4571,417 @@
         /* Mythic Chat Effects */
         .chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
         .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
+
+        /* ===== ULTIMATE EFFECT COLLECTION ===== */
+
+        /* Particle Explosion Effect */
+        .particle-burst {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .burst-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: burstParticle 0.8s ease-out forwards;
+        }
+
+        @keyframes burstParticle {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        /* Comet Trail Cursor */
+        .cursor-trail {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(10,132,255,0.8) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 9998;
+            animation: trailFade 0.5s ease-out forwards;
+        }
+
+        @keyframes trailFade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.2); }
+        }
+
+        /* Hologram Effect */
+        .hologram {
+            position: relative;
+            background: linear-gradient(135deg, rgba(10,132,255,0.1), rgba(52,198,255,0.1));
+            border: 1px solid rgba(10,132,255,0.5);
+            box-shadow: 
+                0 0 20px rgba(10,132,255,0.3),
+                inset 0 0 20px rgba(10,132,255,0.1);
+            animation: hologramFlicker 3s infinite;
+        }
+
+        .hologram::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(10,132,255,0.1) 2px,
+                rgba(10,132,255,0.1) 4px
+            );
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes hologramFlicker {
+            0%, 100% { opacity: 1; }
+            5% { opacity: 0.95; }
+            10% { opacity: 1; }
+            15% { opacity: 0.9; }
+            20% { opacity: 1; }
+            50% { opacity: 1; }
+            52% { opacity: 0.9; }
+            54% { opacity: 1; }
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        /* Fireworks Effect */
+        .firework {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        /* Floating Heart Effect */
+        .floating-heart {
+            position: fixed;
+            font-size: 24px;
+            pointer-events: none;
+            z-index: 9999;
+            animation: floatHeart 1.5s ease-out forwards;
+        }
+
+        @keyframes floatHeart {
+            0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(-100px) scale(1.2) rotate(10deg); opacity: 0.8; }
+            100% { transform: translateY(-200px) scale(0.5) rotate(-10deg); opacity: 0; }
+        }
+
+        /* Aurora Background Effect */
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(10,132,255,0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(52,198,255,0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(18,209,142,0.2) 0%, transparent 60%);
+            animation: auroraMove 20s ease-in-out infinite;
+        }
+
+        @keyframes auroraMove {
+            0%, 100% { 
+                transform: translate(0, 0) rotate(0deg);
+                filter: hue-rotate(0deg);
+            }
+            25% { 
+                transform: translate(5%, 5%) rotate(2deg);
+                filter: hue-rotate(10deg);
+            }
+            50% { 
+                transform: translate(-5%, 10%) rotate(-1deg);
+                filter: hue-rotate(-10deg);
+            }
+            75% { 
+                transform: translate(-5%, -5%) rotate(1deg);
+                filter: hue-rotate(5deg);
+            }
+        }
+
+        /* Electric Border Effect */
+        .electric-border {
+            position: relative;
+        }
+
+        .electric-border::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
+            background-size: 300% 100%;
+            border-radius: inherit;
+            z-index: -1;
+            animation: electricFlow 2s linear infinite;
+        }
+
+        .electric-border::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--glass-bg);
+            border-radius: inherit;
+            z-index: -1;
+        }
+
+        @keyframes electricFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        /* Spotlight Hover Effect */
+        .spotlight {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .spotlight::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            transform: translate(-50%, -50%);
+            left: var(--x, 50%);
+            top: var(--y, 50%);
+        }
+
+        .spotlight:hover::before {
+            opacity: 1;
+        }
+
+        /* Glowing Border Animation */
+        .glow-border {
+            position: relative;
+        }
+
+        .glow-border::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+            background-size: 400%;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: glowBorderRotate 6s linear infinite;
+        }
+
+        @keyframes glowBorderRotate {
+            0% { background-position: 0 0; }
+            50% { background-position: 400% 0; }
+            100% { background-position: 0 0; }
+        }
+
+        /* Typing Sound Visual Feedback */
+        .typing-pulse {
+            animation: typingPulse 0.1s ease;
+        }
+
+        @keyframes typingPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        /* Liquid Morph Effect */
+        .liquid-morph {
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            animation: liquidMorph 4s ease-in-out infinite;
+        }
+
+        @keyframes liquidMorph {
+            0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+            50% { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
+            75% { border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%; }
+        }
+
+        /* Shake Intensity Levels */
+        .shake-light { animation: shakeLight 0.5s ease-in-out; }
+        .shake-medium { animation: shakeMedium 0.5s ease-in-out; }
+        .shake-heavy { animation: shakeHeavy 0.5s ease-in-out; }
+
+        @keyframes shakeLight {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+
+        @keyframes shakeMedium {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+
+        @keyframes shakeHeavy {
+            0%, 100% { transform: translateX(0) rotate(0); }
+            10% { transform: translateX(-10px) rotate(-5deg); }
+            20% { transform: translateX(10px) rotate(5deg); }
+            30% { transform: translateX(-10px) rotate(-5deg); }
+            40% { transform: translateX(10px) rotate(5deg); }
+            50% { transform: translateX(-10px) rotate(-5deg); }
+            60% { transform: translateX(10px) rotate(5deg); }
+            70% { transform: translateX(-10px) rotate(-5deg); }
+            80% { transform: translateX(10px) rotate(5deg); }
+            90% { transform: translateX(-10px) rotate(-5deg); }
+        }
+
+        /* Flip 3D Effect */
+        .flip-3d {
+            transform-style: preserve-3d;
+            animation: flip3D 0.6s ease-in-out;
+        }
+
+        @keyframes flip3D {
+            0% { transform: rotateY(0); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        /* Spiral In Animation */
+        .spiral-in {
+            animation: spiralIn 0.8s ease-out forwards;
+        }
+
+        @keyframes spiralIn {
+            0% { 
+                opacity: 0;
+                transform: rotate(-720deg) scale(0);
+            }
+            100% { 
+                opacity: 1;
+                transform: rotate(0) scale(1);
+            }
+        }
+
+        /* Elastic Scale */
+        .elastic-scale {
+            animation: elasticScale 0.6s ease;
+        }
+
+        @keyframes elasticScale {
+            0% { transform: scale(0.3); }
+            40% { transform: scale(1.2); }
+            60% { transform: scale(0.9); }
+            80% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Page Transition Wipe */
+        .page-wipe {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            z-index: 99999;
+            animation: pageWipe 0.6s ease-in-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes pageWipe {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Star Field Effect */
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: starTwinkle2 3s infinite;
+        }
+
+        @keyframes starTwinkle2 {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        /* Vortex Effect */
+        .vortex {
+            animation: vortexSpin 2s linear infinite;
+        }
+
+        @keyframes vortexSpin {
+            0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg); }
+            50% { transform: rotate(180deg) scale(1.1); filter: hue-rotate(180deg); }
+            100% { transform: rotate(360deg) scale(1); filter: hue-rotate(360deg); }
+        }
+
+        /* Glitch Image Effect */
+        .glitch-img {
+            position: relative;
+        }
+
+        .glitch-img::before,
+        .glitch-img::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: inherit;
+            background-size: cover;
+        }
+
+        .glitch-img::before {
+            animation: glitchImg1 0.3s infinite;
+            clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+        }
+
+        .glitch-img::after {
+            animation: glitchImg2 0.3s infinite;
+            clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+        }
+
+        @keyframes glitchImg1 {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+        }
+
+        @keyframes glitchImg2 {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(5px); }
+            40% { transform: translateX(-5px); }
+        }
     </style>
 </head>
 <body>
@@ -4742,7 +5153,7 @@
                     <div class="filter-chip" onclick="filterDiscover('recent')">🕐 Recent</div>
                 </div>
 
-                <div class="glass-card verse-container glow-pulse shine-effect" onclick="toggleFullscreen()" id="mainVerseCard">
+                <div class="glass-card verse-container glow-pulse shine-effect spotlight electric-border" onclick="toggleFullscreen()" id="mainVerseCard">
                     <div style="position: absolute; top: -30%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(10,132,255,0.1) 0%, transparent 70%); pointer-events: none;"></div>
                     <div class="verse-text typewriter-text letter-space" id="verseText" style="font-weight: 500; line-height: 1.7;">
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 100%;"></div>
@@ -4857,7 +5268,7 @@
                 </div>
 
                 <div class="glass-card">
-                    <button class="gen-btn" onclick="generateRec()">
+                    <button class="gen-btn magnetic-btn ripple glow-border" onclick="generateRec(); if(settings.particleExplosions) { const rect = this.getBoundingClientRect(); createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']); }">
                         <span>&#128276;</span>
                         <span>Generate Smart Recommendation</span>
                     </button>
@@ -5575,6 +5986,54 @@
 
             <div class="setting-item">
                 <div>
+                    <div class="setting-label">Cursor Trail</div>
+                    <div class="setting-desc">Comet tail effect following your mouse</div>
+                </div>
+                <div class="toggle" id="cursorTrailToggle" onclick="toggleCursorTrail()">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Star Field</div>
+                    <div class="setting-desc">Twinkling stars in the background</div>
+                </div>
+                <div class="toggle" id="starFieldToggle" onclick="toggleStarField()">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Aurora Effect</div>
+                    <div class="setting-desc">Northern lights style gradient animation</div>
+                </div>
+                <div class="toggle" id="auroraToggle" onclick="toggleAurora()">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Particle Explosions</div>
+                    <div class="setting-desc">Burst effect on button clicks</div>
+                </div>
+                <div class="toggle" id="particleExplosionToggle" onclick="toggleParticleExplosions()">
+                    <div class="toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="setting-item" style="background: linear-gradient(90deg, rgba(255,215,0,0.1), rgba(255,107,53,0.1)); border-radius: 12px; padding: 16px; margin-top: 10px;">
+                <div>
+                    <div class="setting-label" style="color: #FFD700; font-weight: 800;">✨ BLESSING MODE ✨</div>
+                    <div class="setting-desc">Activate ALL effects at once for maximum wow!</div>
+                </div>
+                <button class="bible-picks-btn" style="background: linear-gradient(135deg, #FFD700, #FF6B35); color: #000; font-weight: 700;" onclick="activateBlessingMode()">ACTIVATE</button>
+            </div>
+
+            <div class="setting-item">
+                <div>
                     <div class="setting-label">High Contrast</div>
                     <div class="setting-desc">Stronger colors for accessibility</div>
                 </div>
@@ -5754,7 +6213,11 @@
             ttsEnabled: false,
             ttsSpeed: 1,
             advancedAnimations: false,
-            animatedBackground: false
+            animatedBackground: false,
+            cursorTrail: false,
+            starField: false,
+            aurora: false,
+            particleExplosions: false
         };
         let commentRestriction = { restricted: false, reason: '', expires_at: null };
         let notificationsCache = [];
@@ -5941,6 +6404,25 @@
             document.querySelectorAll('.action-btn, .tab-btn').forEach(btn => {
                 btn.classList.add('magnetic-btn', 'ripple');
             });
+            
+            // Restore animation settings
+            if (settings.cursorTrail) enableCursorTrail();
+            if (settings.starField) createStarField();
+            if (settings.aurora) {
+                const aurora = document.createElement('div');
+                aurora.className = 'aurora-bg';
+                aurora.id = 'auroraBg';
+                document.body.insertBefore(aurora, document.body.firstChild);
+            }
+            if (settings.animatedBackground) document.body.classList.add('animated-bg');
+            
+            // Update toggle states
+            if (settings.cursorTrail) document.getElementById('cursorTrailToggle')?.classList.add('active');
+            if (settings.starField) document.getElementById('starFieldToggle')?.classList.add('active');
+            if (settings.aurora) document.getElementById('auroraToggle')?.classList.add('active');
+            if (settings.animatedBackground) document.getElementById('animatedBgToggle')?.classList.add('active');
+            if (settings.advancedAnimations) document.getElementById('advancedAnimToggle')?.classList.add('active');
+            if (settings.particleExplosions) document.getElementById('particleExplosionToggle')?.classList.add('active');
             
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) stopVersePolling();
@@ -6601,7 +7083,22 @@
             const data = await res.json();
             updateLikeUI(data.liked);
             animateActionFeedback('likeIcon', data.liked ? '❤️' : '');
-            if (settings.notifications) showToast(data.liked ? 'Added to likes' : 'Removed from likes');
+            
+            // Visual effects
+            if (data.liked) {
+                const likeBtn = document.querySelector('[onclick="toggleLike()"]');
+                if (likeBtn) {
+                    const rect = likeBtn.getBoundingClientRect();
+                    spawnFloatingHearts(rect.left + rect.width/2, rect.top);
+                    elasticScale(likeBtn);
+                    
+                    if (settings.particleExplosions) {
+                        createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#FF6B6B', '#FF8787', '#FFB4B4']);
+                    }
+                }
+            }
+            
+            if (settings.notifications) showToast(data.liked ? 'Added to likes ❤️' : 'Removed from likes');
             
             if (data.recommendation && settings.autoRec) {
                 showRecommendation(data.recommendation);
@@ -6632,6 +7129,16 @@
                     }
                 })
             });
+            
+            // Visual effects
+            const saveBtn = document.querySelector('[onclick="toggleSave()"]');
+            if (saveBtn) {
+                elasticScale(saveBtn);
+                if (settings.particleExplosions) {
+                    const rect = saveBtn.getBoundingClientRect();
+                    createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#FFD700', '#FFA500', '#FF8C00']);
+                }
+            }
             const data = await res.json();
             updateSaveUI(data.saved);
             animateActionFeedback('saveIcon', data.saved ? '🔖' : '');
@@ -6651,12 +7158,33 @@
             if (!currentVerse) return;
             const text = `"${currentVerse.text}" — ${currentVerse.ref}`;
             await navigator.clipboard.writeText(text);
-            if (settings.notifications) showToast('Copied to clipboard!');
+            
+            // Visual effects
+            const copyBtn = document.querySelector('[onclick="copyVerse()"]');
+            if (copyBtn) {
+                flip3D(copyBtn);
+                if (settings.particleExplosions) {
+                    const rect = copyBtn.getBoundingClientRect();
+                    createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#0A84FF', '#34C6FF', '#12D18E']);
+                }
+            }
+            
+            if (settings.notifications) showToast('Copied to clipboard! 📋');
         }
 
         async function shareVerse() {
             if (!currentVerse) return;
             const text = `"${currentVerse.text}" — ${currentVerse.ref}`;
+            
+            // Visual effects
+            const shareBtn = document.querySelector('[onclick="shareVerse()"]');
+            if (shareBtn) {
+                spiralIn(shareBtn);
+                if (settings.particleExplosions) {
+                    const rect = shareBtn.getBoundingClientRect();
+                    createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']);
+                }
+            }
             
             try {
                 if (navigator.share) {
@@ -9670,6 +10198,18 @@ async function checkAchievement(type, value) {
             el.classList.remove('verse-reveal');
             void el.offsetWidth;
             el.classList.add('verse-reveal');
+            
+            // Apply hologram effect randomly (10% chance)
+            if (Math.random() < 0.1) {
+                applyHologramEffect();
+            }
+            
+            // Apply liquid morph border
+            liquidMorph(el, 4000);
+            
+            // Spotlight effect on verse card
+            el.classList.add('spotlight');
+            initSpotlightEffect();
         }
 
         function animateActionFeedback(iconId, burstEmoji = '') {
@@ -10082,6 +10622,17 @@ async function checkAchievement(type, value) {
 
         function setupGlobalShortcuts() {
             document.addEventListener('keydown', (e) => {
+                // Fireworks shortcut (F key)
+                if (e.key === 'f' || e.key === 'F') {
+                    const centerX = window.innerWidth / 2;
+                    const centerY = window.innerHeight / 2;
+                    launchFireworks(centerX, centerY);
+                    launchFireworks(centerX - 200, centerY - 100);
+                    launchFireworks(centerX + 200, centerY - 100);
+                    showToast('🎆 Fireworks! Press F anytime!');
+                    return;
+                }
+                
                 if (currentTab !== 'about') return;
                 const activeEl = document.activeElement;
                 const tag = activeEl && activeEl.tagName ? activeEl.tagName.toLowerCase() : '';
@@ -10417,6 +10968,117 @@ async function checkAchievement(type, value) {
             AudioSys.playClick();
             saveSettings();
             showToast(settings.animatedBackground ? 'Animated background ON 🌊' : 'Animated background OFF');
+        }
+
+        function toggleCursorTrail() {
+            settings.cursorTrail = !settings.cursorTrail;
+            document.getElementById('cursorTrailToggle').classList.toggle('active');
+            
+            if (settings.cursorTrail) {
+                enableCursorTrail();
+                showToast('Cursor trail ON ✨');
+            } else {
+                cursorTrailEnabled = false;
+                showToast('Cursor trail OFF');
+            }
+            
+            AudioSys.playClick();
+            saveSettings();
+        }
+
+        function toggleStarField() {
+            settings.starField = !settings.starField;
+            document.getElementById('starFieldToggle').classList.toggle('active');
+            
+            if (settings.starField) {
+                createStarField();
+                showToast('Star field ON ⭐');
+            } else {
+                document.querySelector('.star-field')?.remove();
+                showToast('Star field OFF');
+            }
+            
+            AudioSys.playClick();
+            saveSettings();
+        }
+
+        function toggleAurora() {
+            settings.aurora = !settings.aurora;
+            document.getElementById('auroraToggle').classList.toggle('active');
+            
+            if (settings.aurora) {
+                const aurora = document.createElement('div');
+                aurora.className = 'aurora-bg';
+                aurora.id = 'auroraBg';
+                document.body.insertBefore(aurora, document.body.firstChild);
+                showToast('Aurora effect ON 🌌');
+            } else {
+                document.getElementById('auroraBg')?.remove();
+                showToast('Aurora effect OFF');
+            }
+            
+            AudioSys.playClick();
+            saveSettings();
+        }
+
+        function toggleParticleExplosions() {
+            settings.particleExplosions = !settings.particleExplosions;
+            document.getElementById('particleExplosionToggle').classList.toggle('active');
+            
+            AudioSys.playClick();
+            saveSettings();
+            showToast(settings.particleExplosions ? 'Particle explosions ON 💥' : 'Particle explosions OFF');
+        }
+
+        // BLESSING MODE - Activate ALL effects!
+        function activateBlessingMode() {
+            // Launch massive fireworks
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    launchFireworks(
+                        Math.random() * window.innerWidth,
+                        Math.random() * window.innerHeight * 0.5
+                    );
+                }, i * 300);
+            }
+            
+            // Apply all effects
+            document.body.classList.add('animated-bg');
+            if (!document.querySelector('.star-field')) createStarField();
+            if (!document.getElementById('auroraBg')) {
+                const aurora = document.createElement('div');
+                aurora.className = 'aurora-bg';
+                aurora.id = 'auroraBg';
+                document.body.insertBefore(aurora, document.body.firstChild);
+            }
+            enableCursorTrail();
+            
+            // Apply effects to all cards
+            document.querySelectorAll('.glass-card').forEach((card, i) => {
+                setTimeout(() => {
+                    electricBorder(card, 2000);
+                    spiralIn(card);
+                }, i * 100);
+            });
+            
+            // Hologram on verse
+            applyHologramEffect();
+            
+            // Show blessing message
+            showToast('🙏 BLESSING MODE ACTIVATED! 🙏');
+            
+            // Create particle explosions across the screen
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    createParticleExplosion(
+                        Math.random() * window.innerWidth,
+                        Math.random() * window.innerHeight,
+                        ['#FFD700', '#FF6B35', '#0A84FF', '#12D18E', '#BF5AF2']
+                    );
+                }, i * 200);
+            }
+            
+            AudioSys.playSuccess?.();
         }
         
         function toggleHighContrast() {
@@ -11232,6 +11894,209 @@ async function checkAchievement(type, value) {
         }
 
         // ===== ADVANCED ANIMATION SYSTEMS =====
+
+        // Particle Explosion Effect
+        function createParticleExplosion(x, y, colors = ['#0A84FF', '#34C6FF', '#12D18E', '#FFD700', '#FF6B6B']) {
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'burst-particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                
+                const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
+                const velocity = 50 + Math.random() * 150;
+                particle.style.setProperty('--tx', Math.cos(angle) * velocity + 'px');
+                particle.style.setProperty('--ty', Math.sin(angle) * velocity + 'px');
+                
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 800);
+            }
+        }
+
+        // Comet Trail Cursor Effect
+        let cursorTrailEnabled = false;
+        function enableCursorTrail() {
+            if (cursorTrailEnabled) return;
+            cursorTrailEnabled = true;
+            
+            document.addEventListener('mousemove', (e) => {
+                if (Math.random() > 0.7) return; // Limit trail density
+                
+                const trail = document.createElement('div');
+                trail.className = 'cursor-trail';
+                trail.style.left = e.clientX + 'px';
+                trail.style.top = e.clientY + 'px';
+                
+                // Random colors
+                const colors = ['rgba(10,132,255,0.6)', 'rgba(52,198,255,0.6)', 'rgba(18,209,142,0.6)'];
+                trail.style.background = `radial-gradient(circle, ${colors[Math.floor(Math.random() * colors.length)]} 0%, transparent 70%)`;
+                
+                document.body.appendChild(trail);
+                setTimeout(() => trail.remove(), 500);
+            });
+        }
+
+        // Fireworks Celebration
+        function launchFireworks(x, y) {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE'];
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.left = x + 'px';
+                firework.style.top = y + 'px';
+                firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                firework.style.boxShadow = `0 0 6px ${firework.style.background}`;
+                
+                const angle = (Math.PI * 2 * i) / particleCount;
+                const velocity = 80 + Math.random() * 120;
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity - 100; // Gravity offset
+                
+                document.body.appendChild(firework);
+                
+                // Animate with Web Animations API
+                firework.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: 1000 + Math.random() * 500,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                }).onfinish = () => firework.remove();
+            }
+        }
+
+        // Floating Hearts on Like
+        function spawnFloatingHearts(x, y) {
+            const hearts = ['❤️', '💖', '💕', '💗', '💓', '💝'];
+            
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = 'floating-heart';
+                    heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                    heart.style.left = (x + Math.random() * 40 - 20) + 'px';
+                    heart.style.top = (y + Math.random() * 20 - 10) + 'px';
+                    heart.style.fontSize = (20 + Math.random() * 15) + 'px';
+                    
+                    document.body.appendChild(heart);
+                    setTimeout(() => heart.remove(), 1500);
+                }, i * 100);
+            }
+        }
+
+        // Star Field Background
+        function createStarField() {
+            const container = document.createElement('div');
+            container.className = 'star-field';
+            
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.animationDuration = (2 + Math.random() * 2) + 's';
+                container.appendChild(star);
+            }
+            
+            document.body.insertBefore(container, document.body.firstChild);
+        }
+
+        // Spotlight Effect
+        function initSpotlightEffect() {
+            document.querySelectorAll('.spotlight').forEach(el => {
+                el.addEventListener('mousemove', (e) => {
+                    const rect = el.getBoundingClientRect();
+                    el.style.setProperty('--x', e.clientX - rect.left + 'px');
+                    el.style.setProperty('--y', e.clientY - rect.top + 'px');
+                });
+            });
+        }
+
+        // Page Wipe Transition
+        function pageTransition(callback) {
+            const wipe = document.createElement('div');
+            wipe.className = 'page-wipe';
+            document.body.appendChild(wipe);
+            
+            setTimeout(() => {
+                if (callback) callback();
+                setTimeout(() => wipe.remove(), 600);
+            }, 300);
+        }
+
+        // Enhanced Button Click with Particle Explosion
+        function enhancedButtonClick(event, callback) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            
+            createParticleExplosion(x, y);
+            
+            if (callback) callback();
+        }
+
+        // Apply hologram effect to verse on special occasions
+        function applyHologramEffect() {
+            const verseCard = document.getElementById('mainVerseCard');
+            if (verseCard) {
+                verseCard.classList.add('hologram');
+                setTimeout(() => verseCard.classList.remove('hologram'), 5000);
+            }
+        }
+
+        // Shake element for errors
+        function shakeElement(element, intensity = 'medium') {
+            element.classList.add(`shake-${intensity}`);
+            setTimeout(() => element.classList.remove(`shake-${intensity}`), 500);
+        }
+
+        // Elastic scale animation
+        function elasticScale(element) {
+            element.classList.add('elastic-scale');
+            setTimeout(() => element.classList.remove('elastic-scale'), 600);
+        }
+
+        // Spiral in animation
+        function spiralIn(element) {
+            element.classList.add('spiral-in');
+            setTimeout(() => element.classList.remove('spiral-in'), 800);
+        }
+
+        // 3D Flip animation
+        function flip3D(element) {
+            element.classList.add('flip-3d');
+            setTimeout(() => element.classList.remove('flip-3d'), 600);
+        }
+
+        // Vortex effect
+        function startVortex(element, duration = 2000) {
+            element.classList.add('vortex');
+            setTimeout(() => element.classList.remove('vortex'), duration);
+        }
+
+        // Liquid morph border
+        function liquidMorph(element, duration = 4000) {
+            element.classList.add('liquid-morph');
+            setTimeout(() => element.classList.remove('liquid-morph'), duration);
+        }
+
+        // Glowing border effect
+        function glowBorder(element, duration = 6000) {
+            element.classList.add('glow-border');
+            setTimeout(() => element.classList.remove('glow-border'), duration);
+        }
+
+        // Electric border effect
+        function electricBorder(element, duration = 2000) {
+            element.classList.add('electric-border');
+            setTimeout(() => element.classList.remove('electric-border'), duration);
+        }
 
         // Ripple Effect for Buttons
         function createRipple(event, button) {
