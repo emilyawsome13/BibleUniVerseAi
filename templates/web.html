@@ -12247,18 +12247,16 @@ async function checkAchievement(type, value) {
         });
 
         // Enhanced Tab Switch with Sound
-        const originalSwitchTab = switchTab;
+        // Extend switchTab with animation effects
+        const enhancedSwitchTab = switchTab;
         switchTab = function(tabName, btn = null) {
             // Play subtle sound effect
             if (settings.sound) {
-                const audio = new Audio();
-                audio.volume = 0.1;
-                // Create a soft click sound using Web Audio API
                 playClickSound();
             }
             
             // Call original function
-            originalSwitchTab(tabName, btn);
+            enhancedSwitchTab(tabName, btn);
             
             // Add stagger animation to new tab content
             const activeTab = document.querySelector('.tab-view.active');
