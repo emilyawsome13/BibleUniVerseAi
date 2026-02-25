@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.name }} • Profile</title>
+    <style>
+        :root { color-scheme: dark; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            background: radial-gradient(circle at top, #10131a, #08090c);
+            color: #f2f2f2;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            background: rgba(15, 18, 25, 0.9);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 28px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.45);
+            text-align: center;
+            {% if user.equipped_profile_bg %}
+            {% if user.equipped_profile_bg.effects.bg_style == 'gradient' %}
+            background: linear-gradient(135deg, {{ user.equipped_profile_bg.effects.colors[0] if user.equipped_profile_bg.effects.colors else '#0f1219' }}, {{ user.equipped_profile_bg.effects.colors[1] if user.equipped_profile_bg.effects.colors|length > 1 else '#1a1d29' }});
+            {% endif %}
+            {% endif %}
+        }
+        .avatar {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(79,70,229,0.6);
+            box-shadow: 0 12px 30px rgba(79,70,229,0.35);
+        }
+        .avatar-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .avatar-decor {
+            position: absolute;
+            inset: -18%;
+            width: 136%;
+            height: 136%;
+            object-fit: contain;
+            pointer-events: none;
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4));
+        }
+        .name {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 14px 0 6px;
+        }
+        .name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .badges {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .badge-icon {
+            font-size: 18px;
+        }
+        .user-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .user-title-legendary { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+        .user-title-epic { background: linear-gradient(135deg, #9400D3, #FF00FF); color: #fff; }
+        .user-title-rare { background: linear-gradient(135deg, #00BFFF, #1E90FF); color: #fff; }
+        .user-title-common { background: linear-gradient(135deg, #808080, #A9A9A9); color: #fff; }
+        .user-title-mythic { background: linear-gradient(135deg, #FF1493, #9400D3, #00CED1); color: #fff; box-shadow: 0 0 20px rgba(255,20,147,0.5); }
+        .role {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #cdd3ff;
+            margin-bottom: 12px;
+        }
+        .meta {
+            font-size: 13px;
+            color: #b8b8b8;
+            margin-top: 6px;
+        }
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: #1f2937;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #f2f2f2;
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn.primary { background: #334155; }
+        .btn:hover { background: #2b3647; }
+        
+        /* Frame Styles */
+        .profile-frame-frame_gold { border: 3px solid #FFD700 !important; box-shadow: 0 0 20px rgba(255,215,0,0.5), inset 0 0 10px rgba(255,215,0,0.2) !important; }
+        .profile-frame-frame_silver { border: 3px solid #C0C0C0 !important; box-shadow: 0 0 15px rgba(192,192,192,0.4) !important; }
+        .profile-frame-frame_bronze { border: 3px solid #CD7F32 !important; box-shadow: 0 0 12px rgba(205,127,50,0.4) !important; }
+        .profile-frame-frame_angel { border: 3px solid transparent !important; }
+        .profile-frame-frame_angel::after { content: '🪽'; position: absolute; top: -5px; right: -5px; font-size: 24px; }
+        .profile-frame-frame_cross { border: 3px solid #8B4513 !important; box-shadow: 0 0 15px rgba(139,69,19,0.4) !important; }
+        .profile-frame-frame_cross::after { content: '✝️'; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 20px; }
+        .profile-frame-frame_heart { border: 3px solid #FF69B4 !important; }
+        .profile-frame-frame_heart::after { content: '💖'; position: absolute; bottom: -5px; right: -5px; font-size: 20px; }
+        .profile-frame-frame_fire { border: 3px solid #FF4500 !important; box-shadow: 0 0 20px rgba(255,69,0,0.5) !important; }
+        .profile-frame-frame_ice { border: 3px solid #00CED1 !important; box-shadow: 0 0 20px rgba(0,206,209,0.5) !important; }
+        .profile-frame-frame_nature { border: 3px solid #228B22 !important; box-shadow: 0 0 15px rgba(34,139,34,0.4) !important; }
+        .profile-frame-frame_stars { border: 2px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box !important; }
+        
+        /* Name Color Styles */
+        .profile-name-color_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .profile-name-color_gold { color: #FFD700 !important; text-shadow: 0 0 10px rgba(255,215,0,0.5) !important; }
+        .profile-name-color_silver { color: #C0C0C0 !important; text-shadow: 0 0 8px rgba(192,192,192,0.4) !important; }
+        .profile-name-color_blue { color: #0A84FF !important; text-shadow: 0 0 10px rgba(10,132,255,0.4) !important; }
+        .profile-name-color_red { color: #FF375F !important; text-shadow: 0 0 10px rgba(255,55,95,0.4) !important; }
+        .profile-name-color_purple { color: #BF5AF2 !important; text-shadow: 0 0 10px rgba(191,90,242,0.4) !important; }
+        .profile-name-color_green { color: #30D158 !important; text-shadow: 0 0 10px rgba(48,209,88,0.4) !important; }
+        .profile-name-color_neon { color: #39FF14 !important; text-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14 !important; }
+        .profile-name-color_pink { color: #FF69B4 !important; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="avatar-wrap">
+            <img class="avatar {% if user.equipped_frame %}profile-frame-{{ user.equipped_frame.item_id }}{% endif %}" 
+                 src="{{ user.picture }}" 
+                 onerror="this.src='https://ui-avatars.com/api/?name={{ user.name|urlencode }}&background=random'">
+            {% if user.avatar_decoration %}
+                <img class="avatar-decor" src="{{ user.avatar_decoration }}" alt="">
+            {% endif %}
+        </div>
+        <div class="name-row">
+            <div class="name {% if user.equipped_name_color %}profile-name-{{ user.equipped_name_color.item_id }}{% endif %}">{{ user.name }}</div>
+            {% if user.equipped_badges %}
+                <div class="badges">
+                    {% for badge in user.equipped_badges %}
+                        <span class="badge-icon" title="{{ badge.name }}">{{ badge.icon }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        {% if user.equipped_title %}
+            <span class="user-title user-title-{{ user.equipped_title.rarity }}">{{ user.equipped_title.icon }} {{ user.equipped_title.name }}</span>
+        {% endif %}
+        <div class="role">{{ user.role_display }}</div>
+        {% if show_email %}
+            <div class="meta">{{ user.email }}</div>
+        {% else %}
+            <div class="meta">Email hidden for privacy</div>
+        {% endif %}
+        <div class="meta">User ID: {{ user.id }}</div>
+        {% if user.created_at_display %}
+            <div class="meta">Member since {{ user.created_at_display }}</div>
+        {% endif %}
+        <div class="actions">
+            {% if can_dm %}
+                <a class="btn primary" href="/?dmUser={{ user.id }}#comments">Message</a>
+            {% endif %}
+            <a class="btn" href="/">Back to Site</a>
+        </div>
+    </div>
+</body>
+</html>

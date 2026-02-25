@@ -1,0 +1,361 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Audit Logs{% endblock %}
+{% block header_title %}Audit Logs{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="filters-bar">
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search logs..." onkeyup="debounceSearch()">
+    </div>
+    <select class="form-select" id="actionFilter" onchange="loadLogs()" style="width: 180px;">
+        <option value="all">All Actions</option>
+        <option value="user_banned">User Banned</option>
+        <option value="user_unbanned">User Unbanned</option>
+        <option value="user_updated">User Updated</option>
+        <option value="user_deleted">User Deleted</option>
+        <option value="admin_verified">Admin Verified</option>
+        <option value="system_settings_updated">System Settings</option>
+    </select>
+    <select class="form-select" id="perPage" onchange="loadLogs()" style="width: 120px;">
+        <option value="25">25 per page</option>
+        <option value="50" selected>50 per page</option>
+        <option value="100">100 per page</option>
+    </select>
+    <button class="btn btn-secondary" onclick="exportLogs()">📥 Export</button>
+</div>
+
+<!-- Logs Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Activity Logs</div>
+        <div id="totalCount" style="color: var(--text-tertiary); font-size: 14px;">Loading...</div>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Admin</th>
+                    <th>Action</th>
+                    <th>Target User</th>
+                    <th>Details</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="logsTableBody">
+                <tr>
+                    <td colspan="6" class="loading">
+                        <div class="spinner"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- Log Details Modal -->
+<div class="modal-overlay" id="logModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Log Details</div>
+            <button class="modal-close" onclick="closeLogModal()">✕</button>
+        </div>
+        <div class="modal-body" id="logDetails">
+            <!-- Content loaded dynamically -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeLogModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let allLogs = [];
+    let searchTimeout = null;
+
+    // Load logs on page load
+    loadLogs();
+
+    function debounceSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            loadLogs();
+        }, 300);
+    }
+
+    async function loadLogs() {
+        const search = document.getElementById('searchInput').value;
+        const action = document.getElementById('actionFilter').value;
+        const perPage = parseInt(document.getElementById('perPage').value);
+        
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: perPage,
+            action: action
+        });
+        
+        try {
+            const response = await fetch(`/admin/api/audits?${params}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                showToast(data.error, 'error');
+                return;
+            }
+            
+            allLogs = data.logs;
+            
+            // Filter by search if provided
+            let filteredLogs = allLogs;
+            if (search) {
+                const searchLower = search.toLowerCase();
+                filteredLogs = allLogs.filter(log => 
+                    log.admin_name.toLowerCase().includes(searchLower) ||
+                    log.action.toLowerCase().includes(searchLower) ||
+                    (log.target_name && log.target_name.toLowerCase().includes(searchLower))
+                );
+            }
+            
+            renderLogs(filteredLogs);
+            renderPagination(data.page, data.pages, data.total);
+            document.getElementById('totalCount').textContent = `${data.total} total logs`;
+        } catch (e) {
+            showToast('Error loading logs', 'error');
+        }
+    }
+
+    function renderLogs(logs) {
+        const tbody = document.getElementById('logsTableBody');
+        
+        if (logs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-title">No logs found</div>
+                        <div style="color: var(--text-tertiary);">Try adjusting your filters</div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = logs.map(log => `
+            <tr style="cursor: pointer;" onclick="showLogDetails(${log.id})">
+                <td>#${log.id}</td>
+                <td>
+                    <span style="font-weight: 600;">${log.admin_name}</span>
+                </td>
+                <td>
+                    <span class="badge ${getActionBadgeClass(log.action)}">${formatAction(log.action)}</span>
+                </td>
+                <td>${log.target_name || '-'}</td>
+                <td style="max-width: 250px;">
+                    ${log.details ? formatDetailsPreview(log.details) : '<span style="color: var(--text-tertiary);">-</span>'}
+                </td>
+                <td>${timeAgo(log.created_at)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function formatAction(action) {
+        return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function getActionBadgeClass(action) {
+        switch (action) {
+            case 'user_banned': return 'badge-danger';
+            case 'user_unbanned': return 'badge-success';
+            case 'user_updated': return 'badge-warning';
+            case 'user_deleted': return 'badge-danger';
+            case 'admin_verified': return 'badge-primary';
+            case 'system_settings_updated': return 'badge-primary';
+            default: return 'badge-primary';
+        }
+    }
+
+    function formatDetailsPreview(details) {
+        try {
+            let parsed = details;
+            if (typeof details === 'string') {
+                parsed = JSON.parse(details);
+            }
+            
+            // Create a nice preview
+            const parts = [];
+            if (parsed.reason) parts.push(`Reason: ${parsed.reason}`);
+            if (parsed.role) parts.push(`Role: ${parsed.role}`);
+            if (parsed.duration) parts.push(`Duration: ${parsed.duration}h`);
+            if (parsed.verse_interval) parts.push(`Interval: ${parsed.verse_interval}s`);
+            
+            if (parts.length > 0) {
+                return `<span style="font-size: 12px; color: var(--text-secondary);">${parts.join(' • ')}</span>`;
+            }
+            
+            // Fallback: show first key-value pair
+            const entries = Object.entries(parsed);
+            if (entries.length > 0) {
+                return `<span style="font-size: 12px; color: var(--text-secondary);">${entries[0][0]}: ${entries[0][1]}</span>`;
+            }
+            
+            return '<span style="color: var(--text-tertiary);">-</span>';
+        } catch (e) {
+            return `<span style="font-size: 12px; color: var(--text-secondary);">${String(details).substring(0, 50)}</span>`;
+        }
+    }
+
+    function renderPagination(current, total, totalItems) {
+        const pagination = document.getElementById('pagination');
+        
+        if (total <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        // Previous button
+        html += `<button class="page-btn" onclick="goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>←</button>`;
+        
+        // Page numbers
+        for (let i = 1; i <= total; i++) {
+            if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+                html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            } else if (i === current - 3 || i === current + 3) {
+                html += `<span style="color: var(--text-tertiary);">...</span>`;
+            }
+        }
+        
+        // Next button
+        html += `<button class="page-btn" onclick="goToPage(${current + 1})" ${current === total ? 'disabled' : ''}>→</button>`;
+        
+        pagination.innerHTML = html;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        loadLogs();
+    }
+
+    function showLogDetails(logId) {
+        const log = allLogs.find(l => l.id === logId);
+        if (!log) return;
+        
+        const detailsDiv = document.getElementById('logDetails');
+        
+        // Format details nicely
+        let detailsHtml = '';
+        if (log.details) {
+            try {
+                let parsed = log.details;
+                if (typeof log.details === 'string') {
+                    parsed = JSON.parse(log.details);
+                }
+                
+                detailsHtml = '<div style="display: grid; gap: 12px;">';
+                for (const [key, value] of Object.entries(parsed)) {
+                    const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    let formattedValue = value;
+                    
+                    // Format special values
+                    if (key === 'duration' && value) formattedValue = `${value} hours`;
+                    if (key === 'verse_interval' && value) formattedValue = `${value} seconds`;
+                    if (key === 'expires_at' && value) formattedValue = formatDate(value);
+                    
+                    detailsHtml += `
+                        <div style="background: var(--surface); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">${formattedKey}</div>
+                            <div style="font-weight: 600;">${formattedValue || 'N/A'}</div>
+                        </div>
+                    `;
+                }
+                detailsHtml += '</div>';
+            } catch (e) {
+                detailsHtml = `<pre style="background: var(--surface); padding: 12px; border-radius: 8px; margin: 0;">${log.details}</pre>`;
+            }
+        } else {
+            detailsHtml = '<span style="color: var(--text-tertiary);">No additional details</span>';
+        }
+        
+        detailsDiv.innerHTML = `
+            <div style="display: grid; gap: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Log ID</div>
+                        <div style="font-weight: 600; font-family: monospace;">#${log.id}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Timestamp</div>
+                        <div>${formatDate(log.created_at)}</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Admin</div>
+                        <div style="font-weight: 600;">${log.admin_name}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Action</div>
+                        <div><span class="badge ${getActionBadgeClass(log.action)}">${formatAction(log.action)}</span></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Target User</div>
+                    <div style="font-weight: 600;">${log.target_name || 'None'}</div>
+                </div>
+                
+                <div>
+                    <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Details</div>
+                    ${detailsHtml}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('logModal').classList.add('active');
+    }
+
+    function closeLogModal() {
+        document.getElementById('logModal').classList.remove('active');
+    }
+
+    function exportLogs() {
+        const headers = ['ID', 'Admin', 'Action', 'Target User', 'Details', 'Timestamp'];
+        const rows = allLogs.map(log => [
+            log.id,
+            log.admin_name,
+            log.action,
+            log.target_name || '',
+            log.details ? JSON.stringify(log.details).replace(/"/g, '""') : '',
+            log.created_at
+        ]);
+        
+        const csv = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        showToast('Logs exported successfully');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('logModal').addEventListener('click', function(e) {
+        if (e.target === this) closeLogModal();
+    });
+</script>
+{% endblock %}

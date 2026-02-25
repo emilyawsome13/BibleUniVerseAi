@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: bible-ai
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL-9864bd776330b2743effe162f4cef50d
+        fromDatabase:
+          name: bible-ai-db
+          property: connectionString
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_CODE
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: HOST_CODE
+        sync: false
+      - key: MOD_CODE
+        sync: false
+      - key: CO_OWNER_CODE
+        sync: false
+      - key: OWNER_CODE
+        sync: false
+
+databases:
+  - name: bible-ai-db
+    plan: free
+    databaseName: bible_ai
+    user: bible_ai_user

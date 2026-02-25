@@ -1,0 +1,2919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #e7ebf4;
+            --success: #48bb78;
+            --danger: #f56565;
+            --warning: #ed8936;
+            --bg: #020203;
+            --surface: rgba(255,255,255,0.04);
+            --text: #fff;
+            --text-secondary: #9aa1b1;
+            --border: rgba(255,255,255,0.08);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(520px 320px at 14% 10%, rgba(255,255,255,0.05), transparent 62%),
+                radial-gradient(520px 320px at 88% 12%, rgba(255,255,255,0.04), transparent 66%),
+                linear-gradient(180deg, #020203 0%, #06070a 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 120px),
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 120px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+            mix-blend-mode: screen;
+        }
+        
+        /* Mobile-first layout */
+        .mobile-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            position: sticky;
+        }
+        
+        .mobile-menu-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .logo {
+            font-size: 1.3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ffffff 0%, #cfd5e6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            z-index: 200;
+            transition: left 0.3s ease;
+        }
+        
+        .sidebar.active { left: 0; }
+        
+        .sidebar-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 150;
+        }
+        
+        .sidebar-overlay.active { display: block; }
+        
+        .nav-item {
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+        }
+        
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.08); }
+        .nav-item.logout { margin-top: auto; color: #ff6b6b; }
+        .nav-item.hidden { display: none !important; }
+        
+        .main-content {
+            padding: 15px;
+            max-width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .header h1 { font-size: 1.5rem; }
+        
+        .header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .role-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .role-owner { background: #ffd700; color: #000; }
+        .role-co_owner { background: #ff6b6b; color: #fff; }
+        .role-mod { background: #4ecdc4; color: #000; }
+        .role-host { background: #95e1d3; color: #000; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 18px;
+            overflow-x: auto;
+        }
+        
+        .panel-header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .search-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: var(--text);
+            width: 100%;
+            font-size: 15px;
+        }
+        
+        table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        th, td {
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th { 
+            color: var(--text-secondary); 
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        
+        .user-badge {
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .badge-user { background: #333; color: #fff; }
+        .badge-host { background: #95e1d3; color: #000; }
+        .badge-mod { background: #4ecdc4; color: #000; }
+        .badge-co_owner { background: #ff6b6b; color: #fff; }
+        .badge-owner { background: #ffd700; color: #000; }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+        }
+        
+        .status-active { background: rgba(72,187,120,0.2); color: #48bb78; }
+        .status-banned { background: rgba(245,101,101,0.2); color: #f56565; }
+        .status-restricted { background: rgba(237,137,54,0.2); color: #ed8936; }
+        
+        .btn {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn-primary {
+            background: rgba(255,255,255,0.08);
+            color: #f4f6ff;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+        }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: #101113; }
+        .btn-secondary {
+            background: rgba(255,255,255,0.06);
+            color: #e8ebf7;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .hidden { display: none !important; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+        }
+        
+        .refresh-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 15px; }
+        .modal-input, .modal-select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: white;
+            margin: 10px 0;
+            font-size: 15px;
+        }
+        .duration-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+        }
+        .duration-btn {
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .duration-btn:hover, .duration-btn.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .comment-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .settings-meta {
+            margin-bottom: 15px;
+        }
+        .settings-meta:last-of-type {
+            margin-bottom: 20px;
+        }
+        .interval-setting-card {
+            margin-bottom: 20px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+        }
+        .interval-setting-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .interval-setting-help {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        .interval-setting-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .interval-select {
+            min-width: 220px;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .setting-card {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+        }
+        .setting-card h4 {
+            font-size: 0.92rem;
+            margin-bottom: 8px;
+        }
+        .setting-help {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+        .setting-card .filter-select {
+            width: 100%;
+        }
+        .setting-card .toggle {
+            margin-top: 6px;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 14px 22px;
+            border-radius: 10px;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            font-size: 0.95rem;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (min-width: 768px) {
+            .mobile-header { display: none; }
+            .sidebar {
+                position: fixed;
+                left: 0;
+                width: 260px;
+                height: 100vh;
+            }
+            .sidebar-overlay { display: none !important; }
+            .main-content {
+                margin-left: 260px;
+                padding: 30px;
+            }
+            .header { flex-direction: row; align-items: center; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+            .panel-header { flex-direction: row; justify-content: space-between; }
+            .search-box { width: 300px; }
+        }
+        
+        /* ===== ENHANCED FEATURES CSS ===== */
+        
+        /* Stats Grid Enhanced */
+        .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .stat-change {
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+        
+        .stat-change.up { color: var(--success); }
+        .stat-change.down { color: var(--danger); }
+        
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-action {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-action:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .quick-action-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        /* Activity Feed */
+        .activity-list {
+            max-height: 320px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+        }
+        
+        .activity-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        
+        .activity-icon.ban,
+        .activity-icon.delete_comment { background: rgba(245,101,101,0.2); }
+        .activity-icon.unban,
+        .activity-icon.unrestrict { background: rgba(72,187,120,0.2); }
+        .activity-icon.restrict,
+        .activity-icon.restrict_comments { background: rgba(237,137,54,0.2); }
+        
+        .activity-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .activity-text {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            color: #f5f7ff;
+        }
+        
+        .activity-details {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+            word-break: break-word;
+        }
+        
+        .activity-time {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+        
+        /* User Cell with Avatar */
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-weight: 600;
+        }
+        
+        .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 15px;
+            min-width: 150px;
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .page-btn:hover, .page-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+        
+        .tab {
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .tab:hover, .tab.active {
+            background: var(--surface);
+            color: var(--primary);
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--surface);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* User Detail Modal */
+        .user-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .user-detail-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .user-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .user-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--surface);
+            border-radius: 8px;
+        }
+        
+        .user-stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        /* Modal Enhancements */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+        }
+        
+        /* Toast Types */
+        .toast.error {
+            background: var(--danger);
+        }
+        
+        /* Nav Badge */
+        .nav-badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .mini-list {
+            display: grid;
+            gap: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .mini-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+        }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .chart-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .chart-title {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .spark-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            height: 120px;
+        }
+        .spark-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #667eea, #5a67d8);
+            border-radius: 4px 4px 0 0;
+            min-height: 4px;
+            position: relative;
+        }
+        .spark-bar-label {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #777;
+            white-space: nowrap;
+        }
+        .admin-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .admin-input, .admin-textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.86rem;
+        }
+        .admin-textarea {
+            min-height: 76px;
+            resize: vertical;
+        }
+        .admin-chat-box {
+            max-height: 220px;
+            overflow-y: auto;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 8px;
+        }
+        .admin-chat-item {
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.08);
+            font-size: 0.83rem;
+        }
+        .admin-chat-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <button class="mobile-menu-btn" onclick="toggleMenu()">&#9776;</button>
+        <div class="logo">&#9889; Admin</div>
+        <div style="width: 40px;"></div>
+    </div>
+    
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMenu()"></div>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="logo" style="margin-bottom: 30px;">&#9889; Admin Panel</div>
+        
+        <div class="nav-item active" onclick="showSection('dashboard'); toggleMenu();" data-section="dashboard">
+            <span>&#128202;</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="showSection('users'); toggleMenu();" data-section="users">
+            <span>&#128101;</span> Users
+        </div>
+        <div class="nav-item" onclick="showSection('restrictions'); toggleMenu();" data-section="restrictions">
+            <span>&#128683;</span> Restrictions
+        </div>
+        <div class="nav-item" onclick="showSection('bans'); toggleMenu();" data-section="bans">
+            <span>&#128683;</span> Banned Users
+        </div>
+        <div class="nav-item perm-delete-comments hidden" onclick="showSection('comments'); toggleMenu();" data-section="comments">
+            <span>&#128172;</span> Comments
+        </div>
+        <div class="nav-item" onclick="showSection('audit'); toggleMenu();" data-section="audit">
+            <span>&#128203;</span> Audit Logs
+        </div>
+        <div class="nav-item perm-settings hidden" onclick="showSection('settings'); toggleMenu();" data-section="settings">
+            <span>&#9881;&#65039;</span> Settings
+        </div>
+        
+        <div class="nav-item logout" onclick="logout()">
+            <span>&#128682;</span> Logout
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1 id="pageTitle">Dashboard</h1>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="loadAllData()">&#128260; Refresh</button>
+                <a href="/" class="back-btn">&#127968; Back to Site</a>
+                <span id="roleBadge" class="role-badge">...</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">&#128101;</div>
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" id="statUsers">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">&#128296;</div>
+                    <div class="stat-label">Active Bans</div>
+                    <div class="stat-value" id="statBans" style="color:#ff6b6b;">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">&#128683;</div>
+                    <div class="stat-label">Restricted</div>
+                    <div class="stat-value" id="statRestricted" style="color:#ed8936;">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">&#128172;</div>
+                    <div class="stat-label">Comments</div>
+                    <div class="stat-value" id="statComments">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">&#128214;</div>
+                    <div class="stat-label">Total Verses</div>
+                    <div class="stat-value" id="statVerses">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">&#9889;</div>
+                    <div class="stat-label">Your Role</div>
+                    <div class="stat-value" style="font-size:1rem;text-transform:uppercase;margin-top:10px;" id="statRole">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">&#128994;</div>
+                    <div class="stat-label">Active Users Now</div>
+                    <div class="stat-value" id="statActiveNow">0</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="panel">
+                <div class="panel-title">&#9889; Quick Actions</div>
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="showSection('users')">
+                        <div class="quick-action-icon">&#128101;</div>
+                        <div style="font-size: 0.85rem; font-weight: 500;">Manage Users</div>
+                    </div>
+                    <div class="quick-action" onclick="showSection('restrictions')">
+                        <div class="quick-action-icon">&#128683;</div>
+                        <div style="font-size: 0.85rem; font-weight: 500;">Restrictions</div>
+                    </div>
+                    <div class="quick-action" onclick="showSection('bans')">
+                        <div class="quick-action-icon">&#128296;</div>
+                        <div style="font-size: 0.85rem; font-weight: 500;">Ban User</div>
+                    </div>
+                    <div class="quick-action" onclick="exportData('users')">
+                        <div class="quick-action-icon">&#128202;</div>
+                        <div style="font-size: 0.85rem; font-weight: 500;">Export Data</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#128203; Recent Activity</div>
+                    <button class="btn btn-sm btn-secondary" onclick="showSection('audit')">View All</button>
+                </div>
+                <div class="activity-list" id="recentActivity">
+                    <div class="loading"><div class="spinner"></div>Loading...</div>
+                </div>
+            </div>
+
+
+            <div class="panel">
+                <div class="panel-title">&#128226; Admin Broadcast Tools</div>
+                <div class="admin-form-grid">
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Global Announcement</div>
+                        <input id="announceTitle" class="admin-input" placeholder="Title (optional)">
+                        <textarea id="announceMessage" class="admin-textarea" placeholder="Announcement message"></textarea>
+                        <button class="btn btn-primary" onclick="sendGlobalAnnouncement()">Send Global</button>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Direct Message To User</div>
+                        <input id="directUserId" class="admin-input" placeholder="Target User ID">
+                        <input id="directTitle" class="admin-input" placeholder="Title">
+                        <textarea id="directMessage" class="admin-textarea" placeholder="Message"></textarea>
+                        <button class="btn btn-warning" onclick="sendDirectMessage()">Send Direct</button>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Schedule Announcement</div>
+                        <input id="scheduleTitle" class="admin-input" placeholder="Title">
+                        <textarea id="scheduleMessage" class="admin-textarea" placeholder="Scheduled message"></textarea>
+                        <input id="scheduleWhen" class="admin-input" type="datetime-local">
+                        <button class="btn btn-secondary" onclick="scheduleAnnouncement()">Schedule</button>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Push Notifications + Maintenance</div>
+                        <input id="pushTitle" class="admin-input" placeholder="Push title">
+                        <textarea id="pushMessage" class="admin-textarea" placeholder="Push message"></textarea>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="btn btn-success" onclick="sendPushBroadcast()">Send Push</button>
+                            <button class="btn btn-danger" onclick="toggleMaintenanceMode()">Toggle Maintenance</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:12px; font-size:0.82rem; color:#888;">Scheduled: <span id="scheduledCount">0</span> • Sent: <span id="sentCount">0</span></div>
+                <div class="admin-form-grid" style="margin-top:14px;">
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Announcements</div>
+                        <div style="display:flex; gap:8px; margin-bottom:8px;">
+                            <button class="btn btn-sm btn-secondary" onclick="loadAnnouncementList()">Refresh</button>
+                        </div>
+                        <div id="announcementList" class="mini-list"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Notifications</div>
+                        <div style="display:flex; gap:8px; margin-bottom:8px;">
+                            <select id="notificationFilter" class="admin-select" style="max-width:220px;">
+                                <option value="all">All</option>
+                                <option value="push">Push</option>
+                                <option value="direct_message">Direct Message</option>
+                                <option value="announcement">Announcement</option>
+                            </select>
+                            <button class="btn btn-sm btn-secondary" onclick="loadNotificationList()">Refresh</button>
+                        </div>
+                        <div id="notificationList" class="mini-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">&#128101; User Insights</div>
+                <div class="admin-form-grid">
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Recent Signups</div>
+                        <div id="recentSignupList" class="mini-list"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Top Active Users</div>
+                        <div id="topActiveUsersList" class="mini-list"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem;color:#999;margin-bottom:6px;">Most Used Features</div>
+                        <div id="mostUsedFeaturesList" class="mini-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">&#128172; Admin Chat Room</div>
+                <div class="admin-chat-box" id="adminChatBox"><div class="empty-state">No admin messages yet</div></div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <input id="adminChatInput" class="admin-input" placeholder="Message admins..." style="flex:1;">
+                    <button class="btn btn-primary" onclick="sendAdminChat()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Section -->
+        <div id="users-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#128101; User Management</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="openAddRestrictionModal()">&#10133; Add Restriction</button>
+                        <button class="btn btn-success" onclick="exportData('users')">&#128229; Export CSV</button>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="filter-bar">
+                    <input type="text" class="search-box" id="userSearch" placeholder="&#128269; Search by name or email..." onkeyup="filterUsers()">
+                    <select class="filter-select" id="roleFilter" onchange="filterUsers()">
+                        <option value="">All Roles</option>
+                        <option value="user">User</option>
+                        <option value="host">Host</option>
+                        <option value="mod">Mod</option>
+                        <option value="co_owner">Co-Owner</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                    <select class="filter-select" id="statusFilter" onchange="filterUsers()">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="banned">Banned</option>
+                    </select>
+                </div>
+                
+                <div id="usersContent"><div class="loading"><div class="spinner"></div>Loading users...</div></div>
+                <div class="pagination" id="userPagination"></div>
+            </div>
+        </div>
+
+        <!-- Restrictions Section -->
+        <div id="restrictions-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#128683; Comment Restrictions</div>
+                    <button class="btn btn-success" onclick="exportData('restrictions')">&#128229; Export</button>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" class="search-box" id="restrictionSearch" placeholder="&#128269; Search restricted users..." onkeyup="filterRestrictions()">
+                </div>
+                <div id="restrictionsContent"><div class="loading"><div class="spinner"></div>Loading restrictions...</div></div>
+            </div>
+        </div>
+
+        <!-- Bans Section -->
+        <div id="bans-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#128296; Banned Users</div>
+                    <button class="btn btn-success" onclick="exportData('bans')">&#128229; Export CSV</button>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" class="search-box" id="banSearch" placeholder="&#128269; Search banned users..." onkeyup="filterBans()">
+                    <select class="filter-select" id="banTypeFilter" onchange="filterBans()">
+                        <option value="">All Bans</option>
+                        <option value="temporary">Temporary</option>
+                        <option value="permanent">Permanent</option>
+                    </select>
+                </div>
+                <div id="bansContent"><div class="loading"><div class="spinner"></div>Loading bans...</div></div>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div id="comments-section" class="hidden">
+            <div class="panel">
+                <div class="panel-title">&#128172; Comment Moderation</div>
+                <div class="tabs">
+                    <div class="tab active" onclick="switchCommentTab('verse', this)">Verse Comments</div>
+                    <div class="tab" onclick="switchCommentTab('community', this)">Community Chat</div>
+                </div>
+                <div id="commentsContent"><div class="loading"><div class="spinner"></div>Loading comments...</div></div>
+            </div>
+        </div>
+
+        <!-- Audit Section -->
+        <div id="audit-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#128203; Audit Logs</div>
+                    <button class="btn btn-success" onclick="exportData('audit')">&#128229; Export CSV</button>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" class="search-box" id="auditSearch" placeholder="&#128269; Search audit logs..." onkeyup="filterAudit()">
+                    <input type="date" class="filter-select" id="auditDateFrom" onchange="filterAudit()">
+                    <input type="date" class="filter-select" id="auditDateTo" onchange="filterAudit()">
+                    <select class="filter-select" id="auditActionFilter" onchange="filterAudit()">
+                        <option value="">All Actions</option>
+                        <option value="BAN">Ban</option>
+                        <option value="UNBAN">Unban</option>
+                        <option value="RESTRICT_COMMENTS">Restrict Comments</option>
+                        <option value="UNRESTRICT">Unrestrict</option>
+                        <option value="UPDATE_ROLE">Role Update</option>
+                        <option value="DELETE_COMMENT">Delete Comment</option>
+                        <option value="UPDATE_SETTINGS">Settings Update</option>
+                    </select>
+                </div>
+                <div id="auditContent"><div class="loading"><div class="spinner"></div>Loading logs...</div></div>
+                <div class="pagination" id="auditPagination"></div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings-section" class="hidden">
+            <div class="panel">
+                <div class="panel-title" style="margin-bottom:18px;">&#9881;&#65039; Settings (Owner Only)</div>
+                <div id="settingsContent"><div class="loading">Loading...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ban Modal -->
+    <div class="modal-overlay" id="banModal">
+        <div class="modal">
+            <h3>&#128683; Ban User</h3>
+            <p style="color:#888;margin:10px 0;font-size:0.9rem;">Select ban duration:</p>
+            <div class="duration-grid">
+                <button class="duration-btn" data-duration="30m" onclick="selectDuration('30m')">30m</button>
+                <button class="duration-btn" data-duration="1h" onclick="selectDuration('1h')">1h</button>
+                <button class="duration-btn" data-duration="2h" onclick="selectDuration('2h')">2h</button>
+                <button class="duration-btn" data-duration="6h" onclick="selectDuration('6h')">6h</button>
+                <button class="duration-btn" data-duration="12h" onclick="selectDuration('12h')">12h</button>
+                <button class="duration-btn" data-duration="24h" onclick="selectDuration('24h')">24h</button>
+                <button class="duration-btn" data-duration="1d" onclick="selectDuration('1d')">1d</button>
+                <button class="duration-btn" data-duration="7d" onclick="selectDuration('7d')">7d</button>
+                <button class="duration-btn" data-duration="30d" onclick="selectDuration('30d')">30d</button>
+                <button class="duration-btn selected" data-duration="permanent" onclick="selectDuration('permanent')">&#8734;</button>
+            </div>
+            <input type="text" class="modal-input" id="banReason" placeholder="Reason for ban...">
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" onclick="closeBanModal()" style="background:#333;color:#fff;">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmBan()">Ban User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Restriction Modal -->
+    <div class="modal-overlay" id="addRestrictionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">&#128683; Add Restriction</h3>
+                <button class="modal-close" onclick="closeAddRestrictionModal()">x</button>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: var(--text-secondary);">User Email</label>
+                <input type="email" class="modal-input" id="restrictionUserEmail" placeholder="user@example.com">
+            </div>
+            <p style="color:#888;margin:10px 0;font-size:0.9rem;">Duration:</p>
+            <div class="duration-grid">
+                <button class="duration-btn" data-hours="1" onclick="selectNewRestrictHours(1)">1h</button>
+                <button class="duration-btn" data-hours="6" onclick="selectNewRestrictHours(6)">6h</button>
+                <button class="duration-btn selected" data-hours="24" onclick="selectNewRestrictHours(24)">24h</button>
+                <button class="duration-btn" data-hours="72" onclick="selectNewRestrictHours(72)">3d</button>
+            </div>
+            <input type="text" class="modal-input" id="newRestrictReason" placeholder="Reason for restriction...">
+            <div class="modal-footer">
+                <button class="btn" onclick="closeAddRestrictionModal()" style="background:#333;color:#fff;">Cancel</button>
+                <button class="btn btn-warning" onclick="addNewRestriction()">Add Restriction</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="modal-overlay" id="userDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">&#128100; User Details</h3>
+                <button class="modal-close" onclick="closeUserDetailModal()">x</button>
+            </div>
+            <div class="user-detail-header">
+                <div class="user-detail-avatar" id="detailAvatar">U</div>
+                <div>
+                    <h3 id="detailName" style="margin-bottom: 4px;">User Name</h3>
+                    <p id="detailEmail" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 8px;">user@example.com</p>
+                    <span class="user-badge" id="detailRole">user</span>
+                </div>
+            </div>
+            <div class="user-stats-grid">
+                <div class="user-stat">
+                    <div class="user-stat-value" id="detailLikes">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Likes</div>
+                </div>
+                <div class="user-stat">
+                    <div class="user-stat-value" id="detailSaves">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Saves</div>
+                </div>
+                <div class="user-stat">
+                    <div class="user-stat-value" id="detailComments">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Comments</div>
+                </div>
+                <div class="user-stat" style="background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05)); border-color: rgba(255,215,0,0.3);">
+                    <div class="user-stat-value" id="detailXP" style="color: #FFD700;">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">⚡ XP (Level <span id="detailLevel">1</span>)</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                <button class="btn btn-warning" id="detailRestrictBtn" onclick="restrictDetailUser()">&#128683; Restrict</button>
+                <button class="btn btn-danger" id="detailBanBtn" onclick="banDetailUser()">&#128296; Ban</button>
+                <button class="btn btn-primary" onclick="changeDetailRole()">&#128081; Change Role</button>
+                <button class="btn btn-success perm-manage-xp hidden" onclick="giveXPToDetailUser()">&#9889; Give XP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restrict Modal -->
+    <div class="modal-overlay" id="restrictModal">
+        <div class="modal">
+            <h3>&#128683; Restrict Comments</h3>
+            <p style="color:#888;margin:10px 0;font-size:0.9rem;">Restrict user from commenting for:</p>
+            <div class="duration-grid">
+                <button class="duration-btn" data-hours="1" onclick="selectRestrictHours(1)">1h</button>
+                <button class="duration-btn" data-hours="2" onclick="selectRestrictHours(2)">2h</button>
+                <button class="duration-btn" data-hours="4" onclick="selectRestrictHours(4)">4h</button>
+                <button class="duration-btn" data-hours="6" onclick="selectRestrictHours(6)">6h</button>
+                <button class="duration-btn" data-hours="12" onclick="selectRestrictHours(12)">12h</button>
+                <button class="duration-btn selected" data-hours="24" onclick="selectRestrictHours(24)">24h</button>
+            </div>
+            <input type="text" class="modal-input" id="restrictReason" placeholder="Reason for restriction... (e.g., Spam, Harassment)">
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" onclick="closeRestrictModal()" style="background:#333;color:#fff;">Cancel</button>
+                <button class="btn btn-warning" onclick="confirmRestrict()">Restrict User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Give XP Modal -->
+    <div class="modal-overlay" id="giveXPModal">
+        <div class="modal">
+            <h3>&#9889; Give XP to User</h3>
+            <p style="color:#888;margin:10px 0;font-size:0.9rem;">Current XP: <span id="giveXPCurrent" style="color:#FFD700;font-weight:bold;">0</span> | Level: <span id="giveXPLevel">1</span></p>
+            <input type="number" class="modal-input" id="giveXPAmount" placeholder="Amount of XP to give..." min="1" max="1000000">
+            <input type="text" class="modal-input" id="giveXPReason" placeholder="Reason (optional)..." value="Admin gift">
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" onclick="closeGiveXPModal()" style="background:#333;color:#fff;">Cancel</button>
+                <button class="btn btn-success" onclick="confirmGiveXP()">Give XP</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRole = null;
+        let permissions = [];
+        let allUsers = [];
+        let allRestrictions = [];
+        let allBans = [];
+        let allAuditLogs = [];
+        let insightsData = null;
+        let activeSection = 'dashboard';
+        let realtimePoll = null;
+        let realtimeBusy = false;
+        let adminChatPoll = null;
+        let banUserId = null;
+        let restrictUserId = null;
+        let selectedDuration = 'permanent';
+        let selectedHours = 24;
+        let newRestrictHours = 24;
+        let currentCommentTab = 'verse';
+        let settingsCanEdit = false;
+
+        // Format large numbers (1000 -> 1k, 1000000 -> 1m)
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+            }
+            return num.toString();
+        }
+
+        function formatNumberFull(num) {
+            return num.toLocaleString();
+        }
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        async function loadPermissions() {
+            try {
+                const res = await fetch('/admin/api/permissions');
+                const data = await res.json();
+                permissions = data.permissions || [];
+                
+                // Show/hide menu items based on permissions
+                if (data.can_access_settings) {
+                    document.querySelectorAll('.perm-settings').forEach(el => el.classList.remove('hidden'));
+                }
+                if (permissions.includes('delete_comments')) {
+                    document.querySelectorAll('.perm-delete-comments').forEach(el => el.classList.remove('hidden'));
+                }
+            } catch (err) {
+                console.error('Failed to load permissions:', err);
+            }
+        }
+
+        async function loadAllData() {
+            showToast('Refreshing...');
+            await Promise.all([
+                loadStats(),
+                loadInsights(),
+                loadUsers(),
+                loadRestrictions(),
+                loadBans(),
+                loadComments(),
+                loadRecentActivity(),
+                loadAnnouncements(),
+                loadAnnouncementList(),
+                loadNotificationList(),
+                loadAdminChat()
+            ]);
+            showToast('Data refreshed!');
+        }
+
+        async function refreshRealtime() {
+            if (realtimeBusy) return;
+            realtimeBusy = true;
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadInsights(),
+                    loadRecentActivity(),
+                    loadAnnouncements(),
+                    loadAnnouncementList(),
+                    loadNotificationList()
+                ]);
+                if (activeSection === 'users') await loadUsers();
+                if (activeSection === 'restrictions') await loadRestrictions();
+                if (activeSection === 'bans') await loadBans();
+                if (activeSection === 'comments') await loadComments();
+                if (activeSection === 'audit') await loadAuditLogs();
+                if (activeSection === 'settings') await loadSettings();
+            } catch (_) {
+            } finally {
+                realtimeBusy = false;
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/admin/api/stats');
+                const data = await res.json();
+                
+                document.getElementById('statUsers').textContent = data.users ?? 0;
+                document.getElementById('statBans').textContent = data.bans ?? 0;
+                document.getElementById('statRestricted').textContent = data.restricted ?? 0;
+                document.getElementById('statComments').textContent = data.comments ?? 0;
+                document.getElementById('statVerses').textContent = data.verses ?? 0;
+                document.getElementById('statRole').textContent = data.role ?? '-';
+                
+                currentRole = data.role;
+                
+                const badge = document.getElementById('roleBadge');
+                const normalizedRole = normalizeRole(data.role);
+                badge.textContent = roleLabel(data.role);
+                badge.className = 'role-badge role-' + normalizedRole;
+            } catch (err) {
+                console.error('Stats error:', err);
+            }
+        }
+
+        function moneyFromCents(cents) {
+            const n = Number(cents || 0) / 100;
+            return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+        }
+
+        function renderSparkBars(containerId, series, labelKey = 'date', valueKey = 'count') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const rows = Array.isArray(series) ? series : [];
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state">No data</div>';
+                return;
+            }
+            const maxVal = Math.max(...rows.map(r => Number(r[valueKey] || 0)), 1);
+            container.innerHTML = rows.map(r => {
+                const value = Number(r[valueKey] || 0);
+                const h = Math.max(6, Math.round((value / maxVal) * 100));
+                const labelRaw = String(r[labelKey] || '').slice(5);
+                return `<div class="spark-bar" style="height:${h}%;" title="${escapeHtml(String(r[labelKey] || ''))}: ${value}">
+                    <span class="spark-bar-label">${escapeHtml(labelRaw || '')}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function renderMiniList(containerId, rows, mapper) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const list = Array.isArray(rows) ? rows : [];
+            if (!list.length) {
+                container.innerHTML = '<div class="empty-state">No data</div>';
+                return;
+            }
+            container.innerHTML = list.map(mapper).join('');
+        }
+
+        async function loadInsights() {
+            try {
+                const res = await fetch('/admin/api/insights');
+                const data = await res.json();
+                if (data.error) return;
+                insightsData = data;
+                const activeNowEl = document.getElementById('statActiveNow');
+                if (activeNowEl) activeNowEl.textContent = data.active_users_now ?? 0;
+                // Conversion rate + revenue removed from dashboard UI
+                const retentionD1 = document.getElementById('retentionD1');
+                if (retentionD1) retentionD1.textContent = `${Number(data.retention?.day_1 || 0).toFixed(2)}%`;
+                const retentionD7 = document.getElementById('retentionD7');
+                if (retentionD7) retentionD7.textContent = `${Number(data.retention?.day_7 || 0).toFixed(2)}%`;
+                const retentionD30 = document.getElementById('retentionD30');
+                if (retentionD30) retentionD30.textContent = `${Number(data.retention?.day_30 || 0).toFixed(2)}%`;
+                const scheduledEl = document.getElementById('scheduledCount');
+                if (scheduledEl) scheduledEl.textContent = data.announcements_scheduled ?? 0;
+                const sentEl = document.getElementById('sentCount');
+                if (sentEl) sentEl.textContent = data.announcements_sent ?? 0;
+
+                renderSparkBars('dauBars', data.daily_active_users || []);
+                renderSparkBars('growthBars', data.user_growth || []);
+                renderMiniList('recentSignupList', data.recent_signups || [], (u) => `
+                    <div class="mini-item"><strong>${escapeHtml(u.name || 'Unknown')}</strong><br><small style="color:#888">${escapeHtml(u.email || '')} • ${escapeHtml(u.role || 'user')}</small></div>
+                `);
+                renderMiniList('topActiveUsersList', data.top_active_users || [], (u) => `
+                    <div class="mini-item"><strong>${escapeHtml(u.name || 'Unknown')}</strong><br><small style="color:#888">${u.actions || 0} actions</small></div>
+                `);
+                renderMiniList('mostUsedFeaturesList', data.most_used_features || [], (f) => `
+                    <div class="mini-item"><strong>${escapeHtml(String(f.feature || 'unknown').replace(/_/g, ' '))}</strong><br><small style="color:#888">${f.count || 0} uses</small></div>
+                `);
+            } catch (err) {
+                console.error('Insights error:', err);
+            }
+        }
+
+        async function sendGlobalAnnouncement() {
+            const title = document.getElementById('announceTitle')?.value?.trim() || 'Announcement';
+            const message = document.getElementById('announceMessage')?.value?.trim() || '';
+            if (!message) return showToast('Announcement message required');
+            try {
+                const res = await fetch('/admin/api/announcements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message, is_global: true })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                document.getElementById('announceMessage').value = '';
+                showToast('Global announcement sent');
+                refreshRealtime();
+            } catch (err) {
+                showToast('Send failed: ' + err.message);
+            }
+        }
+
+        async function sendDirectMessage() {
+            const target_user_id = document.getElementById('directUserId')?.value?.trim();
+            const title = document.getElementById('directTitle')?.value?.trim() || 'Message from Admin';
+            const message = document.getElementById('directMessage')?.value?.trim() || '';
+            if (!target_user_id || !message) return showToast('User ID and message required');
+            try {
+                const res = await fetch('/admin/api/messages/user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_user_id, title, message })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                document.getElementById('directMessage').value = '';
+                showToast('Direct message sent');
+                refreshRealtime();
+            } catch (err) {
+                showToast('Message failed: ' + err.message);
+            }
+        }
+
+        async function scheduleAnnouncement() {
+            const title = document.getElementById('scheduleTitle')?.value?.trim() || 'Scheduled Announcement';
+            const message = document.getElementById('scheduleMessage')?.value?.trim() || '';
+            const when = document.getElementById('scheduleWhen')?.value;
+            if (!message || !when) return showToast('Message and schedule time required');
+            try {
+                const res = await fetch('/admin/api/announcements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message, is_global: true, scheduled_for: new Date(when).toISOString() })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                showToast('Announcement scheduled');
+                refreshRealtime();
+            } catch (err) {
+                showToast('Schedule failed: ' + err.message);
+            }
+        }
+
+        async function sendPushBroadcast() {
+            const title = document.getElementById('pushTitle')?.value?.trim() || 'Push Notification';
+            const message = document.getElementById('pushMessage')?.value?.trim() || '';
+            if (!message) return showToast('Push message required');
+            try {
+                const res = await fetch('/admin/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                showToast(`Push sent to ${data.sent || 0} users`);
+                refreshRealtime();
+            } catch (err) {
+                showToast('Push failed: ' + err.message);
+            }
+        }
+
+        async function toggleMaintenanceMode() {
+            const current = !!(insightsData && insightsData.maintenance_mode);
+            const next = !current;
+            try {
+                const res = await fetch('/admin/api/system/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ maintenance_mode: next })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                showToast(`Maintenance ${next ? 'enabled' : 'disabled'}`);
+                loadSettings();
+            } catch (err) {
+                showToast('Maintenance update failed: ' + err.message);
+            }
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch('/admin/api/announcements');
+                const rows = await res.json();
+                if (!Array.isArray(rows)) return;
+                const scheduled = rows.filter(r => String(r.status || '').toLowerCase() === 'scheduled').length;
+                const sent = rows.filter(r => String(r.status || '').toLowerCase() === 'sent').length;
+                document.getElementById('scheduledCount').textContent = scheduled;
+                document.getElementById('sentCount').textContent = sent;
+            } catch (_) {}
+        }
+
+        async function loadAnnouncementList() {
+            const box = document.getElementById('announcementList');
+            if (!box) return;
+            try {
+                const res = await fetch('/admin/api/announcements');
+                const rows = await res.json();
+                if (!Array.isArray(rows) || !rows.length) {
+                    box.innerHTML = '<div class="empty-state">No announcements</div>';
+                    return;
+                }
+                box.innerHTML = rows.map(r => {
+                    const status = String(r.status || 'unknown').toUpperCase();
+                    const when = r.scheduled_for || r.sent_at || r.created_at;
+                    const time = when ? formatLocalTime(when) : '-';
+                    return `
+                        <div class="mini-item" style="display:flex; justify-content:space-between; gap:10px;">
+                            <div>
+                                <strong>${escapeHtml(r.title || 'Announcement')}</strong>
+                                <div style="color:#888;font-size:0.78rem;">ID: ${escapeHtml(String(r.id))} • ${escapeHtml(status)} • ${time}</div>
+                                <div style="margin-top:4px;color:#9ca3af;font-size:0.8rem;">${escapeHtml(r.message || '')}</div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-danger" onclick="deleteAnnouncement(${r.id})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                box.innerHTML = '<div class="empty-state">Failed to load announcements</div>';
+            }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!id) return;
+            try {
+                const res = await fetch(`/admin/api/announcements/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                showToast('Announcement deleted');
+                loadAnnouncements();
+                loadAnnouncementList();
+            } catch (err) {
+                showToast('Delete failed: ' + err.message);
+            }
+        }
+
+        async function loadNotificationList() {
+            const box = document.getElementById('notificationList');
+            if (!box) return;
+            const filter = document.getElementById('notificationFilter')?.value || 'all';
+            try {
+                const res = await fetch(`/admin/api/notifications?type=${encodeURIComponent(filter)}`);
+                const rows = await res.json();
+                if (!Array.isArray(rows) || !rows.length) {
+                    box.innerHTML = '<div class="empty-state">No notifications</div>';
+                    return;
+                }
+                box.innerHTML = rows.map(r => {
+                    const time = formatLocalTime(r.created_at || r.sent_at);
+                    return `
+                        <div class="mini-item" style="display:flex; justify-content:space-between; gap:10px;">
+                            <div>
+                                <strong>${escapeHtml(r.title || 'Notification')}</strong>
+                                <div style="color:#888;font-size:0.78rem;">ID: ${escapeHtml(String(r.id))} • User ID: ${escapeHtml(String(r.user_id || '-'))} • ${escapeHtml(String(r.notif_type || ''))} • ${time}</div>
+                                <div style="margin-top:4px;color:#9ca3af;font-size:0.8rem;">${escapeHtml(r.message || '')}</div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-danger" onclick="deleteNotification(${r.id})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                box.innerHTML = '<div class="empty-state">Failed to load notifications</div>';
+            }
+        }
+
+        async function deleteNotification(id) {
+            if (!id) return;
+            try {
+                const res = await fetch(`/admin/api/notifications/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                showToast('Notification deleted');
+                loadNotificationList();
+            } catch (err) {
+                showToast('Delete failed: ' + err.message);
+            }
+        }
+
+        async function loadAdminChat() {
+            const box = document.getElementById('adminChatBox');
+            try {
+                const res = await fetch('/admin/api/admin-chat');
+                const rows = await res.json();
+                if (!Array.isArray(rows) || !rows.length) {
+                    box.innerHTML = '<div class="empty-state">No admin messages yet</div>';
+                    return;
+                }
+                box.innerHTML = rows.map(r => `<div class="admin-chat-item"><strong>${escapeHtml(String(r.admin_role || '').toUpperCase())}</strong>: ${escapeHtml(r.message || '')}<br><small style="color:#888">${formatLocalTime(r.created_at)}</small></div>`).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch (err) {
+                box.innerHTML = '<div class="empty-state">Failed to load chat</div>';
+            }
+        }
+
+        async function sendAdminChat() {
+            const input = document.getElementById('adminChatInput');
+            const message = (input?.value || '').trim();
+            if (!message) return;
+            try {
+                const res = await fetch('/admin/api/admin-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+                input.value = '';
+                loadAdminChat();
+            } catch (err) {
+                showToast('Chat failed: ' + err.message);
+            }
+        }
+
+        function normalizeRole(role) {
+            const r = String(role || 'user').trim().toLowerCase();
+            if (!r) return 'user';
+            if (r === 'co-owner' || r === 'co owner' || r === 'coowner') return 'co_owner';
+            if (r === 'owner') return 'owner';
+            if (r === 'host') return 'host';
+            if (r === 'mod' || r === 'moderator') return 'mod';
+            return r;
+        }
+
+        function roleLabel(role) {
+            const r = normalizeRole(role);
+            if (r === 'co_owner') return 'CO-OWNER';
+            return r.toUpperCase();
+        }
+
+        async function loadUsers() {
+            const container = document.getElementById('usersContent');
+            try {
+                const q = (document.getElementById('userSearch')?.value || '').trim();
+                const role = (document.getElementById('roleFilter')?.value || '').trim();
+                const status = (document.getElementById('statusFilter')?.value || '').trim();
+                const params = new URLSearchParams();
+                if (q) params.set('q', q);
+                if (role) params.set('role', role);
+                if (status) params.set('status', status);
+                const url = params.toString() ? `/admin/api/users?${params.toString()}` : '/admin/api/users';
+
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.error) {
+                    container.innerHTML = '<div class="error-box">' + data.error + '</div>';
+                    return;
+                }
+                
+                allUsers = data;
+                renderUsers(data);
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load users</div>';
+            }
+        }
+
+        function renderUsers(users) {
+            const container = document.getElementById('usersContent');
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div class="empty-state">No users found</div>';
+                return;
+            }
+            
+            let html = '<table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            users.forEach(u => {
+                const normalizedRole = normalizeRole(u.role);
+                const roleText = roleLabel(u.role);
+                let statusHtml = '<span class="status-badge status-active">Active</span>';
+                if (u.is_banned) statusHtml = '<span class="status-badge status-banned">Banned</span>';
+                
+                let actions = '';
+                if (permissions.includes('restrict_comments')) {
+                    actions += `<button class="btn btn-warning" onclick="openRestrictModal(${u.id})">Restrict</button>`;
+                }
+                if (permissions.includes('ban')) {
+                    if (u.is_banned) {
+                        actions += `<button class="btn btn-success" onclick="unbanUser(${u.id})">Unban</button>`;
+                    } else {
+                        actions += `<button class="btn btn-danger" onclick="openBanModal(${u.id})">Ban</button>`;
+                    }
+                }
+                if (permissions.includes('change_roles')) {
+                    actions += `<button class="btn btn-primary" onclick="changeRole(${u.id}, '${u.role}')">Role</button>`;
+                }
+                actions += `<button class="btn btn-secondary" onclick="openDmFromAdmin(${u.id})">DM</button>`;
+                actions += `<button class="btn btn-info" onclick="viewUserDetails(${u.id})">Details</button>`;
+                
+                html += `<tr>
+                    <td>${escapeHtml(u.name)}<br><small style="color:#888">${escapeHtml(u.email)}</small></td>
+                    <td><span class="user-badge badge-${normalizedRole}">${roleText}</span></td>
+                    <td>${statusHtml}</td>
+                    <td>${actions}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function openDmFromAdmin(userId) {
+            if (!userId) return;
+            const url = `/?dmUser=${userId}#comments`;
+            window.open(url, '_blank');
+        }
+
+        // ========== USER DETAILS & XP MANAGEMENT ==========
+        let currentDetailUserId = null;
+
+        async function viewUserDetails(userId) {
+            currentDetailUserId = userId;
+            try {
+                // Load user stats
+                const res = await fetch(`/admin/api/users/${userId}/stats`);
+                const data = await res.json();
+                
+                if (data.error) {
+                    showToast('Error loading user details: ' + data.error, 'error');
+                    return;
+                }
+                
+                // Update modal
+                document.getElementById('detailAvatar').textContent = (data.name || 'U').charAt(0).toUpperCase();
+                document.getElementById('detailName').textContent = data.name || 'Unknown';
+                document.getElementById('detailEmail').textContent = data.email || 'No email';
+                document.getElementById('detailRole').textContent = normalizeRole(data.role);
+                document.getElementById('detailRole').className = 'user-badge badge-' + normalizeRole(data.role);
+                
+                document.getElementById('detailLikes').textContent = data.likes || 0;
+                document.getElementById('detailSaves').textContent = data.saves || 0;
+                document.getElementById('detailComments').textContent = data.comments || 0;
+                document.getElementById('detailXP').textContent = formatNumber(data.xp || 0);
+                document.getElementById('detailLevel').textContent = data.level || 1;
+                
+                // Show/hide XP button based on permissions
+                if (permissions.includes('manage_xp')) {
+                    document.querySelectorAll('.perm-manage-xp').forEach(el => el.classList.remove('hidden'));
+                }
+                
+                // Show modal
+                document.getElementById('userDetailModal').style.display = 'flex';
+            } catch (err) {
+                console.error('Error viewing user details:', err);
+                showToast('Error loading user details', 'error');
+            }
+        }
+
+        function closeUserDetailModal() {
+            document.getElementById('userDetailModal').style.display = 'none';
+            currentDetailUserId = null;
+        }
+
+        function restrictDetailUser() {
+            if (currentDetailUserId) {
+                openRestrictModal(currentDetailUserId);
+            }
+        }
+
+        function banDetailUser() {
+            if (currentDetailUserId) {
+                openBanModal(currentDetailUserId);
+            }
+        }
+
+        function changeDetailRole() {
+            if (currentDetailUserId) {
+                const user = allUsers.find(u => u.id === currentDetailUserId);
+                if (user) {
+                    changeRole(currentDetailUserId, user.role);
+                }
+            }
+        }
+
+        function giveXPToDetailUser() {
+            if (!currentDetailUserId) return;
+            
+            // Get current XP from display
+            const currentXP = document.getElementById('detailXP').textContent;
+            const currentLevel = document.getElementById('detailLevel').textContent;
+            
+            document.getElementById('giveXPCurrent').textContent = formatNumber(parseInt(currentXP) || 0);
+            document.getElementById('giveXPLevel').textContent = currentLevel;
+            document.getElementById('giveXPAmount').value = '';
+            document.getElementById('giveXPReason').value = 'Admin gift';
+            
+            document.getElementById('giveXPModal').style.display = 'flex';
+        }
+
+        function closeGiveXPModal() {
+            document.getElementById('giveXPModal').style.display = 'none';
+        }
+
+        async function confirmGiveXP() {
+            if (!currentDetailUserId) return;
+            
+            const amount = parseInt(document.getElementById('giveXPAmount').value);
+            const reason = document.getElementById('giveXPReason').value || 'Admin gift';
+            
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid XP amount', 'error');
+                return;
+            }
+            
+            if (amount > 1000000) {
+                showToast('Maximum XP per gift is 1,000,000', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/admin/api/users/${currentDetailUserId}/give-xp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount, reason, notify: true })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Successfully gave ${formatNumberFull(amount)} XP to ${data.user_name}!`, 'success');
+                    
+                    // Update display
+                    document.getElementById('detailXP').textContent = formatNumber(data.new_total);
+                    document.getElementById('detailLevel').textContent = data.new_level;
+                    
+                    if (data.leveled_up) {
+                        showToast(`🎉 ${data.user_name} leveled up to level ${data.new_level}!`, 'success');
+                    }
+                    
+                    closeGiveXPModal();
+                } else {
+                    showToast(data.error || 'Failed to give XP', 'error');
+                }
+            } catch (err) {
+                console.error('Error giving XP:', err);
+                showToast('Error giving XP', 'error');
+            }
+        }
+
+        function searchUsers(query) {
+            filterUsers();
+        }
+
+        function filterUsers() {
+            loadUsers();
+        }
+
+        async function loadRestrictions() {
+            if (!permissions.includes('restrict_comments')) return;
+            
+            const container = document.getElementById('restrictionsContent');
+            try {
+                const res = await fetch('/admin/api/restrictions');
+                const data = await res.json();
+                
+                if (data.error) {
+                    container.innerHTML = '<div class="error-box">' + data.error + '</div>';
+                    return;
+                }
+
+                allRestrictions = data || [];
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No active restrictions</div>';
+                    return;
+                }
+                
+                let html = '<table><thead><tr><th>User</th><th>Reason</th><th>Expires</th><th>Actions</th></tr></thead><tbody>';
+                data.forEach(r => {
+                    const expires = r.expires_at ? formatLocalTime(r.expires_at) : 'Unknown';
+                    html += `<tr>
+                        <td>${escapeHtml(r.user_name)}<br><small style="color:#888">${escapeHtml(r.user_email)}</small></td>
+                        <td>${escapeHtml(r.reason)}</td>
+                        <td>${expires}</td>
+                        <td><button class="btn btn-success" onclick="removeRestriction(${r.user_id})">Remove</button></td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load restrictions</div>';
+            }
+        }
+
+        async function loadBans() {
+            const container = document.getElementById('bansContent');
+            try {
+                const res = await fetch('/admin/api/bans');
+                const data = await res.json();
+                
+                if (data.error) {
+                    container.innerHTML = '<div class="error-box">' + data.error + '</div>';
+                    return;
+                }
+
+                allBans = data || [];
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No banned users</div>';
+                    return;
+                }
+                
+                let html = '<table><thead><tr><th>User</th><th>Reason</th><th>Duration</th><th>Actions</th></tr></thead><tbody>';
+                data.forEach(b => {
+                    let duration = 'Permanent';
+                    if (b.expires_at) {
+                        const expires = parseTimestamp(b.expires_at);
+                        const now = new Date();
+                        const diff = expires ? Math.ceil((expires - now) / (1000 * 60 * 60)) : 0;
+                        duration = diff > 24 ? `${Math.ceil(diff/24)}d` : `${diff}h`;
+                    }
+                    html += `<tr>
+                        <td>${escapeHtml(b.user_name)}<br><small style="color:#888">${escapeHtml(b.user_email)}</small></td>
+                        <td>${escapeHtml(b.reason)}</td>
+                        <td>${duration}</td>
+                        <td><button class="btn btn-success" onclick="unbanUser(${b.user_id})">Unban</button></td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load bans</div>';
+            }
+        }
+        async function loadComments() {
+            if (!permissions.includes('delete_comments')) return;
+            
+            const container = document.getElementById('commentsContent');
+            try {
+                const type = currentCommentTab === 'community' ? 'community' : 'comment';
+                const res = await fetch(`/admin/api/comments?type=${encodeURIComponent(type)}`);
+                const data = await res.json();
+                
+                if (data.error) {
+                    container.innerHTML = '<div class="error-box">' + data.error + '</div>';
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<div class="empty-state">No ${type === 'community' ? 'community messages' : 'verse comments'}</div>`;
+                    return;
+                }
+                
+                let html = '';
+                data.forEach(c => {
+                    const reactions = c.reactions || {};
+                    const reactionTotal = (reactions.heart || 0) + (reactions.pray || 0) + (reactions.cross || 0);
+                    const replies = Array.isArray(c.replies) ? c.replies : [];
+                    const repliesHtml = replies.length
+                        ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
+                            ${replies.map(r => `<div style=\"font-size:0.82rem;color:#aaa;margin-top:4px;\"><strong>${escapeHtml(r.user_name || 'Anonymous')}:</strong> ${escapeHtml(r.text || '')}</div>`).join('')}
+                           </div>`
+                        : '';
+                    html += `
+                        <div class="comment-card">
+                            <div class="comment-header">
+                                <span><strong>${escapeHtml(c.user_name)}</strong></span>
+                                <span>${formatLocalTime(c.timestamp)}</span>
+                            </div>
+                            <div class="comment-text">${escapeHtml(c.text)}</div>
+                            <div style="font-size:0.82rem;color:#888;margin:6px 0;">
+                                Type: <strong>${escapeHtml(c.type || type)}</strong>
+                                • Reactions: ${reactionTotal}
+                                • Replies: ${c.reply_count || 0}
+                            </div>
+                            ${repliesHtml}
+                            <div>
+                                <button class="btn btn-danger" onclick="deleteComment(${c.id}, '${c.type || type}')">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load comments</div>';
+            }
+        }
+
+        function switchCommentTab(type, el) {
+            currentCommentTab = type === 'community' ? 'community' : 'verse';
+            document.querySelectorAll('#comments-section .tab').forEach(t => t.classList.remove('active'));
+            if (el) el.classList.add('active');
+            loadComments();
+        }
+        async function loadSettings() {
+            const container = document.getElementById('settingsContent');
+            try {
+                const [settingsRes, systemRes] = await Promise.all([
+                    fetch('/admin/api/settings'),
+                    fetch('/admin/api/system/settings')
+                ]);
+                const data = await settingsRes.json();
+                const systemData = await systemRes.json();
+                const canEdit = !!data.can_edit;
+                settingsCanEdit = canEdit;
+                
+                const currentInterval = parseInt(systemData.verse_interval || 60, 10);
+                const currentAutoRefresh = parseInt(systemData.auto_refresh_seconds || 30, 10);
+                const currentRetention = parseInt(systemData.audit_retention_days || 90, 10);
+                const currentSafety = String(systemData.safety_mode || 'balanced');
+                const showPersona = !!systemData.show_user_persona;
+                const maintenanceEnabled = !!systemData.maintenance_mode;
+
+                container.innerHTML = `
+                    <div class="settings-meta"><strong>Site:</strong> ${data.site_name}</div>
+                    <div class="settings-meta"><strong>Maintenance:</strong> ${data.maintenance_mode}</div>
+                    ${canEdit ? '' : '<div class="empty-state">View only. Owner access required to edit settings.</div>'}
+                    <div class="interval-setting-card">
+                        <div class="interval-setting-title">Verse Refresh Interval</div>
+                        <div class="interval-setting-help">Controls how often new verses are generated for users.</div>
+                        <div class="interval-setting-controls">
+                            <select id="dashboardVerseInterval" class="interval-select">
+                                <option value="30" ${currentInterval === 30 ? 'selected' : ''}>30 seconds</option>
+                                <option value="60" ${currentInterval === 60 ? 'selected' : ''}>1 minute</option>
+                                <option value="120" ${currentInterval === 120 ? 'selected' : ''}>2 minutes</option>
+                                <option value="300" ${currentInterval === 300 ? 'selected' : ''}>5 minutes</option>
+                                <option value="600" ${currentInterval === 600 ? 'selected' : ''}>10 minutes</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="saveDashboardInterval()" ${canEdit ? '' : 'disabled'}>Save Interval</button>
+                        </div>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="setting-card">
+                            <h4>Admin Auto Refresh</h4>
+                            <select id="adminAutoRefreshSeconds" class="filter-select">
+                                <option value="10" ${currentAutoRefresh === 10 ? 'selected' : ''}>10s</option>
+                                <option value="20" ${currentAutoRefresh === 20 ? 'selected' : ''}>20s</option>
+                                <option value="30" ${currentAutoRefresh === 30 ? 'selected' : ''}>30s</option>
+                                <option value="45" ${currentAutoRefresh === 45 ? 'selected' : ''}>45s</option>
+                                <option value="60" ${currentAutoRefresh === 60 ? 'selected' : ''}>60s</option>
+                            </select>
+                            <div class="setting-help">Controls dashboard polling interval.</div>
+                        </div>
+                        <div class="setting-card">
+                            <h4>Audit Retention</h4>
+                            <select id="adminAuditRetentionDays" class="filter-select">
+                                <option value="30" ${currentRetention === 30 ? 'selected' : ''}>30 days</option>
+                                <option value="60" ${currentRetention === 60 ? 'selected' : ''}>60 days</option>
+                                <option value="90" ${currentRetention === 90 ? 'selected' : ''}>90 days</option>
+                                <option value="180" ${currentRetention === 180 ? 'selected' : ''}>180 days</option>
+                                <option value="365" ${currentRetention === 365 ? 'selected' : ''}>365 days</option>
+                            </select>
+                            <div class="setting-help">Retention target for audit data management.</div>
+                        </div>
+                        <div class="setting-card">
+                            <h4>Safety Mode</h4>
+                            <select id="adminSafetyMode" class="filter-select">
+                                <option value="strict" ${currentSafety === 'strict' ? 'selected' : ''}>Strict</option>
+                                <option value="balanced" ${currentSafety === 'balanced' ? 'selected' : ''}>Balanced</option>
+                                <option value="relaxed" ${currentSafety === 'relaxed' ? 'selected' : ''}>Relaxed</option>
+                            </select>
+                            <div class="setting-help">Moderation intensity profile for admin tools.</div>
+                        </div>
+                        <div class="setting-card">
+                            <h4>Persona Visibility</h4>
+                            <select id="adminShowPersona" class="filter-select">
+                                <option value="1" ${showPersona ? 'selected' : ''}>Enabled</option>
+                                <option value="0" ${!showPersona ? 'selected' : ''}>Disabled</option>
+                            </select>
+                            <div class="setting-help">Show target persona details in audits.</div>
+                        </div>
+                        <div class="setting-card">
+                            <h4>Maintenance Mode</h4>
+                            <select id="adminMaintenanceMode" class="filter-select">
+                                <option value="0" ${!maintenanceEnabled ? 'selected' : ''}>Disabled</option>
+                                <option value="1" ${maintenanceEnabled ? 'selected' : ''}>Enabled</option>
+                            </select>
+                            <div class="setting-help">Temporarily lock the main website for upgrades.</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveFeaturedSettings()" ${canEdit ? '' : 'disabled'}>Save Featured Settings</button>
+                    <h4 style="margin-bottom:15px;">&#128274; Role Codes:</h4>
+                    <div style="font-family:monospace;background:rgba(0,0,0,0.3);padding:15px;border-radius:8px;line-height:2;">
+                        <div>Host: ${data.codes.host}</div>
+                        <div>Mod: ${data.codes.mod}</div>
+                        <div>Co-Owner: ${data.codes.co_owner}</div>
+                        <div>Owner: ${data.codes.owner}</div>
+                    </div>
+                    <p style="color:#888;margin-top:20px;font-size:0.85rem;">
+                        &#128161; Update these in Render environment variables
+                    </p>
+                `;
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load settings</div>';
+            }
+        }
+
+        async function saveDashboardInterval() {
+            if (!settingsCanEdit) {
+                showToast('Owner access required');
+                return;
+            }
+            const select = document.getElementById('dashboardVerseInterval');
+            if (!select) return;
+            const interval = parseInt(select.value, 10);
+
+            try {
+                const res = await fetch('/admin/api/system/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verse_interval: interval })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Interval updated');
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        async function saveFeaturedSettings() {
+            if (!settingsCanEdit) {
+                showToast('Owner access required');
+                return;
+            }
+            const payload = {
+                auto_refresh_seconds: parseInt(document.getElementById('adminAutoRefreshSeconds')?.value || '30', 10),
+                audit_retention_days: parseInt(document.getElementById('adminAuditRetentionDays')?.value || '90', 10),
+                safety_mode: document.getElementById('adminSafetyMode')?.value || 'balanced',
+                show_user_persona: (document.getElementById('adminShowPersona')?.value || '1') === '1',
+                maintenance_mode: (document.getElementById('adminMaintenanceMode')?.value || '0') === '1'
+            };
+            try {
+                const res = await fetch('/admin/api/system/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) showToast('Featured settings updated');
+                else showToast('Failed: ' + (data.error || 'Unknown'));
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        function normalizeTimestamp(ts) {
+            if (!ts) return null;
+            const raw = String(ts).trim();
+            if (!raw) return null;
+            const hasZone = /[zZ]|[+-]\d{2}:\d{2}$/.test(raw);
+            const cleaned = raw.includes('T') ? raw : raw.replace(' ', 'T');
+            return hasZone ? cleaned : `${cleaned}Z`;
+        }
+
+        function parseTimestamp(ts) {
+            const normalized = normalizeTimestamp(ts);
+            if (!normalized) return null;
+            const d = new Date(normalized);
+            return Number.isNaN(d.getTime()) ? null : d;
+        }
+
+        function formatLocalTime(ts) {
+            const d = parseTimestamp(ts);
+            return d ? d.toLocaleString() : '-';
+        }
+
+        function formatLocation(location, fallbackIp) {
+            const loc = (location && typeof location === 'object') ? location : {};
+            const ip = loc.ip || fallbackIp || '';
+            const area = [loc.city, loc.region, loc.country].filter(Boolean).join(', ');
+            const tz = loc.timezone ? ` (${loc.timezone})` : '';
+            if (!ip && !area) return '-';
+            return `${escapeHtml(area || 'Unknown')}${tz}${ip ? `<br><small style="color:#888">IP: ${escapeHtml(ip)}</small>` : ''}`;
+        }
+
+        function formatExtras(extras) {
+            if (!extras || typeof extras !== 'object' || !Object.keys(extras).length) return '-';
+            try {
+                const entries = Object.entries(extras).map(([k, v]) => {
+                    let value = v;
+                    if (typeof v === 'object' && v !== null) {
+                        try { value = JSON.stringify(v); } catch (_) { value = String(v); }
+                    }
+                    return `<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,0.06);font-size:11px;color:#cbd5f5;">${escapeHtml(String(k))}: ${escapeHtml(String(value))}</span>`;
+                }).join(' ');
+                return `<div style="display:flex;flex-wrap:wrap;gap:4px;">${entries}</div>`;
+            } catch (_) {
+                return '-';
+            }
+        }
+
+        function renderAuditTable(rows) {
+            let html = '<table><thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Status</th><th>Target</th><th>Location</th><th>Details</th><th>Extras</th></tr></thead><tbody>';
+            rows.forEach(l => {
+                const time = formatLocalTime(l.timestamp);
+                const statusText = String(l.status || 'unknown').toLowerCase();
+                const statusColor = statusText === 'success' ? '#48bb78' : (statusText === 'failed' ? '#f56565' : '#ed8936');
+                const targetId = l.target_user_id ? String(l.target_user_id) : '';
+                const targetIdLine = targetId ? `<br><small style=\"color:#888\">ID: ${escapeHtml(targetId)}</small>` : '';
+                const target = l.target_name
+                    ? `${escapeHtml(l.target_name)}${l.target_email ? `<br><small style=\"color:#888\">${escapeHtml(l.target_email)}</small>` : ''}${l.target_role ? `<br><small style=\"color:#888\">Role: ${escapeHtml(l.target_role)}</small>` : ''}${targetIdLine}`
+                    : (targetId ? `ID: ${escapeHtml(targetId)}` : '-');
+                const detailsText = `${escapeHtml(l.details || '-')}${l.reason ? `<br><small style=\"color:#888\">Reason: ${escapeHtml(l.reason)}</small>` : ''}${l.duration ? `<br><small style=\"color:#888\">Duration: ${escapeHtml(l.duration)}</small>` : ''}`;
+                html += `<tr>
+                    <td>${time}</td>
+                    <td>${escapeHtml(l.admin_name || l.admin_id || 'system')}</td>
+                    <td>${escapeHtml(l.action || 'UNKNOWN')}</td>
+                    <td><span class="status-badge" style="background:rgba(255,255,255,0.08);color:${statusColor};text-transform:uppercase;">${escapeHtml(statusText)}</span></td>
+                    <td>${target}</td>
+                    <td>${formatLocation(l.location, l.ip_address)}</td>
+                    <td>${detailsText}</td>
+                    <td>${formatExtras(l.extras)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        async function loadAuditLogs() {
+            const container = document.getElementById('auditContent');
+            try {
+                const res = await fetch('/admin/api/audits?per_page=200&page=1&action=all');
+                const data = await res.json();
+                
+                if (data.error) {
+                    container.innerHTML = '<div class="error-box">' + data.error + '</div>';
+                    return;
+                }
+                
+                const logs = Array.isArray(data?.logs) ? data.logs : (Array.isArray(data) ? data : []);
+                if (!logs.length) {
+                    container.innerHTML = '<div class="empty-state">No audit logs</div>';
+                    return;
+                }
+
+                allAuditLogs = logs;
+                container.innerHTML = renderAuditTable(logs);
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load logs</div>';
+            }
+        }
+
+        function filterRestrictions() {
+            const q = (document.getElementById('restrictionSearch')?.value || '').toLowerCase().trim();
+            const rows = (allRestrictions || []).filter(r =>
+                !q ||
+                String(r.user_name || '').toLowerCase().includes(q) ||
+                String(r.user_email || '').toLowerCase().includes(q) ||
+                String(r.reason || '').toLowerCase().includes(q)
+            );
+
+            const container = document.getElementById('restrictionsContent');
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state">No matching restrictions</div>';
+                return;
+            }
+            let html = '<table><thead><tr><th>User</th><th>Reason</th><th>Expires</th><th>Actions</th></tr></thead><tbody>';
+            rows.forEach(r => {
+                const expires = r.expires_at ? formatLocalTime(r.expires_at) : 'Unknown';
+                html += `<tr>
+                    <td>${escapeHtml(r.user_name)}<br><small style="color:#888">${escapeHtml(r.user_email)}</small></td>
+                    <td>${escapeHtml(r.reason)}</td>
+                    <td>${expires}</td>
+                    <td><button class="btn btn-success" onclick="removeRestriction(${r.user_id})">Remove</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function filterBans() {
+            const q = (document.getElementById('banSearch')?.value || '').toLowerCase().trim();
+            const banType = (document.getElementById('banTypeFilter')?.value || '').trim();
+            const now = Date.now();
+            const rows = (allBans || []).filter(b => {
+                const matchesText = !q ||
+                    String(b.user_name || '').toLowerCase().includes(q) ||
+                    String(b.user_email || '').toLowerCase().includes(q) ||
+                    String(b.reason || '').toLowerCase().includes(q);
+                if (!matchesText) return false;
+                if (!banType) return true;
+                const expDt = b.expires_at ? parseTimestamp(b.expires_at) : null;
+                const isTemporary = !!expDt && (expDt.getTime() > now);
+                return banType === 'temporary' ? isTemporary : !isTemporary;
+            });
+
+            const container = document.getElementById('bansContent');
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state">No matching bans</div>';
+                return;
+            }
+            let html = '<table><thead><tr><th>User</th><th>Reason</th><th>Duration</th><th>Actions</th></tr></thead><tbody>';
+            rows.forEach(b => {
+                let duration = 'Permanent';
+                if (b.expires_at) {
+                    const expires = parseTimestamp(b.expires_at);
+                    const diff = expires ? Math.ceil((expires - new Date()) / (1000 * 60 * 60)) : 0;
+                    duration = diff > 24 ? `${Math.ceil(diff / 24)}d` : `${diff}h`;
+                }
+                html += `<tr>
+                    <td>${escapeHtml(b.user_name)}<br><small style="color:#888">${escapeHtml(b.user_email)}</small></td>
+                    <td>${escapeHtml(b.reason)}</td>
+                    <td>${duration}</td>
+                    <td><button class="btn btn-success" onclick="unbanUser(${b.user_id})">Unban</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function filterAudit() {
+            const fromDate = document.getElementById('auditDateFrom')?.value;
+            const toDate = document.getElementById('auditDateTo')?.value;
+            const search = (document.getElementById('auditSearch')?.value || '').toLowerCase().trim();
+            const action = (document.getElementById('auditActionFilter')?.value || '').trim().toUpperCase();
+
+            const fromTs = fromDate ? new Date(fromDate + 'T00:00:00').getTime() : null;
+            const toTs = toDate ? new Date(toDate + 'T23:59:59').getTime() : null;
+            const rows = (allAuditLogs || []).filter(l => {
+                const ts = l.timestamp ? (parseTimestamp(l.timestamp)?.getTime() ?? null) : null;
+                if ((fromTs || toTs) && !ts) return false;
+                if (fromTs && ts && ts < fromTs) return false;
+                if (toTs && ts && ts > toTs) return false;
+                if (action && String(l.action || '').toUpperCase() !== action) return false;
+                if (search) {
+                    const haystack = [
+                        l.admin_name, l.admin_id, l.action, l.target_name, l.target_email,
+                        l.details, l.reason, l.duration, l.status,
+                        l.location && l.location.ip, l.location && l.location.city,
+                        l.location && l.location.region, l.location && l.location.country,
+                        l.extras ? JSON.stringify(l.extras) : ''
+                    ].map(x => String(x || '').toLowerCase()).join(' ');
+                    if (!haystack.includes(search)) return false;
+                }
+                return true;
+            });
+
+            const container = document.getElementById('auditContent');
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state">No matching audit logs</div>';
+                return;
+            }
+            container.innerHTML = renderAuditTable(rows);
+        }
+
+        function exportData(type) {
+            let rows = [];
+            let headers = [];
+            if (type === 'users') {
+                headers = ['id', 'name', 'email', 'role', 'is_admin', 'is_banned', 'created_at'];
+                rows = allUsers || [];
+            } else if (type === 'restrictions') {
+                headers = ['user_id', 'user_name', 'user_email', 'reason', 'restricted_by', 'restricted_at', 'expires_at'];
+                rows = allRestrictions || [];
+            } else if (type === 'bans') {
+                headers = ['user_id', 'user_name', 'user_email', 'reason', 'banned_by', 'banned_at', 'expires_at'];
+                rows = allBans || [];
+            } else if (type === 'audit') {
+                headers = ['id', 'timestamp', 'admin_id', 'admin_name', 'action', 'status', 'target_user_id', 'target_name', 'target_email', 'target_role', 'location_ip', 'location_country', 'location_region', 'location_city', 'reason', 'duration', 'details', 'extras'];
+                rows = allAuditLogs || [];
+            }
+
+            if (!rows.length) {
+                showToast('No data to export');
+                return;
+            }
+
+            const normalizedRows = rows.map(r => {
+                if (type !== 'audit') return r;
+                const loc = (r.location && typeof r.location === 'object') ? r.location : {};
+                return {
+                    ...r,
+                    location_ip: loc.ip || r.ip_address || '',
+                    location_country: loc.country || '',
+                    location_region: loc.region || '',
+                    location_city: loc.city || '',
+                    extras: r.extras ? JSON.stringify(r.extras) : ''
+                };
+            });
+
+            const csv = [
+                headers.join(','),
+                ...normalizedRows.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${type}-export-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Export complete');
+        }
+
+        // Ban functions
+        function selectDuration(duration) {
+            selectedDuration = duration;
+            document.querySelectorAll('#banModal .duration-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`#banModal .duration-btn[data-duration="${duration}"]`).classList.add('selected');
+        }
+
+        function openBanModal(userId) {
+            banUserId = userId;
+            document.getElementById('banModal').classList.add('active');
+        }
+
+        function closeBanModal() {
+            document.getElementById('banModal').classList.remove('active');
+            document.getElementById('banReason').value = '';
+            banUserId = null;
+        }
+
+        async function confirmBan() {
+            if (!banUserId) return;
+            const userId = banUserId; // Save before closing modal
+            const btn = document.querySelector('#banModal .btn-danger');
+            btn.textContent = 'Banning...';
+            btn.disabled = true;
+            
+            const reason = document.getElementById('banReason').value.trim() || 'No reason';
+            closeBanModal();
+            showToast('Banning user...');
+            
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/ban`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({banned: true, reason, duration: selectedDuration})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('User banned');
+                    refreshRealtime();
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            } finally {
+                btn.textContent = 'Ban User';
+                btn.disabled = false;
+            }
+        }
+
+        async function unbanUser(userId) {
+            if (!confirm('Unban this user?')) return;
+            showToast('Unbanning user...');
+            
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/ban`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({banned: false})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('User unbanned');
+                    refreshRealtime();
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        // Add restriction by email (Restrictions tab)
+        function openAddRestrictionModal() {
+            document.getElementById('addRestrictionModal').classList.add('active');
+        }
+
+        function closeAddRestrictionModal() {
+            document.getElementById('addRestrictionModal').classList.remove('active');
+            document.getElementById('restrictionUserEmail').value = '';
+            document.getElementById('newRestrictReason').value = '';
+            newRestrictHours = 24;
+            document.querySelectorAll('#addRestrictionModal .duration-btn').forEach(btn => btn.classList.remove('selected'));
+            const defaultBtn = document.querySelector('#addRestrictionModal .duration-btn[data-hours="24"]');
+            if (defaultBtn) defaultBtn.classList.add('selected');
+        }
+
+        function selectNewRestrictHours(hours) {
+            newRestrictHours = hours;
+            document.querySelectorAll('#addRestrictionModal .duration-btn').forEach(btn => btn.classList.remove('selected'));
+            const btn = document.querySelector(`#addRestrictionModal .duration-btn[data-hours="${hours}"]`);
+            if (btn) btn.classList.add('selected');
+        }
+
+        async function addNewRestriction() {
+            const email = (document.getElementById('restrictionUserEmail')?.value || '').trim();
+            const reason = (document.getElementById('newRestrictReason')?.value || '').trim() || 'No reason';
+            if (!email) return showToast('User email required');
+            try {
+                const lookup = await fetch(`/admin/api/users?q=${encodeURIComponent(email)}`);
+                const users = await lookup.json();
+                if (!Array.isArray(users)) return showToast('User lookup failed');
+                const match = users.find(u => String(u.email || '').toLowerCase() === email.toLowerCase());
+                if (!match) return showToast('User not found');
+                const res = await fetch(`/admin/api/users/${match.id}/restrict`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ hours: newRestrictHours, reason })
+                });
+                const data = await res.json();
+                if (!data.success) return showToast('Failed: ' + (data.error || 'Unknown'));
+                showToast(`Restricted ${match.name || 'user'} for ${newRestrictHours}h`);
+                closeAddRestrictionModal();
+                refreshRealtime();
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        // Restrict functions
+        function selectRestrictHours(hours) {
+            selectedHours = hours;
+            document.querySelectorAll('#restrictModal .duration-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`#restrictModal .duration-btn[data-hours="${hours}"]`).classList.add('selected');
+        }
+
+        function openRestrictModal(userId) {
+            restrictUserId = userId;
+            document.getElementById('restrictModal').classList.add('active');
+        }
+
+        function closeRestrictModal() {
+            document.getElementById('restrictModal').classList.remove('active');
+            document.getElementById('restrictReason').value = '';
+            restrictUserId = null;
+        }
+
+        async function confirmRestrict() {
+            if (!restrictUserId) return;
+            const userId = restrictUserId; // Save before closing modal
+            const reason = document.getElementById('restrictReason').value.trim() || 'No reason';
+            closeRestrictModal();
+            showToast('Restricting user...');
+            
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/restrict`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({hours: selectedHours, reason})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`User restricted for ${selectedHours}h`);
+                    refreshRealtime();
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        async function removeRestriction(userId) {
+            if (!confirm('Remove comment restriction?')) return;
+            
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/restrict`, {method: 'DELETE'});
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Restriction removed');
+                    refreshRealtime();
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        async function deleteComment(commentId, type = 'comment') {
+            if (!confirm('Delete this comment?')) return;
+            
+            try {
+                const res = await fetch(`/admin/api/comments/${commentId}?type=${encodeURIComponent(type)}`, {method: 'DELETE'});
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Comment deleted');
+                    refreshRealtime();
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        async function changeRole(userId, currentRole) {
+            const roles = ['user', 'host', 'mod', 'co_owner', 'owner'];
+            const newRole = prompt(`Change role to:\n${roles.join(', ')}`, currentRole);
+            if (!newRole || newRole === currentRole) return;
+            
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/role`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({role: newRole})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Role updated');
+                    refreshRealtime();
+                } else {
+                    showToast('Failed: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active');
+            document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(section + '-section').classList.remove('hidden');
+            activeSection = section;
+            
+            const titles = {
+                dashboard: 'Dashboard', users: 'Users', restrictions: 'Restrictions',
+                bans: 'Banned Users', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
+            };
+            document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
+            
+            if (section === 'settings') loadSettings();
+            if (section === 'audit') loadAuditLogs();
+            if (section === 'comments') loadComments();
+            if (section === 'restrictions') loadRestrictions();
+            if (section === 'bans') loadBans();
+            if (section === 'users') loadUsers();
+        }
+
+        async function logout() {
+            await fetch('/admin/logout', {method: 'POST'});
+            window.location.href = '/admin/login';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function loadRecentActivity() {
+            const container = document.getElementById('recentActivity');
+            try {
+                const res = await fetch('/admin/api/recent-activity');
+                const data = await res.json();
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No recent activity</div>';
+                    return;
+                }
+                
+                const icons = {
+                    'BAN': '⛔', 'UNBAN': '✅', 'RESTRICT_COMMENTS': '🚫', 'UNRESTRICT': '✅',
+                    'DELETE_COMMENT': '🗑️', 'UPDATE_ROLE': '👑', 'ADMIN_LOGIN': '🔐',
+                    'UPDATE_SETTINGS': '⚙️', 'USER_LOGIN': '👤', 'USER_COMMENT': '💬', 'USER_COMMUNITY': '💬'
+                };
+                
+                let html = '';
+                data.forEach(log => {
+                    const icon = icons[log.action] || '[LOG]';
+                    const actionClass = String(log.action || '').toLowerCase();
+                    const time = formatLocalTime(log.timestamp);
+                    const adminName = escapeHtml(log.admin_name || log.admin_id || 'system');
+                    const actionName = escapeHtml((log.action || 'UNKNOWN').replace(/_/g, ' '));
+                    const statusLine = `<div class="activity-details">Status: ${escapeHtml(String(log.status || 'unknown').toUpperCase())}</div>`;
+                    const locationText = formatLocation(log.location, log.ip_address);
+                    const locationLine = locationText !== '-' ? `<div class="activity-details">Location: ${locationText}</div>` : '';
+                    const targetLine = log.target_name
+                        ? `<div class="activity-details">Target: ${escapeHtml(log.target_name)}${log.target_email ? ` (${escapeHtml(log.target_email)})` : ''}${log.target_role ? ` [${escapeHtml(log.target_role)}]` : ''}${log.target_user_id ? ` • User ID: ${escapeHtml(String(log.target_user_id))}` : ''}</div>`
+                        : (log.target_user_id ? `<div class="activity-details">User ID: ${escapeHtml(String(log.target_user_id))}</div>` : '');
+                    const reasonLine = log.reason ? `<div class="activity-details">Reason: ${escapeHtml(log.reason)}</div>` : '';
+                    const durationLine = log.duration ? `<div class="activity-details">Duration: ${escapeHtml(log.duration)}</div>` : '';
+                    const extrasLine = (log.extras && Object.keys(log.extras).length)
+                        ? `<div class="activity-details">Extras: ${escapeHtml(JSON.stringify(log.extras))}</div>`
+                        : '';
+                    const detailsLine = log.details ? `<div class="activity-details">${escapeHtml(log.details || '')}</div>` : '';
+
+                    html += `
+                        <div class="activity-item">
+                            <div class="activity-icon ${actionClass}">${icon}</div>
+                            <div class="activity-content">
+                                <div class="activity-text">
+                                    <strong>${actionName}</strong> by ${adminName}
+                                </div>
+                                ${statusLine}
+                                ${targetLine}
+                                ${locationLine}
+                                ${reasonLine}
+                                ${durationLine}
+                                ${extrasLine}
+                                ${detailsLine}
+                                <div class="activity-time">${time}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state">Failed to load activity</div>';
+            }
+        }
+
+        // Initialize
+        loadPermissions().then(() => {
+            loadAllData();
+            loadRecentActivity();
+            const notifFilter = document.getElementById('notificationFilter');
+            if (notifFilter) notifFilter.addEventListener('change', loadNotificationList);
+            if (adminChatPoll) clearInterval(adminChatPoll);
+            adminChatPoll = setInterval(() => {
+                loadInsights();
+                loadAnnouncements();
+                loadAnnouncementList();
+                loadNotificationList();
+                loadAdminChat();
+            }, 30000);
+            if (realtimePoll) clearInterval(realtimePoll);
+            realtimePoll = setInterval(() => {
+                refreshRealtime();
+            }, 15000);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+

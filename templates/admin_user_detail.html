@@ -1,0 +1,466 @@
+{% extends "admin_base.html" %}
+
+{% block title %}User: {{ user.name }}{% endblock %}
+{% block header_title %}User Details{% endblock %}
+
+{% block content %}
+<!-- User Header Card -->
+<div class="card">
+    <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
+        <img src="{{ user.picture or 'https://ui-avatars.com/api/?name=' + user.name + '&background=0a84ff&color=fff' }}" 
+             alt="" 
+             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary);">
+        <div style="flex: 1; min-width: 250px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">
+                <h2 style="font-size: 28px; font-weight: 700;">{{ user.name }}</h2>
+                <span class="badge {{ 'badge-danger' if user.role == 'superadmin' else 'badge-primary' if user.role == 'admin' else 'badge-warning' if user.role == 'host' else 'badge-success' }}">
+                    {{ user.role or 'user' }}
+                </span>
+                {% if user.is_banned %}
+                <span class="badge badge-danger">BANNED</span>
+                {% endif %}
+            </div>
+            <div style="color: var(--text-secondary); margin-bottom: 16px;">{{ user.email }}</div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                {% if user.is_banned %}
+                <button class="btn btn-primary" onclick="unbanUser()">✓ Unban User</button>
+                {% else %}
+                <button class="btn btn-danger" onclick="openBanModal()">🚫 Ban User</button>
+                {% endif %}
+                <button class="btn btn-secondary" onclick="openRoleModal()">👑 Change Role</button>
+                <a href="/admin/users" class="btn btn-secondary">← Back to Users</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+    <div class="stat-card">
+        <div class="stat-icon red">❤️</div>
+        <div class="stat-value">{{ user.likes_count or 0 }}</div>
+        <div class="stat-label">Likes</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange">🔖</div>
+        <div class="stat-value">{{ user.saves_count or 0 }}</div>
+        <div class="stat-label">Saves</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue">💬</div>
+        <div class="stat-value">{{ user.comments_count or 0 }}</div>
+        <div class="stat-label">Comments</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">📨</div>
+        <div class="stat-value">{{ user.messages_count or 0 }}</div>
+        <div class="stat-label">Messages</div>
+    </div>
+</div>
+
+<!-- User Info -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Account Information</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">User ID</div>
+            <div style="font-weight: 600; font-family: monospace;">{{ user.id }}</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Google ID</div>
+            <div style="font-weight: 600; font-family: monospace; font-size: 14px; word-break: break-all;">{{ user.google_id }}</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Member Since</div>
+            <div style="font-weight: 600;">{{ user.created_at }}</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Admin Status</div>
+            <div style="font-weight: 600;">{{ 'Yes' if user.is_admin else 'No' }}</div>
+        </div>
+        {% if user.is_banned %}
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Ban Reason</div>
+            <div style="font-weight: 600; color: var(--danger);">{{ user.ban_reason or 'No reason provided' }}</div>
+        </div>
+        {% if user.ban_expires_at %}
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Ban Expires</div>
+            <div style="font-weight: 600;">{{ user.ban_expires_at }}</div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Activity Tabs -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Recent Activity</div>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-secondary" onclick="loadActivity()">🔄 Refresh</button>
+        </div>
+    </div>
+    
+    <div style="border-bottom: 1px solid var(--glass-border); margin-bottom: 20px;">
+        <div style="display: flex; gap: 8px;">
+            <button class="tab-btn active" onclick="switchTab('likes', this)">Likes</button>
+            <button class="tab-btn" onclick="switchTab('saves', this)">Saves</button>
+            <button class="tab-btn" onclick="switchTab('logs', this)">Admin Logs</button>
+        </div>
+    </div>
+    
+    <div id="activityContent">
+        <div class="loading">
+            <div class="spinner"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Ban Modal -->
+<div class="modal-overlay" id="banModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Ban User: {{ user.name }}</div>
+            <button class="modal-close" onclick="closeBanModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Ban Reason</label>
+                <textarea class="form-input" id="banReason" rows="3" placeholder="Enter reason for ban..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duration</label>
+                <select class="form-select" id="banDuration">
+                    <option value="">Permanent</option>
+                    <option value="1">1 Hour</option>
+                    <option value="24">1 Day</option>
+                    <option value="168">1 Week</option>
+                    <option value="720">1 Month</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeBanModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmBan()">Ban User</button>
+        </div>
+    </div>
+</div>
+
+<!-- Role Modal -->
+<div class="modal-overlay" id="roleModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Change Role: {{ user.name }}</div>
+            <button class="modal-close" onclick="closeRoleModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Select Role</label>
+                <select class="form-select" id="newRole">
+                    <option value="user" {{ 'selected' if user.role == 'user' else '' }}>User - Regular user access</option>
+                    <option value="host" {{ 'selected' if user.role == 'host' else '' }}>Host - Can verify as admin</option>
+                    <option value="admin" {{ 'selected' if user.role == 'admin' else '' }}>Admin - Full admin access</option>
+                    <option value="superadmin" {{ 'selected' if user.role == 'superadmin' else '' }}>Super Admin - Complete control</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeRoleModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmRoleChange()">Update Role</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tab-btn {
+        padding: 12px 20px;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .tab-btn:hover {
+        color: var(--text);
+    }
+    
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const userId = {{ user.id }};
+    let currentTab = 'likes';
+    
+    // Load activity on page load
+    loadActivity();
+    
+    function switchTab(tab, btn) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadActivity();
+    }
+    
+    async function loadActivity() {
+        const content = document.getElementById('activityContent');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+        
+        try {
+            if (currentTab === 'logs') {
+                // Use existing logs data from template
+                const logs = {{ logs | tojson }};
+                renderLogs(logs);
+            } else {
+                const response = await fetch(`/admin/api/user/${userId}/activity`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    content.innerHTML = `<div class="empty-state"><div class="empty-state-title">Error loading activity</div></div>`;
+                    return;
+                }
+                
+                if (currentTab === 'likes') {
+                    renderLikes(data.likes);
+                } else if (currentTab === 'saves') {
+                    renderSaves(data.saves);
+                }
+            }
+        } catch (e) {
+            content.innerHTML = `<div class="empty-state"><div class="empty-state-title">Error loading activity</div></div>`;
+        }
+    }
+    
+    function renderLikes(likes) {
+        const content = document.getElementById('activityContent');
+        
+        if (!likes || likes.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❤️</div>
+                    <div class="empty-state-title">No likes yet</div>
+                </div>
+            `;
+            return;
+        }
+        
+        content.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Verse</th>
+                            <th>Reference</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${likes.map(like => `
+                            <tr>
+                                <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${like.text}</td>
+                                <td><span class="badge badge-primary">${like.reference}</span></td>
+                                <td>${formatDate(like.timestamp)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    function renderSaves(saves) {
+        const content = document.getElementById('activityContent');
+        
+        if (!saves || saves.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔖</div>
+                    <div class="empty-state-title">No saves yet</div>
+                </div>
+            `;
+            return;
+        }
+        
+        content.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Verse</th>
+                            <th>Reference</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${saves.map(save => `
+                            <tr>
+                                <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${save.text}</td>
+                                <td><span class="badge badge-primary">${save.reference}</span></td>
+                                <td>${formatDate(save.timestamp)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    function renderLogs(logs) {
+        const content = document.getElementById('activityContent');
+        
+        if (!logs || logs.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-title">No admin actions yet</div>
+                </div>
+            `;
+            return;
+        }
+        
+        content.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => `
+                            <tr>
+                                <td>${log.admin_name}</td>
+                                <td><span class="badge ${getActionBadgeClass(log.action)}">${log.action}</span></td>
+                                <td style="font-size: 13px; color: var(--text-secondary);">${log.details || '-'}</td>
+                                <td>${formatDate(log.created_at)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    function getActionBadgeClass(action) {
+        if (action.includes('ban')) return 'badge-danger';
+        if (action.includes('unban')) return 'badge-success';
+        if (action.includes('update')) return 'badge-warning';
+        return 'badge-primary';
+    }
+    
+    // Ban Modal
+    function openBanModal() {
+        document.getElementById('banModal').classList.add('active');
+        document.getElementById('banReason').value = '';
+        document.getElementById('banDuration').value = '';
+    }
+    
+    function closeBanModal() {
+        document.getElementById('banModal').classList.remove('active');
+    }
+    
+    async function confirmBan() {
+        const reason = document.getElementById('banReason').value || 'Violation of terms';
+        const duration = document.getElementById('banDuration').value;
+        
+        try {
+            const response = await fetch(`/admin/api/user/${userId}/ban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason, duration })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('User banned successfully');
+                closeBanModal();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(data.error || 'Error banning user', 'error');
+            }
+        } catch (e) {
+            showToast('Error banning user', 'error');
+        }
+    }
+    
+    // Unban
+    async function unbanUser() {
+        if (!confirm('Are you sure you want to unban this user?')) return;
+        
+        try {
+            const response = await fetch(`/admin/api/user/${userId}/unban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('User unbanned successfully');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(data.error || 'Error unbanning user', 'error');
+            }
+        } catch (e) {
+            showToast('Error unbanning user', 'error');
+        }
+    }
+    
+    // Role Modal
+    function openRoleModal() {
+        document.getElementById('roleModal').classList.add('active');
+    }
+    
+    function closeRoleModal() {
+        document.getElementById('roleModal').classList.remove('active');
+    }
+    
+    async function confirmRoleChange() {
+        const newRole = document.getElementById('newRole').value;
+        
+        try {
+            const response = await fetch(`/admin/api/user/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Role updated successfully');
+                closeRoleModal();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(data.error || 'Error updating role', 'error');
+            }
+        } catch (e) {
+            showToast('Error updating role', 'error');
+        }
+    }
+    
+    // Close modals on overlay click
+    document.getElementById('banModal').addEventListener('click', function(e) {
+        if (e.target === this) closeBanModal();
+    });
+    
+    document.getElementById('roleModal').addEventListener('click', function(e) {
+        if (e.target === this) closeRoleModal();
+    });
+</script>
+{% endblock %}

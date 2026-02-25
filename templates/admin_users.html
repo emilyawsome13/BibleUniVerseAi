@@ -1,0 +1,431 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Users{% endblock %}
+{% block header_title %}User Management{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="filters-bar">
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search users by name or email..." onkeyup="debounceSearch()">
+    </div>
+    <select class="form-select" id="roleFilter" onchange="loadUsers()" style="width: 150px;">
+        <option value="all">All Roles</option>
+        <option value="user">User</option>
+        <option value="host">Host</option>
+        <option value="admin">Admin</option>
+        <option value="superadmin">Super Admin</option>
+    </select>
+    <select class="form-select" id="statusFilter" onchange="loadUsers()" style="width: 150px;">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="banned">Banned</option>
+        <option value="admin">Admins</option>
+    </select>
+    <select class="form-select" id="sortBy" onchange="loadUsers()" style="width: 150px;">
+        <option value="created_at">Newest First</option>
+        <option value="name">Name</option>
+        <option value="email">Email</option>
+    </select>
+    <button class="btn btn-secondary" onclick="refreshUsers()">🔄 Refresh</button>
+</div>
+
+<!-- Stats Summary -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 20px;">
+    <div class="stat-card" style="padding: 16px;">
+        <div class="stat-value" id="statTotal" style="font-size: 24px;">-</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card" style="padding: 16px;">
+        <div class="stat-value" id="statActive" style="font-size: 24px; color: var(--success);">-</div>
+        <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card" style="padding: 16px;">
+        <div class="stat-value" id="statBanned" style="font-size: 24px; color: var(--danger);">-</div>
+        <div class="stat-label">Banned</div>
+    </div>
+    <div class="stat-card" style="padding: 16px;">
+        <div class="stat-value" id="statAdmins" style="font-size: 24px; color: var(--primary);">-</div>
+        <div class="stat-label">Admins</div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">All Users</div>
+        <div id="totalCount" style="color: var(--text-tertiary); font-size: 14px;">Loading...</div>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+                <tr>
+                    <td colspan="5" class="loading">
+                        <div class="spinner"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- Ban User Modal -->
+<div class="modal-overlay" id="banModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Ban User</div>
+            <button class="modal-close" onclick="closeBanModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">User</label>
+                <div id="banUserName" style="font-weight: 600; padding: 12px; background: var(--surface); border-radius: 8px;"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ban Reason</label>
+                <textarea class="form-input" id="banReason" rows="3" placeholder="Enter reason for ban..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duration</label>
+                <select class="form-select" id="banDuration">
+                    <option value="">Permanent</option>
+                    <option value="1">1 Hour</option>
+                    <option value="24">1 Day</option>
+                    <option value="168">1 Week</option>
+                    <option value="720">1 Month</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeBanModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmBan()">Ban User</button>
+        </div>
+    </div>
+</div>
+
+<!-- Change Role Modal -->
+<div class="modal-overlay" id="roleModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Change User Role</div>
+            <button class="modal-close" onclick="closeRoleModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">User</label>
+                <div id="roleUserName" style="font-weight: 600; padding: 12px; background: var(--surface); border-radius: 8px;"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Role</label>
+                <select class="form-select" id="newRole">
+                    <option value="user">User - Regular user access</option>
+                    <option value="host">Host - Can verify as admin</option>
+                    <option value="admin">Admin - Full admin access</option>
+                    <option value="superadmin">Super Admin - Complete control</option>
+                </select>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">
+                    This will also update the user's admin status automatically.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeRoleModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmRoleChange()">Update Role</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let selectedUserId = null;
+    let selectedUserName = '';
+    let searchTimeout = null;
+    let allUsers = [];
+
+    // Load users on page load
+    loadUsers();
+
+    function debounceSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            loadUsers();
+        }, 300);
+    }
+
+    async function loadUsers() {
+        const search = document.getElementById('searchInput').value;
+        const role = document.getElementById('roleFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const sortBy = document.getElementById('sortBy').value;
+        
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: 20,
+            search: search,
+            role: role,
+            status: status,
+            sort_by: sortBy,
+            sort_order: sortBy === 'created_at' ? 'desc' : 'asc'
+        });
+        
+        try {
+            const response = await fetch(`/admin/api/users?${params}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                showToast(data.error, 'error');
+                return;
+            }
+            
+            allUsers = data.users;
+            renderUsers(data.users);
+            renderPagination(data.page, data.pages, data.total);
+            document.getElementById('totalCount').textContent = `${data.total} users`;
+            
+            // Update stats
+            updateStats(data.users, data.total);
+        } catch (e) {
+            console.error('Error loading users:', e);
+            showToast('Error loading users: ' + e.message, 'error');
+        }
+    }
+    
+    function updateStats(users, total) {
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statActive').textContent = users.filter(u => !u.is_banned).length;
+        document.getElementById('statBanned').textContent = users.filter(u => u.is_banned).length;
+        document.getElementById('statAdmins').textContent = users.filter(u => u.role === 'admin' || u.role === 'superadmin').length;
+    }
+
+    function renderUsers(users) {
+        const tbody = document.getElementById('usersTableBody');
+        
+        if (users.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty-state">
+                        <div class="empty-state-icon">👤</div>
+                        <div class="empty-state-title">No users found</div>
+                        <div style="color: var(--text-tertiary);">Try adjusting your filters</div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0a84ff&color=fff`}" 
+                             alt="" 
+                             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0a84ff&color=fff'">
+                        <div>
+                            <div style="font-weight: 600;">${user.name}</div>
+                            <div style="font-size: 13px; color: var(--text-tertiary);">${user.email}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge ${getRoleBadgeClass(user.role)}">${user.role || 'user'}</span>
+                </td>
+                <td>
+                    ${user.is_banned 
+                        ? '<span class="badge badge-danger">🔴 Banned</span>' 
+                        : '<span class="badge badge-success">🟢 Active</span>'}
+                </td>
+                <td>${formatDate(user.created_at)}</td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="/admin/user/${user.id}" class="btn btn-sm btn-secondary" title="View Details">👁️</a>
+                        <button class="btn btn-sm btn-secondary" onclick="openRoleModal(${user.id}, '${user.name}', '${user.role || 'user'}')" title="Change Role">👑</button>
+                        ${user.is_banned 
+                            ? `<button class="btn btn-sm btn-primary" onclick="unbanUser(${user.id}, '${user.name}')" title="Unban User">✓</button>`
+                            : `<button class="btn btn-sm btn-danger" onclick="openBanModal(${user.id}, '${user.name}')" title="Ban User">🚫</button>`
+                        }
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function getRoleBadgeClass(role) {
+        switch (role) {
+            case 'superadmin': return 'badge-danger';
+            case 'admin': return 'badge-primary';
+            case 'host': return 'badge-warning';
+            default: return 'badge-success';
+        }
+    }
+
+    function renderPagination(current, total, totalItems) {
+        const pagination = document.getElementById('pagination');
+        
+        if (total <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        // Previous button
+        html += `<button class="page-btn" onclick="goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>←</button>`;
+        
+        // Page numbers
+        for (let i = 1; i <= total; i++) {
+            if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+                html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            } else if (i === current - 3 || i === current + 3) {
+                html += `<span style="color: var(--text-tertiary);">...</span>`;
+            }
+        }
+        
+        // Next button
+        html += `<button class="page-btn" onclick="goToPage(${current + 1})" ${current === total ? 'disabled' : ''}>→</button>`;
+        
+        pagination.innerHTML = html;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        loadUsers();
+    }
+    
+    function refreshUsers() {
+        showToast('Refreshing...');
+        loadUsers();
+    }
+
+    // Ban Modal
+    function openBanModal(userId, userName) {
+        selectedUserId = userId;
+        selectedUserName = userName;
+        document.getElementById('banUserName').textContent = userName;
+        document.getElementById('banModal').classList.add('active');
+        document.getElementById('banReason').value = '';
+        document.getElementById('banDuration').value = '';
+    }
+
+    function closeBanModal() {
+        document.getElementById('banModal').classList.remove('active');
+        selectedUserId = null;
+        selectedUserName = '';
+    }
+
+    async function confirmBan() {
+        if (!selectedUserId) return;
+        
+        const reason = document.getElementById('banReason').value || 'Violation of terms';
+        const duration = document.getElementById('banDuration').value;
+        
+        try {
+            const response = await fetch(`/admin/api/user/${selectedUserId}/ban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason, duration })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`${selectedUserName} has been banned`);
+                closeBanModal();
+                loadUsers();
+            } else {
+                showToast(data.error || 'Error banning user', 'error');
+            }
+        } catch (e) {
+            showToast('Error banning user', 'error');
+        }
+    }
+
+    // Unban
+    async function unbanUser(userId, userName) {
+        if (!confirm(`Are you sure you want to unban ${userName}?`)) return;
+        
+        try {
+            const response = await fetch(`/admin/api/user/${userId}/unban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`${userName} has been unbanned`);
+                loadUsers();
+            } else {
+                showToast(data.error || 'Error unbanning user', 'error');
+            }
+        } catch (e) {
+            showToast('Error unbanning user', 'error');
+        }
+    }
+
+    // Role Modal
+    function openRoleModal(userId, userName, currentRole) {
+        selectedUserId = userId;
+        selectedUserName = userName;
+        document.getElementById('roleUserName').textContent = userName;
+        document.getElementById('newRole').value = currentRole;
+        document.getElementById('roleModal').classList.add('active');
+    }
+
+    function closeRoleModal() {
+        document.getElementById('roleModal').classList.remove('active');
+        selectedUserId = null;
+        selectedUserName = '';
+    }
+
+    async function confirmRoleChange() {
+        if (!selectedUserId) return;
+        
+        const newRole = document.getElementById('newRole').value;
+        
+        try {
+            const response = await fetch(`/admin/api/user/${selectedUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`${selectedUserName}'s role updated to ${newRole}`);
+                closeRoleModal();
+                loadUsers();
+            } else {
+                showToast(data.error || 'Error updating role', 'error');
+            }
+        } catch (e) {
+            showToast('Error updating role', 'error');
+        }
+    }
+
+    // Close modals on overlay click
+    document.getElementById('banModal').addEventListener('click', function(e) {
+        if (e.target === this) closeBanModal();
+    });
+
+    document.getElementById('roleModal').addEventListener('click', function(e) {
+        if (e.target === this) closeRoleModal();
+    });
+</script>
+{% endblock %}

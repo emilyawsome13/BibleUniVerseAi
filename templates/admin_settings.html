@@ -1,0 +1,339 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block header_title %}System Settings{% endblock %}
+
+{% block content %}
+<!-- System Configuration -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">⚙️ System Configuration</div>
+    </div>
+    
+    <div style="display: grid; gap: 24px;">
+        <div class="form-group">
+            <label class="form-label">Verse Refresh Interval</label>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <select class="form-select" id="verseInterval" style="width: 200px;">
+                    <option value="30">30 seconds</option>
+                    <option value="60" selected>1 minute</option>
+                    <option value="120">2 minutes</option>
+                    <option value="300">5 minutes</option>
+                    <option value="600">10 minutes</option>
+                </select>
+                <button class="btn btn-primary" onclick="saveInterval()">Save</button>
+            </div>
+            <div style="font-size: 13px; color: var(--text-tertiary); margin-top: 8px;">
+                How often the system fetches new verses from the API.
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Current Status</label>
+            <div style="display: flex; gap: 12px;">
+                <div style="background: var(--surface); padding: 12px 20px; border-radius: 8px;">
+                    <div style="font-size: 12px; color: var(--text-tertiary);">Generator</div>
+                    <div style="font-weight: 600; color: var(--success);">🟢 Running</div>
+                </div>
+                <div style="background: var(--surface); padding: 12px 20px; border-radius: 8px;">
+                    <div style="font-size: 12px; color: var(--text-tertiary);">Database</div>
+                    <div style="font-weight: 600; color: var(--success);">🟢 Connected</div>
+                </div>
+                <div style="background: var(--surface); padding: 12px 20px; border-radius: 8px;">
+                    <div style="font-size: 12px; color: var(--text-tertiary);">Auth</div>
+                    <div style="font-weight: 600; color: var(--success);">🟢 Active</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Access -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">🔐 Admin Access Control</div>
+    </div>
+    
+    <div style="display: grid; gap: 24px;">
+        <div class="form-group">
+            <label class="form-label">Admin Verification Code</label>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="password" class="form-input" value="********" disabled style="width: 250px; font-family: monospace;">
+                <span class="badge badge-success">Active</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-tertiary); margin-top: 8px;">
+                The admin code is configured via environment variables for security. 
+                To change it, update the ADMIN_CODE variable on Render.
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Your Admin Status</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="badge badge-primary">{{ session.get('role', 'admin').upper() }}</span>
+                <span style="font-size: 13px; color: var(--text-secondary);">
+                    Logged in as {{ session.get('user_name') }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Admin Permissions</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--success);">✓</span>
+                    <span>View Dashboard</span>
+                </div>
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--success);">✓</span>
+                    <span>Manage Users</span>
+                </div>
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--success);">✓</span>
+                    <span>Ban/Unban Users</span>
+                </div>
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--success);">✓</span>
+                    <span>Change User Roles</span>
+                </div>
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--success);">✓</span>
+                    <span>View Audit Logs</span>
+                </div>
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--success);">✓</span>
+                    <span>System Settings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Management -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">📝 Content Management</div>
+    </div>
+    
+    <div style="display: grid; gap: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Comments</label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="toggle active" onclick="toggleSetting(this, 'comments')">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                    <span style="font-size: 14px;">Enabled</span>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Community Chat</label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="toggle active" onclick="toggleSetting(this, 'community')">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                    <span style="font-size: 14px;">Enabled</span>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">New User Registration</label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="toggle active" onclick="toggleSetting(this, 'registration')">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                    <span style="font-size: 14px;">Open</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 16px; background: var(--surface); border-radius: 12px; border-left: 4px solid var(--warning);">
+            <div style="font-weight: 600; margin-bottom: 8px;">⚠️ Content Moderation</div>
+            <div style="font-size: 13px; color: var(--text-secondary);">
+                Comments and community messages are automatically logged. 
+                You can delete inappropriate content from the main app by clicking the delete button on comments.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Info -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">ℹ️ System Information</div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Application</div>
+            <div style="font-weight: 600;">Bible AI Admin</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Version</div>
+            <div style="font-weight: 600;">1.0.0</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Framework</div>
+            <div style="font-weight: 600;">Flask</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Database</div>
+            <div style="font-weight: 600;">PostgreSQL</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Server</div>
+            <div style="font-weight: 600;">Gunicorn</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Hosting</div>
+            <div style="font-weight: 600;">Render</div>
+        </div>
+    </div>
+</div>
+
+<!-- Danger Zone -->
+<div class="card" style="border-color: var(--danger);">
+    <div class="card-header">
+        <div class="card-title" style="color: var(--danger);">⚠️ Danger Zone</div>
+    </div>
+    
+    <div style="display: grid; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(255, 55, 95, 0.05); border-radius: 12px;">
+            <div>
+                <div style="font-weight: 600;">Clear All Audit Logs</div>
+                <div style="font-size: 13px; color: var(--text-tertiary);">Permanently delete all audit log records. This cannot be undone.</div>
+            </div>
+            <button class="btn btn-danger" onclick="clearAuditLogs()">Clear Logs</button>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(255, 55, 95, 0.05); border-radius: 12px;">
+            <div>
+                <div style="font-weight: 600;">Reset User Statistics</div>
+                <div style="font-size: 13px; color: var(--text-tertiary);">Reset all user counters (likes, saves, comments counts).</div>
+            </div>
+            <button class="btn btn-danger" onclick="resetStats()">Reset Stats</button>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(255, 55, 95, 0.05); border-radius: 12px;">
+            <div>
+                <div style="font-weight: 600;">Clear All Comments</div>
+                <div style="font-size: 13px; color: var(--text-tertiary);">Delete all comments and community messages. This cannot be undone.</div>
+            </div>
+            <button class="btn btn-danger" onclick="clearComments()">Clear Comments</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .toggle {
+        width: 50px;
+        height: 30px;
+        background: var(--surface);
+        border-radius: 30px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 1px solid var(--glass-border);
+    }
+    
+    .toggle.active {
+        background: var(--success);
+    }
+    
+    .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 24px;
+        height: 24px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.3s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .toggle.active .toggle-thumb {
+        transform: translateX(20px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load current settings
+    async function loadSettings() {
+        try {
+            const response = await fetch('/admin/api/system/settings');
+            const data = await response.json();
+            
+            if (data.verse_interval) {
+                document.getElementById('verseInterval').value = data.verse_interval;
+            }
+        } catch (e) {
+            console.error('Error loading settings:', e);
+        }
+    }
+    
+    loadSettings();
+    
+    // Save interval
+    async function saveInterval() {
+        const interval = parseInt(document.getElementById('verseInterval').value);
+        
+        try {
+            const response = await fetch('/admin/api/system/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ verse_interval: interval })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Settings saved successfully');
+            } else {
+                showToast(data.error || 'Error saving settings', 'error');
+            }
+        } catch (e) {
+            showToast('Error saving settings', 'error');
+        }
+    }
+    
+    // Toggle settings
+    function toggleSetting(toggle, setting) {
+        toggle.classList.toggle('active');
+        const isActive = toggle.classList.contains('active');
+        const label = toggle.nextElementSibling;
+        
+        if (setting === 'comments' || setting === 'community') {
+            label.textContent = isActive ? 'Enabled' : 'Disabled';
+        } else if (setting === 'registration') {
+            label.textContent = isActive ? 'Open' : 'Closed';
+        }
+        
+        showToast(`${setting.charAt(0).toUpperCase() + setting.slice(1)} ${isActive ? 'enabled' : 'disabled'}`);
+    }
+    
+    // Danger zone actions
+    async function clearAuditLogs() {
+        if (!confirm('⚠️ WARNING: This will permanently delete ALL audit logs.\n\nThis action cannot be undone.\n\nAre you sure?')) return;
+        if (!confirm('Please confirm again: Delete all audit logs?')) return;
+        
+        showToast('This feature requires database access. Please contact your system administrator.', 'warning');
+    }
+    
+    async function resetStats() {
+        if (!confirm('⚠️ WARNING: This will reset all user statistics.\n\nThis action cannot be undone.\n\nAre you sure?')) return;
+        
+        showToast('This feature requires database access. Please contact your system administrator.', 'warning');
+    }
+    
+    async function clearComments() {
+        if (!confirm('⚠️ WARNING: This will delete ALL comments and community messages.\n\nThis action cannot be undone.\n\nAre you sure?')) return;
+        if (!confirm('Please confirm again: Delete all comments?')) return;
+        
+        showToast('This feature requires database access. Please contact your system administrator.', 'warning');
+    }
+</script>
+{% endblock %}

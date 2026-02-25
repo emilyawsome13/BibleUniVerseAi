@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Status</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0a0a0a;
+            color: #f2f2f2;
+        }
+        .wrap {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px 60px;
+        }
+        .card {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+        }
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .sub {
+            color: #b6b6b6;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .stat {
+            background: rgba(10,10,10,0.7);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #9a9a9a;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .meta {
+            margin-top: 18px;
+            font-size: 13px;
+            color: #c6c6c6;
+            line-height: 1.6;
+        }
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            margin-right: 8px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .error {
+            background: rgba(255,55,95,0.15);
+            border: 1px solid rgba(255,55,95,0.35);
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 14px;
+            color: #ff8aa0;
+        }
+        .actions {
+            margin-top: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: #1f2937;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #f2f2f2;
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn:hover { background: #293445; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="card">
+            <div class="title">Database Status</div>
+            <div class="sub">Shows which database is active and how many rows are in each table.</div>
+            <div id="statusMeta" class="meta"></div>
+            <div id="statusGrid" class="grid"></div>
+            <div id="checkMeta" class="meta" style="margin-top:18px;"></div>
+            <div id="checkGrid" class="grid"></div>
+            <div id="statusError" class="error" style="display:none;"></div>
+            <div class="actions">
+                <button class="btn" onclick="loadStatus()">Refresh</button>
+                <button class="btn" onclick="loadCheck()">Deep Check</button>
+                <a class="btn" href="/">Back to Site</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStatus() {
+            const meta = document.getElementById('statusMeta');
+            const grid = document.getElementById('statusGrid');
+            const err = document.getElementById('statusError');
+            err.style.display = 'none';
+            meta.textContent = 'Loading...';
+            grid.innerHTML = '';
+            try {
+                const res = await fetch('/api/db_status');
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || 'Failed to load');
+                }
+                meta.innerHTML = `
+                    <span class="pill">DB: ${data.db_type || 'unknown'}</span>
+                    <span class="pill">Mode: ${data.db_mode || 'auto'}</span>
+                    <span class="pill">Strict: ${data.strict_db ? 'on' : 'off'}</span>
+                `;
+                if (data.sqlite_path) {
+                    meta.innerHTML += `<div>SQLite: ${data.sqlite_path}</div>`;
+                }
+                if (data.database_url) {
+                    meta.innerHTML += `<div>Postgres: ${data.database_url}</div>`;
+                }
+                const counts = data.counts || {};
+                Object.keys(counts).forEach(key => {
+                    const value = counts[key];
+                    const display = (value === null || value === undefined) ? 'N/A' : value;
+                    const stat = document.createElement('div');
+                    stat.className = 'stat';
+                    stat.innerHTML = `<div class="stat-label">${key}</div><div class="stat-value">${display}</div>`;
+                    grid.appendChild(stat);
+                });
+                if (!Object.keys(counts).length) {
+                    grid.innerHTML = '<div class="stat">No tables found.</div>';
+                }
+            } catch (e) {
+                meta.textContent = '';
+                err.style.display = 'block';
+                err.textContent = e.message || 'Failed to load';
+            }
+        }
+        async function loadCheck() {
+            const meta = document.getElementById('checkMeta');
+            const grid = document.getElementById('checkGrid');
+            const err = document.getElementById('statusError');
+            err.style.display = 'none';
+            meta.textContent = 'Running deep check...';
+            grid.innerHTML = '';
+            try {
+                const res = await fetch('/api/db_check');
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || 'Failed to load');
+                }
+                const missing = data.missing_tables || [];
+                meta.innerHTML = missing.length
+                    ? `Missing tables: ${missing.join(', ')}`
+                    : 'All required tables exist.';
+                const tables = data.tables || {};
+                Object.keys(tables).forEach(key => {
+                    const t = tables[key];
+                    const display = (t.count === null || t.count === undefined) ? 'N/A' : t.count;
+                    const stat = document.createElement('div');
+                    stat.className = 'stat';
+                    stat.innerHTML = `<div class="stat-label">${key}</div><div class="stat-value">${display}</div>`;
+                    grid.appendChild(stat);
+                });
+            } catch (e) {
+                meta.textContent = '';
+                err.style.display = 'block';
+                err.textContent = e.message || 'Failed to load';
+            }
+        }
+        loadStatus();
+    </script>
+</body>
+</html>
