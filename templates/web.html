@@ -1362,7 +1362,9 @@
             #library,
             #comments,
             #about,
-            #profile,
+            #profile {
+                display: block;
+            }
         }
 
         @keyframes fadeIn {
@@ -1652,6 +1654,14 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            visibility: visible;
+            opacity: 1;
+        }
+
+        #generateRecBtn {
+            visibility: visible !important;
+            opacity: 1 !important;
+            display: flex !important;
         }
 
         .gen-btn:hover {
@@ -3997,35 +4007,18 @@
 
         /* ===== ENHANCED TAB ANIMATIONS ===== */
 
-        /* Tab Slide Animation */
+        /* Tab Slide Animation - Simplified for better performance */
         .tab-view {
             display: none;
             opacity: 0;
-            transform: translateX(30px) scale(0.98);
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
         .tab-view.active {
             display: block;
             opacity: 1;
-            transform: translateX(0) scale(1);
-            animation: tabSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes tabSlideIn {
-            0% {
-                opacity: 0;
-                transform: translateX(40px) scale(0.95);
-                filter: blur(10px);
-            }
-            50% {
-                filter: blur(2px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateX(0) scale(1);
-                filter: blur(0);
-            }
+            transform: translateY(0);
         }
 
         /* Tab Button Hover Effect */
@@ -4075,19 +4068,19 @@
             100% { transform: scale(1.2) rotate(0deg); }
         }
 
-        /* Smooth Card Stagger Animation */
-        .glass-card {
+        /* Smooth Card Stagger Animation - Only for initial page load */
+        .glass-card.animate-in {
             opacity: 0;
             transform: translateY(20px);
             animation: cardFadeUp 0.6s ease forwards;
         }
 
-        .glass-card:nth-child(1) { animation-delay: 0.05s; }
-        .glass-card:nth-child(2) { animation-delay: 0.1s; }
-        .glass-card:nth-child(3) { animation-delay: 0.15s; }
-        .glass-card:nth-child(4) { animation-delay: 0.2s; }
-        .glass-card:nth-child(5) { animation-delay: 0.25s; }
-        .glass-card:nth-child(6) { animation-delay: 0.3s; }
+        .glass-card.animate-in:nth-child(1) { animation-delay: 0.05s; }
+        .glass-card.animate-in:nth-child(2) { animation-delay: 0.1s; }
+        .glass-card.animate-in:nth-child(3) { animation-delay: 0.15s; }
+        .glass-card.animate-in:nth-child(4) { animation-delay: 0.2s; }
+        .glass-card.animate-in:nth-child(5) { animation-delay: 0.25s; }
+        .glass-card.animate-in:nth-child(6) { animation-delay: 0.3s; }
 
         @keyframes cardFadeUp {
             to {
@@ -4714,29 +4707,24 @@
             }
         }
 
-        /* Electric Border Effect */
+        /* Electric Border Effect - Fixed for better rendering */
         .electric-border {
             position: relative;
+            border: 2px solid transparent;
         }
 
         .electric-border::before {
             content: '';
             position: absolute;
-            inset: -2px;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 22px;
             background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
             background-size: 300% 100%;
-            border-radius: inherit;
             z-index: -1;
             animation: electricFlow 2s linear infinite;
-        }
-
-        .electric-border::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: var(--glass-bg);
-            border-radius: inherit;
-            z-index: -1;
         }
 
         @keyframes electricFlow {
@@ -4769,29 +4757,31 @@
             opacity: 1;
         }
 
-        /* Glowing Border Animation */
+        /* Glowing Border Animation - Fixed for better rendering */
         .glow-border {
             position: relative;
+            border: 2px solid transparent;
+            background-clip: padding-box;
         }
 
         .glow-border::before {
             content: '';
             position: absolute;
-            inset: -1px;
-            border-radius: inherit;
-            padding: 1px;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: calc(inherit + 2px);
             background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
             background-size: 400%;
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
+            z-index: -1;
             animation: glowBorderRotate 6s linear infinite;
         }
 
         @keyframes glowBorderRotate {
-            0% { background-position: 0 0; }
-            50% { background-position: 400% 0; }
-            100% { background-position: 0 0; }
+            0% { background-position: 0% 50%; }
+            50% { background-position: 400% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         /* Typing Sound Visual Feedback */
@@ -5153,15 +5143,15 @@
                     <div class="filter-chip" onclick="filterDiscover('recent')">🕐 Recent</div>
                 </div>
 
-                <div class="glass-card verse-container glow-pulse shine-effect spotlight electric-border" onclick="toggleFullscreen()" id="mainVerseCard">
+                <div class="glass-card verse-container glow-pulse" onclick="toggleFullscreen()" id="mainVerseCard">
                     <div style="position: absolute; top: -30%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(10,132,255,0.1) 0%, transparent 70%); pointer-events: none;"></div>
-                    <div class="verse-text typewriter-text letter-space" id="verseText" style="font-weight: 500; line-height: 1.7;">
+                    <div class="verse-text" id="verseText" style="font-weight: 500; line-height: 1.7;">
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 100%;"></div>
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 90%;"></div>
                         <div class="skeleton" style="height: 32px; width: 70%;"></div>
                     </div>
                     <div class="verse-meta">
-                        <div class="verse-ref gradient-text" id="verseRef" style="cursor: pointer; transition: all 0.3s;" onmouseenter="this.classList.add('neon-text')" onmouseleave="this.classList.remove('neon-text')">Loading...</div>
+                        <div class="verse-ref gradient-text" id="verseRef" style="cursor: pointer; transition: all 0.3s;">Loading...</div>
                         <div class="verse-source-wrapper">
                             <span class="signed-by">-Signed By George-</span>
                             <span class="verse-badge" id="verseSource">...</span>
@@ -5268,7 +5258,7 @@
                 </div>
 
                 <div class="glass-card">
-                    <button class="gen-btn magnetic-btn ripple glow-border" onclick="generateRec(); if(settings.particleExplosions) { const rect = this.getBoundingClientRect(); createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']); }">
+                    <button id="generateRecBtn" class="gen-btn" onclick="generateRec(); if(settings.particleExplosions) { const rect = this.getBoundingClientRect(); createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']); }">
                         <span>&#128276;</span>
                         <span>Generate Smart Recommendation</span>
                     </button>
@@ -6424,6 +6414,18 @@
             if (settings.advancedAnimations) document.getElementById('advancedAnimToggle')?.classList.add('active');
             if (settings.particleExplosions) document.getElementById('particleExplosionToggle')?.classList.add('active');
             
+            // DISABLED: Text scramble on verse reference - causing glitches
+            // Apply scramble effect to verse reference on hover
+            // const verseRef = document.getElementById('verseRef');
+            // if (verseRef) {
+            //     const scrambler = new TextScramble(verseRef);
+            //     const originalText = verseRef.textContent;
+            //     
+            //     verseRef.addEventListener('mouseenter', () => {
+            //         scrambler.setText(originalText);
+            //     });
+            // }
+            
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) stopVersePolling();
                 else startVersePolling();
@@ -6955,13 +6957,10 @@
                     const isNew = !!currentVerse && nextVerseKey !== currentVerseKey;
                     currentVerse = data.verse;
                     
-                    // Typewriter effect for new verses
-                    if (isNew && settings.animations) {
-                        typewriteVerse(document.getElementById('verseText'), data.verse.text, 20);
-                    } else {
-                        stopTypewriter();
-                        document.getElementById('verseText').textContent = data.verse.text;
-                    }
+                    // DISABLED: Typewriter effect causing glitches
+                    // Simplified text display
+                    stopTypewriter();
+                    document.getElementById('verseText').textContent = data.verse.text;
                     document.getElementById('verseRef').textContent = data.verse.ref;
                     document.getElementById('verseSource').textContent = data.verse.source;
                     document.getElementById('fullscreenText').textContent = `"${data.verse.text}"\n\n— ${data.verse.ref}`;
@@ -7262,9 +7261,11 @@
         }
 
         async function generateRec(silent = false) {
-            const btn = document.querySelector('.gen-btn');
-            btn.style.transform = 'scale(0.97)';
-            setTimeout(() => btn.style.transform = '', 100);
+            const btn = document.getElementById('generateRecBtn');
+            if (btn) {
+                btn.style.transform = 'scale(0.97)';
+                setTimeout(() => btn.style.transform = '', 100);
+            }
             
             const excludeIds = getRecentRecIds(20);
             const res = await fetch('/api/generate-recommendation', {
@@ -12257,21 +12258,6 @@ async function checkAchievement(type, value) {
             
             // Call original function
             enhancedSwitchTab(tabName, btn);
-            
-            // Add stagger animation to new tab content
-            const activeTab = document.querySelector('.tab-view.active');
-            if (activeTab) {
-                const children = activeTab.children;
-                Array.from(children).forEach((child, index) => {
-                    child.style.opacity = '0';
-                    child.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        child.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-                        child.style.opacity = '1';
-                        child.style.transform = 'translateY(0)';
-                    }, index * 50);
-                });
-            }
         };
 
         // Soft click sound using Web Audio API
