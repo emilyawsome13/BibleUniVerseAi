@@ -1578,12 +1578,6 @@
 
         .action-icon {
             font-size: 22px;
-            font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif;
-            display: inline-block;
-            min-width: 22px;
-            text-align: center;
-            line-height: 1;
-            vertical-align: middle;
         }
 
         .action-icon.spark {
@@ -4993,14 +4987,14 @@
         <header class="header">
             <div class="brand" onclick="handleBrandClick()">
                 <div class="brand-icon">
-                    ✝️
+                    &#10010;
                     <span class="admin-badge" id="adminBadge">ADMIN</span>
                     <span class="role-badge" id="roleBadge"></span>
                 </div>
                 <div class="brand-copy">
                     <div class="brand-text wave-text" id="brandText">Bible AI</div>
                     <a class="mobile-donate-btn" href="https://buy.stripe.com/7sY00j7sh4Do6Plaap4ko0b" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
-                        <span>💰</span>
+                        <span>&#128176;</span>
                         <span>Donate</span>
                     </a>
                 </div>
@@ -5008,43 +5002,43 @@
             
             <nav class="desktop-nav">
                 <button class="nav-item active" onclick="switchTab('discover')" data-tab="discover">
-                    <span class="nav-icon">✨</span>
+                    <span class="nav-icon">&#10024;</span>
                     <span>Discover</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('recommendations')" data-tab="recommendations">
-                    <span class="nav-icon">🎯</span>
+                    <span class="nav-icon">&#127919;</span>
                     <span>For You</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('library')" data-tab="library">
-                    <span class="nav-icon">📚</span>
+                    <span class="nav-icon">&#128218;</span>
                     <span>Library</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('comments')" data-tab="comments">
-                    <span class="nav-icon">💬</span>
+                    <span class="nav-icon">&#128172;</span>
                     <span>Comments</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('shop')" data-tab="shop">
-                    <span class="nav-icon">🛒</span>
+                    <span class="nav-icon">&#128722;</span>
                     <span>Shop</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('inventory')" data-tab="inventory">
-                    <span class="nav-icon">🎒</span>
+                    <span class="nav-icon">&#127890;</span>
                     <span>My Items</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('achievements')" data-tab="achievements">
-                    <span class="nav-icon">🏆</span>
+                    <span class="nav-icon">&#127941;</span>
                     <span>Achievements</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('xp-guide')" data-tab="xp-guide">
-                    <span class="nav-icon">💡</span>
+                    <span class="nav-icon">&#128161;</span>
                     <span>XP Guide</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('profile')" data-tab="profile">
-                    <span class="nav-icon">👤</span>
+                    <span class="nav-icon">&#128100;</span>
                     <span>Profile</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('about')" data-tab="about">
-                    <span class="nav-icon">🎬</span>
+                    <span class="nav-icon">&#127909;</span>
                     <span>About Us</span>
                 </button>
             </nav>
@@ -5059,14 +5053,14 @@
                 </a>
                 <div class="lovewell-credit-text">Credit To Cross Community Lovewell for more info check out the About us Or Click the logo thanks for your support!</div>
                 <a class="lovewell-donate-btn" href="https://buy.stripe.com/7sY00j7sh4Do6Plaap4ko0b" target="_blank" rel="noopener noreferrer">
-                    <span>💰</span>
+                    <span>&#128176;</span>
                     <span>Donate Securely</span>
                 </a>
             </div>
 
             <div class="header-actions">
-                <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
-                <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+                <button class="icon-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+                <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen">&#9974;</button>
                 <button class="icon-btn" onclick="showUser()" title="Profile">
                     <span class="avatar-wrap" id="headerAvatarWrap">
                         <img id="headerAvatarImg" src="{{ user.picture }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name={{ user.name }}&background=0a84ff&color=fff'">
@@ -5168,19 +5162,19 @@
                 <div class="glass-card">
                     <div class="action-grid">
                         <button class="action-btn magnetic-btn ripple" onclick="toggleLike(); createRipple(event, this);">
-                            <span class="action-icon elastic-bounce" id="likeIcon">♡</span>
+                            <span class="action-icon elastic-bounce" id="likeIcon">&#9825;</span>
                             <span>Like</span>
                         </button>
                         <button class="action-btn magnetic-btn ripple" onclick="toggleSave(); createRipple(event, this);">
-                            <span class="action-icon elastic-bounce" id="saveIcon">🔖</span>
+                            <span class="action-icon elastic-bounce" id="saveIcon">&#128278;</span>
                             <span>Save</span>
                         </button>
                         <button class="action-btn magnetic-btn ripple" onclick="copyVerse(); createRipple(event, this);">
-                            <span class="action-icon">📋</span>
+                            <span class="action-icon">&#128203;</span>
                             <span>Copy</span>
                         </button>
                         <button class="action-btn magnetic-btn ripple" onclick="shareVerse(); createRipple(event, this);">
-                            <span class="action-icon">📤</span>
+                            <span class="action-icon">&#128228;</span>
                             <span>Share</span>
                         </button>
                     </div>
@@ -5265,7 +5259,7 @@
 
                 <div class="glass-card">
                     <button id="generateRecBtn" class="gen-btn" onclick="generateRec(); if(settings.particleExplosions) { const rect = this.getBoundingClientRect(); createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']); }">
-                        <span>🎯</span>
+                        <span>&#128276;</span>
                         <span>Generate Smart Recommendation</span>
                     </button>
                     
@@ -5323,7 +5317,7 @@
                      ondragover="handleDragOver(event)" 
                      ondrop="handleDrop(event)"
                      ondragleave="handleDragLeave(event)">
-                    <div class="favorites-header">💖 Quick Add</div>
+                    <div class="favorites-header">&#128150; Quick Add</div>
                     <div class="favorites-text">Drag verses here to add to favorites</div>
                     <div class="favorites-count" id="favoritesCountDrop">0</div>
                     <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 5px;">verses</div>
@@ -5342,13 +5336,13 @@
                 <!-- All Verses List -->
                 <div class="glass-card" id="versesListCard">
                     <div class="library-header" style="margin-bottom: 12px;">
-                        <span>📚</span>
+                        <span>&#128218;</span>
                         <span id="libraryListTitle">My Verses</span>
                     </div>
                     
                     <div class="verse-list" id="libraryVersesList">
                         <div class="empty-state">
-                            <div class="empty-state-icon">♡</div>
+                            <div class="empty-state-icon">&#9825;</div>
                             <div class="empty-state-text">No verses yet. Start liking and saving!</div>
                         </div>
                     </div>
@@ -5379,7 +5373,7 @@
                     <!-- Current Verse Comments -->
                     <div class="comment-section" id="verseCommentsSection">
                         <div class="comment-section-header">
-                            <span>💬</span>
+                            <span>&#128172;</span>
                             <span>Comments on <span id="commentVerseRef" style="color: var(--primary);">Current Verse</span></span>
                             <button class="comment-pin-btn" id="commentVerseSyncBtn" onclick="syncCommentVerse()">Use current verse</button>
                         </div>
@@ -5400,7 +5394,7 @@
 
                         <div class="comment-input-area" id="commentInputArea">
                             <textarea class="comment-input" id="commentInput" name="comment_text" autocomplete="off" data-form-type="other" placeholder="Share your thoughts on this verse... Use @ to mention" rows="1" onkeydown="handleCommentKey(event)"></textarea>
-                            <button class="send-btn" id="commentSendBtn" onclick="postComment()">↑</button>
+                            <button class="send-btn" id="commentSendBtn" onclick="postComment()">&#8593;</button>
                         </div>
 
                         <div class="comments-list" id="commentsList"></div>
@@ -5409,7 +5403,7 @@
                     <!-- Community Chat -->
                     <div class="comment-section community-section" id="communityCommentsSection" style="display:none;">
                         <div class="comment-section-header">
-                            <span>🌍</span>
+                            <span>&#127757;</span>
                             <span>Community Chat</span>
                             <span class="community-badge">Life & Support</span>
                             <span class="trending-tag" id="trendingBadge" style="display: none;">🔥 Trending</span>
@@ -5428,7 +5422,7 @@
 
                         <div class="comment-input-area" id="communityInputArea">
                             <textarea class="comment-input" id="communityInput" name="community_text" autocomplete="off" data-form-type="other" placeholder="Share about life, ask for help, or offer guidance... #topic" rows="1" onkeydown="handleCommunityKey(event)"></textarea>
-                            <button class="send-btn" id="communitySendBtn" onclick="postCommunityMessage()">↑</button>
+                            <button class="send-btn" id="communitySendBtn" onclick="postCommunityMessage()">&#8593;</button>
                         </div>
 
                         <div class="comments-list" id="communityList"></div>
@@ -5673,8 +5667,8 @@
                 <div class="about-shell">
                     <div class="about-video-column">
                         <div class="about-slider-wrap">
-                            <button class="about-nav-btn prev" onclick="aboutPrev()" aria-label="Previous video">‹</button>
-                            <button class="about-nav-btn next" onclick="aboutNext()" aria-label="Next video">›</button>
+                            <button class="about-nav-btn prev" onclick="aboutPrev()" aria-label="Previous video">&#8249;</button>
+                            <button class="about-nav-btn next" onclick="aboutNext()" aria-label="Next video">&#8250;</button>
                             <div class="about-progress" id="aboutProgress">
                                 <div class="about-progress-item"><div class="about-progress-fill" id="aboutProgressFill0"></div></div>
                                 <div class="about-progress-item"><div class="about-progress-fill" id="aboutProgressFill1"></div></div>
@@ -5689,7 +5683,7 @@
                                         <video class="about-video" id="aboutVideo0" loop playsinline muted preload="none">
                                             <source src="/media/videos/1.mp4?v=20260216-1100" type="video/mp4">
                                         </video>
-                                        <div class="about-paused-indicator">▶ Paused</div>
+                                        <div class="about-paused-indicator">&#9654; Paused</div>
                                     </div>
                                 </div>
                                 <div class="about-slide">
@@ -5697,7 +5691,7 @@
                                         <video class="about-video" id="aboutVideo1" loop playsinline muted preload="none">
                                             <source src="/media/videos/2.mp4?v=20260216-1100" type="video/mp4">
                                         </video>
-                                        <div class="about-paused-indicator">▶ Paused</div>
+                                        <div class="about-paused-indicator">&#9654; Paused</div>
                                     </div>
                                 </div>
                             </div>
@@ -5746,39 +5740,39 @@
         <!-- Mobile Tab Bar - No Images -->
         <nav class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('discover', this)">
-                <span class="tab-icon">✨</span>
+                <span class="tab-icon">&#10024;</span>
                 <span class="tab-label">Discover</span>
             </button>
             <button class="tab-btn" onclick="switchTab('recommendations', this)">
-                <span class="tab-icon">🎯</span>
+                <span class="tab-icon">&#127919;</span>
                 <span class="tab-label">For You</span>
             </button>
             <button class="tab-btn" onclick="switchTab('library', this)">
-                <span class="tab-icon">📚</span>
+                <span class="tab-icon">&#128218;</span>
                 <span class="tab-label">Library</span>
             </button>
             <button class="tab-btn" onclick="switchTab('comments', this)">
-                <span class="tab-icon">💬</span>
+                <span class="tab-icon">&#128172;</span>
                 <span class="tab-label">Chat</span>
             </button>
             <button class="tab-btn" onclick="switchTab('achievements', this)">
-                <span class="tab-icon">🏆</span>
+                <span class="tab-icon">&#127942;</span>
                 <span class="tab-label">Awards</span>
             </button>
             <button class="tab-btn" onclick="switchTab('xp-guide', this)">
-                <span class="tab-icon">⚡</span>
+                <span class="tab-icon">&#9889;</span>
                 <span class="tab-label">XP</span>
             </button>
             <button class="tab-btn" onclick="switchTab('shop', this)">
-                <span class="tab-icon">🛒</span>
+                <span class="tab-icon">&#128722;</span>
                 <span class="tab-label">Shop</span>
             </button>
             <button class="tab-btn" onclick="switchTab('profile', this)">
-                <span class="tab-icon">👤</span>
+                <span class="tab-icon">&#128100;</span>
                 <span class="tab-label">Profile</span>
             </button>
             <button class="tab-btn" onclick="switchTab('about', this)">
-                <span class="tab-icon">🎬</span>
+                <span class="tab-icon">&#127909;</span>
                 <span class="tab-label">About</span>
             </button>
         </nav>
@@ -5789,15 +5783,15 @@
         <div class="fullscreen-text" id="fullscreenText"></div>
         <div class="fullscreen-actions">
             <button class="fullscreen-btn" onclick="event.stopPropagation(); toggleLike(); updateFullscreenButtons();">
-                <span id="fsLikeIcon">♡</span>
+                <span id="fsLikeIcon">&#9825;</span>
                 <span>Like</span>
             </button>
             <button class="fullscreen-btn" onclick="event.stopPropagation(); toggleSave(); updateFullscreenButtons();">
-                <span id="fsSaveIcon">🔖</span>
+                <span id="fsSaveIcon">&#128278;</span>
                 <span>Save</span>
             </button>
             <button class="fullscreen-btn" onclick="event.stopPropagation(); copyVerse();">
-                <span>📋</span>
+                <span>&#128203;</span>
                 <span>Copy</span>
             </button>
         </div>
@@ -5826,7 +5820,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">Settings</div>
-                <button class="close-btn" onclick="closeSettings()">✕</button>
+                <button class="close-btn" onclick="closeSettings()">&#10005;</button>
             </div>
 
             <div class="setting-item">
@@ -6149,7 +6143,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">🔐 Staff Access</div>
-                <button class="close-btn" onclick="closeAdminUnlock()">✕</button>
+                <button class="close-btn" onclick="closeAdminUnlock()">&#10005;</button>
             </div>
             
             <p style="color: var(--text-secondary); margin-bottom: 16px;">Select your role and enter the access code</p>
@@ -7059,15 +7053,13 @@
 
         function updateLikeUI(liked) {
             const icon = document.getElementById('likeIcon');
-            if (!icon) return;
-            icon.textContent = liked ? '♥️' : '♡';
+            icon.innerHTML = liked ? '&#9829;' : '&#9825;';
             icon.style.color = liked ? 'var(--danger)' : '';
         }
 
         function updateSaveUI(saved) {
             const icon = document.getElementById('saveIcon');
-            if (!icon) return;
-            icon.textContent = saved ? '📑' : '🔖';
+            icon.innerHTML = saved ? '&#128209;' : '&#128278;';
             icon.style.color = saved ? 'var(--warning)' : '';
         }
 
@@ -7209,34 +7201,14 @@
 
         // Fullscreen
         function toggleFullscreen(verse = null) {
-            try {
-                const fs = document.getElementById('fullscreen');
-                if (!fs) {
-                    console.warn('Fullscreen element not found');
-                    return;
-                }
-                
-                const v = verse || currentVerse;
-                
-                if (!v) {
-                    console.warn('No verse available for fullscreen view');
-                    if (settings.notifications) showToast('No verse to display');
-                    return;
-                }
-                
-                const fullscreenText = document.getElementById('fullscreenText');
-                if (!fullscreenText) {
-                    console.warn('Fullscreen text element not found');
-                    return;
-                }
-                
-                fullscreenText.textContent = `"${v.text}"\n\n— ${v.ref}`;
+            const fs = document.getElementById('fullscreen');
+            const v = verse || currentVerse;
+            
+            if (v) {
+                document.getElementById('fullscreenText').textContent = `"${v.text}"\n\n— ${v.ref}`;
                 updateFullscreenButtons(v.id);
                 fs.classList.add('active');
                 AudioSys.playModal();
-            } catch (error) {
-                console.error('Error in toggleFullscreen:', error);
-                if (settings.notifications) showToast('Unable to open fullscreen view');
             }
         }
 
@@ -7248,37 +7220,18 @@
         }
 
         async function updateFullscreenButtons(verseId = null) {
-            try {
-                const id = verseId || (currentVerse ? currentVerse.id : null);
-                if (!id) return;
-                
-                const fsLikeIcon = document.getElementById('fsLikeIcon');
-                const fsSaveIcon = document.getElementById('fsSaveIcon');
-                
-                if (!fsLikeIcon || !fsSaveIcon) {
-                    console.warn('Fullscreen button icons not found');
-                    return;
-                }
-                
-                const [likeRes, saveRes] = await Promise.all([
-                    fetch(`/api/check_like/${id}`),
-                    fetch(`/api/check_save/${id}`)
-                ]);
-                
-                if (!likeRes.ok || !saveRes.ok) {
-                    console.warn('Failed to fetch like/save status');
-                    return;
-                }
-                
-                const likeData = await likeRes.json();
-                const saveData = await saveRes.json();
-                
-                fsLikeIcon.textContent = likeData.liked ? '♥️' : '♡';
-                fsSaveIcon.textContent = saveData.saved ? '📑' : '🔖';
-            } catch (error) {
-                console.error('Error in updateFullscreenButtons:', error);
-                // Silently fail - UI will show default state
-            }
+            const id = verseId || (currentVerse ? currentVerse.id : null);
+            if (!id) return;
+            
+            const [likeRes, saveRes] = await Promise.all([
+                fetch(`/api/check_like/${id}`),
+                fetch(`/api/check_save/${id}`)
+            ]);
+            const likeData = await likeRes.json();
+            const saveData = await saveRes.json();
+            
+            document.getElementById('fsLikeIcon').innerHTML = likeData.liked ? '&#9829;' : '&#9825;';
+            document.getElementById('fsSaveIcon').innerHTML = saveData.saved ? '&#128209;' : '&#128278;';
         }
 
         // Recommendations
@@ -7366,14 +7319,14 @@
             div.dataset.rec = JSON.stringify(rec || {});
             div.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primary);">
-                    <span>✨</span>
+                    <span>&#10024;</span>
                     <span>${rec.reason}</span>
                 </div>
                 <div style="font-size: 15px; line-height: 1.5; margin-bottom: 10px;">${rec.text}</div>
                 <div style="font-size: 13px; opacity: 0.7; font-weight: 600; margin-bottom: 12px;">${rec.ref}</div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">♡ Like</button>
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">🔖 Save</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">&#9825; Like</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">&#128278; Save</button>
                 </div>
             `;
             return div;
@@ -7399,7 +7352,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            btn.textContent = '♥️ Liked';
+            btn.innerHTML = '&#9829; Liked';
             btn.classList.add('liked');
             btn.classList.add('pop-success');
             setTimeout(() => btn.classList.remove('pop-success'), 420);
@@ -7426,7 +7379,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            btn.textContent = '📑 Saved';
+            btn.innerHTML = '&#128209; Saved';
             btn.classList.add('saved');
             btn.classList.add('pop-success');
             setTimeout(() => btn.classList.remove('pop-success'), 420);
@@ -7469,7 +7422,7 @@
             if (uniqueVerses.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">♡</div>
+                        <div class="empty-state-icon">&#9825;</div>
                         <div class="empty-state-text">No verses yet. Start liking and saving!</div>
                     </div>
                 `;
@@ -7491,10 +7444,10 @@
                     <div class="verse-card-ref">${v.ref}</div>
                     <div class="verse-card-actions">
                         <button class="verse-card-btn ${v.liked_at ? 'liked' : ''}" onclick="event.stopPropagation(); libraryLike(${v.id})">
-                            ${v.liked_at ? '♥️ Liked' : '♡ Like'}
+                            ${v.liked_at ? '&#9829; Liked' : '&#9825; Like'}
                         </button>
                         <button class="verse-card-btn ${v.saved_at ? 'saved' : ''}" onclick="event.stopPropagation(); librarySave(${v.id})">
-                            ${v.saved_at ? '📑 Saved' : '🔖 Save'}
+                            ${v.saved_at ? '&#128209; Saved' : '&#128278; Save'}
                         </button>
                     </div>
                 </div>
@@ -8228,7 +8181,7 @@
             
             return `
                 <div class="comment-item ${chatEffectClass}" id="${type}-${c.id}" data-user-id="${c.user_id || ''}">
-                    <button class="delete-comment-btn" onclick="deleteComment(${c.id}, '${type}')" title="Delete (Admin only)">✕</button>
+                    <button class="delete-comment-btn" onclick="deleteComment(${c.id}, '${type}')" title="Delete (Admin only)">&#10005;</button>
                     <div class="comment-header">
                         ${c.user_id ? `
                             <a class="comment-user-link" href="/u/${c.user_id}">
@@ -12384,7 +12337,7 @@ async function checkAchievement(type, value) {
                 <div class="modal-content" style="max-width: 420px;">
                     <div class="modal-header">
                         <div class="modal-title">💫 Share Your Story</div>
-                        <button class="close-btn" onclick="this.closest('.modal').remove()">✕</button>
+                        <button class="close-btn" onclick="this.closest('.modal').remove()">&#10005;</button>
                     </div>
                     <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">How has God's Word impacted your life? Your testimony could inspire others!</p>
                     <textarea id="testimonyInput" style="width: 100%; min-height: 100px; background: var(--surface); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px; color: var(--text); font-family: inherit; resize: vertical; margin-bottom: 12px;" placeholder="Share your story..."></textarea>
