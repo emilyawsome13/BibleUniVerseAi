@@ -95,28 +95,6 @@
                         linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
             color: var(--text);
             overflow-x: hidden;
-            background-attachment: fixed;
-        }
-
-        body.animated-bg {
-            background: 
-                radial-gradient(720px 460px at 8% 10%, rgba(10, 132, 255, 0.2), transparent 66%),
-                radial-gradient(620px 420px at 92% -4%, rgba(52, 198, 255, 0.18), transparent 68%),
-                radial-gradient(520px 420px at 50% 110%, rgba(18, 209, 142, 0.16), transparent 70%),
-                linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
-            animation: bgShift 15s ease infinite;
-        }
-
-        @keyframes bgShift {
-            0%, 100% { 
-                background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
-            }
-            33% { 
-                background-position: 2% 3%, -1% 2%, 1% -2%, 0% 0%;
-            }
-            66% { 
-                background-position: -1% 2%, 2% -1%, -2% 1%, 0% 0%;
-            }
         }
 
         body {
@@ -234,52 +212,10 @@
             height: 80px;
             background: url('/static/images/cross-particle.png') center/contain no-repeat;
             border-radius: 0;
-            opacity: 0.9;
-            filter: drop-shadow(0 0 35px rgba(255,255,255,0.9)) drop-shadow(0 0 60px rgba(10,132,255,0.5)) brightness(1.5) saturate(1.3);
+            opacity: 0.8;
+            filter: drop-shadow(0 0 28px rgba(255,255,255,0.7)) brightness(1.4) saturate(1.2);
             animation: particleFloatBright 28s infinite linear;
             mix-blend-mode: screen;
-        }
-
-        /* Enhanced glowing cross with halo */
-        .particle.cross-image::before {
-            content: '';
-            position: absolute;
-            inset: -20px;
-            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
-            border-radius: 50%;
-            animation: crossHalo 3s ease-in-out infinite;
-        }
-
-        @keyframes crossHalo {
-            0%, 100% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.2); }
-        }
-
-        @keyframes particleFloatBright {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            8% { opacity: 0.95; }
-            92% { opacity: 0.95; }
-            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* Floating verse symbols */
-        .particle.verse-symbol {
-            width: auto;
-            height: auto;
-            background: none;
-            border-radius: 0;
-            color: rgba(255,255,255,0.25);
-            font-size: 20px;
-            font-weight: 700;
-            text-shadow: 0 0 20px rgba(255,255,255,0.3);
-            animation: verseSymbolFloat 25s infinite linear;
-        }
-
-        @keyframes verseSymbolFloat {
-            0% { transform: translateY(100vh) rotate(0deg) scale(0.8); opacity: 0; }
-            10% { opacity: 0.6; }
-            90% { opacity: 0.6; }
-            100% { transform: translateY(-100vh) rotate(360deg) scale(1.2); opacity: 0; }
         }
         @keyframes particleFloatBright {
             0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
@@ -867,12 +803,6 @@
             font-size: 22px;
             font-weight: 700;
             letter-spacing: -0.5px;
-            background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
-            background-size: 300% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 4s ease infinite;
         }
 
         @media (min-width: 1024px) {
@@ -1362,9 +1292,7 @@
             #library,
             #comments,
             #about,
-            #profile {
-                display: block;
-            }
+            #profile,
         }
 
         @keyframes fadeIn {
@@ -1420,50 +1348,6 @@
             0% { opacity: 0.22; transform: translateY(14px) scale(0.985); filter: blur(6px); }
             60% { opacity: 1; transform: translateY(0) scale(1.003); filter: blur(0); }
             100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-
-        /* 3D Tilt Effect for Verse Cards */
-        .verse-container {
-            cursor: pointer;
-            transition: transform 0.25s, box-shadow 0.25s;
-            transform-style: preserve-3d;
-            perspective: 1000px;
-        }
-
-        .verse-container:hover {
-            transform: scale(1.01) rotateX(2deg) rotateY(2deg);
-            box-shadow: 0 25px 50px rgba(10, 132, 255, 0.2), 0 0 30px rgba(10, 132, 255, 0.1);
-        }
-
-        /* Typewriter Cursor */
-        .typewriter-text {
-            overflow: hidden;
-            white-space: pre-wrap;
-        }
-
-        .typewriter-cursor {
-            display: inline-block;
-            width: 3px;
-            height: 1.2em;
-            background: var(--primary);
-            margin-left: 2px;
-            animation: cursorBlink 1s infinite;
-            vertical-align: middle;
-        }
-
-        @keyframes cursorBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        /* Glow pulse effect for verse cards */
-        .verse-container.glow-pulse {
-            animation: cardGlowPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes cardGlowPulse {
-            0%, 100% { box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12); }
-            50% { box-shadow: 0 18px 50px rgba(10, 132, 255, 0.3), 0 0 40px rgba(52, 198, 255, 0.2); }
         }
 
         .verse-text {
@@ -1577,13 +1461,72 @@
         }
 
         .action-icon {
-            font-size: 22px;
-            font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif;
-            display: inline-block;
-            min-width: 22px;
-            text-align: center;
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: currentColor;
             line-height: 1;
-            vertical-align: middle;
+            flex-shrink: 0;
+        }
+
+        .action-icon.like,
+        .action-icon.save {
+            font-size: 0;
+        }
+
+        .action-icon.like::before,
+        .action-icon.save::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            display: block;
+            background-color: currentColor;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            -webkit-mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            mask-size: contain;
+        }
+
+        .action-icon.like::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21zm0-2.41c1.708-1.2 5.408-4.015 7.49-6.866.99-1.357.862-3.016-.358-3.874-1.205-.848-2.82-.548-3.73.656l-2.951 3.106a.62.62 0 0 1-.901 0L8.6 8.506c-.91-1.204-2.525-1.504-3.73-.656-1.22.858-1.349 2.517-.358 3.874 2.082 2.85 5.782 5.665 7.49 6.866z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21zm0-2.41c1.708-1.2 5.408-4.015 7.49-6.866.99-1.357.862-3.016-.358-3.874-1.205-.848-2.82-.548-3.73.656l-2.951 3.106a.62.62 0 0 1-.901 0L8.6 8.506c-.91-1.204-2.525-1.504-3.73-.656-1.22.858-1.349 2.517-.358 3.874 2.082 2.85 5.782 5.665 7.49 6.866z'/%3E%3C/svg%3E");
+        }
+
+        .action-icon.like.active::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21z'/%3E%3C/svg%3E");
+        }
+
+        .action-icon.save::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1zm1.2 1.2v15.718l4.288-3.573a.8.8 0 0 1 1.024 0L16.8 19.918V4.2H7.2z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1zm1.2 1.2v15.718l4.288-3.573a.8.8 0 0 1 1.024 0L16.8 19.918V4.2H7.2z'/%3E%3C/svg%3E");
+        }
+
+        .action-icon.save.active::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+        }
+
+        .verse-container::before,
+        .verse-container::after,
+        .verse-text::before,
+        .verse-text::after {
+            content: none !important;
+            display: none !important;
+        }
+
+        .verse-text {
+            background: transparent !important;
+            clip-path: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
         }
 
         .action-icon.spark {
@@ -1660,14 +1603,6 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            visibility: visible;
-            opacity: 1;
-        }
-
-        #generateRecBtn {
-            visibility: visible !important;
-            opacity: 1 !important;
-            display: flex !important;
         }
 
         .gen-btn:hover {
@@ -2956,44 +2891,6 @@
         .streak-day.today {
             border: 2px solid #ff6b35;
             animation: pulse 2s infinite;
-            box-shadow: 0 0 15px rgba(255, 107, 53, 0.6);
-        }
-
-        /* Enhanced streak animations */
-        .streak-day.active {
-            background: linear-gradient(135deg, #ff6b35, #f7931e);
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5), 0 0 20px rgba(255, 107, 53, 0.3);
-            animation: flameFlicker 1.5s ease-in-out infinite;
-        }
-
-        @keyframes flameFlicker {
-            0%, 100% { 
-                box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5), 0 0 20px rgba(255, 107, 53, 0.3);
-                transform: scale(1);
-            }
-            25% { 
-                box-shadow: 0 4px 20px rgba(255, 107, 53, 0.6), 0 0 30px rgba(255, 151, 31, 0.4);
-                transform: scale(1.05);
-            }
-            50% { 
-                box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5), 0 0 25px rgba(255, 107, 53, 0.35);
-                transform: scale(1.02);
-            }
-            75% { 
-                box-shadow: 0 4px 22px rgba(255, 107, 53, 0.65), 0 0 35px rgba(255, 151, 31, 0.45);
-                transform: scale(1.05);
-            }
-        }
-
-        /* Milestone celebration */
-        .streak-milestone {
-            animation: milestoneBurst 0.6s ease-out;
-        }
-
-        @keyframes milestoneBurst {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); filter: brightness(1.5); }
-            100% { transform: scale(1); }
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
@@ -3755,463 +3652,6 @@
             100% { background-position: -200% 0; }
         }
 
-        /* Enhanced Skeleton with Glow */
-        .skeleton-glow {
-            background: linear-gradient(90deg, var(--surface) 0%, var(--primary) 50%, var(--surface) 100%);
-            background-size: 200% 100%;
-            animation: shimmerGlow 2s infinite;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(10, 132, 255, 0.3);
-        }
-
-        @keyframes shimmerGlow {
-            0% { 
-                background-position: 200% 0;
-                box-shadow: 0 0 10px rgba(10, 132, 255, 0.2);
-            }
-            50% {
-                box-shadow: 0 0 30px rgba(10, 132, 255, 0.5);
-            }
-            100% { 
-                background-position: -200% 0;
-                box-shadow: 0 0 10px rgba(10, 132, 255, 0.2);
-            }
-        }
-
-        /* ===== ADVANCED TEXT ANIMATIONS ===== */
-        
-        /* Gradient Text Animation */
-        .gradient-text {
-            background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
-            background-size: 300% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 4s ease infinite;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Rainbow Text */
-        .rainbow-text {
-            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
-            background-size: 400% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: rainbowFlow 5s linear infinite;
-        }
-
-        @keyframes rainbowFlow {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 400% 50%; }
-        }
-
-        /* Glitch Text Effect */
-        .glitch-text {
-            position: relative;
-            animation: glitchSkew 3s infinite;
-        }
-
-        .glitch-text::before,
-        .glitch-text::after {
-            content: attr(data-text);
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .glitch-text::before {
-            animation: glitchTop 2s infinite linear alternate-reverse;
-            clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
-            color: #ff00ff;
-            opacity: 0.8;
-        }
-
-        .glitch-text::after {
-            animation: glitchBottom 2.5s infinite linear alternate-reverse;
-            clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
-            color: #00ffff;
-            opacity: 0.8;
-        }
-
-        @keyframes glitchSkew {
-            0%, 90%, 100% { transform: skew(0deg); }
-            92% { transform: skew(-2deg); }
-            94% { transform: skew(2deg); }
-            96% { transform: skew(-1deg); }
-        }
-
-        @keyframes glitchTop {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-3px); }
-            40% { transform: translateX(3px); }
-            60% { transform: translateX(-2px); }
-            80% { transform: translateX(1px); }
-        }
-
-        @keyframes glitchBottom {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(3px); }
-            40% { transform: translateX(-3px); }
-            60% { transform: translateX(2px); }
-            80% { transform: translateX(-1px); }
-        }
-
-        /* Wave Text Animation */
-        .wave-text span {
-            display: inline-block;
-            animation: wave 1.5s ease-in-out infinite;
-        }
-
-        .wave-text span:nth-child(1) { animation-delay: 0s; }
-        .wave-text span:nth-child(2) { animation-delay: 0.1s; }
-        .wave-text span:nth-child(3) { animation-delay: 0.2s; }
-        .wave-text span:nth-child(4) { animation-delay: 0.3s; }
-        .wave-text span:nth-child(5) { animation-delay: 0.4s; }
-        .wave-text span:nth-child(6) { animation-delay: 0.5s; }
-        .wave-text span:nth-child(7) { animation-delay: 0.6s; }
-        .wave-text span:nth-child(8) { animation-delay: 0.7s; }
-        .wave-text span:nth-child(9) { animation-delay: 0.8s; }
-        .wave-text span:nth-child(10) { animation-delay: 0.9s; }
-
-        @keyframes wave {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-8px) scale(1.1); }
-        }
-
-        /* Text Reveal Animation */
-        .text-reveal {
-            overflow: hidden;
-        }
-
-        .text-reveal-inner {
-            display: inline-block;
-            animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            transform: translateY(100%);
-            opacity: 0;
-        }
-
-        @keyframes textReveal {
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Fade Up Stagger */
-        .fade-up-stagger > * {
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeUp 0.6s ease forwards;
-        }
-
-        .fade-up-stagger > *:nth-child(1) { animation-delay: 0s; }
-        .fade-up-stagger > *:nth-child(2) { animation-delay: 0.1s; }
-        .fade-up-stagger > *:nth-child(3) { animation-delay: 0.2s; }
-        .fade-up-stagger > *:nth-child(4) { animation-delay: 0.3s; }
-        .fade-up-stagger > *:nth-child(5) { animation-delay: 0.4s; }
-        .fade-up-stagger > *:nth-child(6) { animation-delay: 0.5s; }
-
-        @keyframes fadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Magnetic Button Effect */
-        .magnetic-btn {
-            transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .magnetic-btn:hover {
-            transform: scale(1.05);
-        }
-
-        /* Shine Effect */
-        .shine-effect {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .shine-effect::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                to right,
-                transparent 0%,
-                rgba(255, 255, 255, 0.3) 50%,
-                transparent 100%
-            );
-            transform: rotate(30deg) translateX(-100%);
-            transition: transform 0.6s;
-        }
-
-        .shine-effect:hover::after {
-            transform: rotate(30deg) translateX(100%);
-        }
-
-        /* Neon Glow Text */
-        .neon-text {
-            color: #fff;
-            text-shadow: 
-                0 0 5px #fff,
-                0 0 10px #fff,
-                0 0 20px var(--primary),
-                0 0 30px var(--primary),
-                0 0 40px var(--primary);
-            animation: neonPulse 1.5s ease-in-out infinite alternate;
-        }
-
-        @keyframes neonPulse {
-            from {
-                text-shadow: 
-                    0 0 5px #fff,
-                    0 0 10px #fff,
-                    0 0 20px var(--primary),
-                    0 0 30px var(--primary);
-            }
-            to {
-                text-shadow: 
-                    0 0 10px #fff,
-                    0 0 20px #fff,
-                    0 0 30px var(--primary),
-                    0 0 40px var(--primary),
-                    0 0 50px var(--primary),
-                    0 0 60px var(--primary);
-            }
-        }
-
-        /* Letter Spacing Animation */
-        .letter-space {
-            transition: letter-spacing 0.4s ease;
-        }
-
-        .letter-space:hover {
-            letter-spacing: 3px;
-        }
-
-        /* Bouncing Text */
-        .bounce-text {
-            animation: bounceText 1s ease infinite;
-        }
-
-        @keyframes bounceText {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        /* ===== ENHANCED TAB ANIMATIONS ===== */
-
-        /* Tab Slide Animation - Simplified for better performance */
-        .tab-view {
-            display: none;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-
-        .tab-view.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Tab Button Hover Effect */
-        .tab-btn, .nav-item {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .tab-btn::before, .nav-item::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: var(--primary);
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
-
-        .tab-btn:hover::before, .nav-item:hover::before {
-            width: 60%;
-        }
-
-        .tab-btn.active::before, .nav-item.active::before {
-            width: 80%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-        }
-
-        /* Tab Icon Bounce */
-        .tab-btn .tab-icon {
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        .tab-btn:hover .tab-icon {
-            transform: scale(1.3) rotate(-10deg);
-        }
-
-        .tab-btn.active .tab-icon {
-            animation: tabIconPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        @keyframes tabIconPop {
-            0% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.4) rotate(-15deg); }
-            100% { transform: scale(1.2) rotate(0deg); }
-        }
-
-        /* Smooth Card Stagger Animation - Only for initial page load */
-        .glass-card.animate-in {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: cardFadeUp 0.6s ease forwards;
-        }
-
-        .glass-card.animate-in:nth-child(1) { animation-delay: 0.05s; }
-        .glass-card.animate-in:nth-child(2) { animation-delay: 0.1s; }
-        .glass-card.animate-in:nth-child(3) { animation-delay: 0.15s; }
-        .glass-card.animate-in:nth-child(4) { animation-delay: 0.2s; }
-        .glass-card.animate-in:nth-child(5) { animation-delay: 0.25s; }
-        .glass-card.animate-in:nth-child(6) { animation-delay: 0.3s; }
-
-        @keyframes cardFadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Parallax Scroll Effect */
-        .parallax-element {
-            will-change: transform;
-            transition: transform 0.1s linear;
-        }
-
-        /* Floating Animation */
-        .float-animation {
-            animation: floating 3s ease-in-out infinite;
-        }
-
-        @keyframes floating {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-10px) rotate(2deg); }
-            50% { transform: translateY(-5px) rotate(0deg); }
-            75% { transform: translateY(-15px) rotate(-2deg); }
-        }
-
-        /* Pulse Ring Effect */
-        .pulse-ring {
-            position: relative;
-        }
-
-        .pulse-ring::after {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border-radius: inherit;
-            border: 2px solid var(--primary);
-            animation: pulseRing 2s ease-out infinite;
-            opacity: 0;
-        }
-
-        @keyframes pulseRing {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.2); opacity: 0; }
-        }
-
-        /* Ripple Effect for Buttons */
-        .ripple {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .ripple span {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.6);
-            transform: scale(0);
-            animation: rippleEffect 0.6s linear;
-            pointer-events: none;
-        }
-
-        @keyframes rippleEffect {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-
-        /* Text Scramble Effect Container */
-        .scramble-text {
-            font-family: monospace;
-        }
-
-        /* 3D Flip Card Effect */
-        .flip-card {
-            perspective: 1000px;
-        }
-
-        .flip-card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.8s;
-            transform-style: preserve-3d;
-        }
-
-        .flip-card:hover .flip-card-inner {
-            transform: rotateY(180deg);
-        }
-
-        .flip-card-front, .flip-card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-        }
-
-        .flip-card-back {
-            transform: rotateY(180deg);
-        }
-
-        /* Elastic Bounce */
-        .elastic-bounce {
-            animation: elasticBounce 1s ease infinite;
-        }
-
-        @keyframes elasticBounce {
-            0%, 100% { transform: scale(1); }
-            30% { transform: scale(1.15); }
-            50% { transform: scale(0.9); }
-            70% { transform: scale(1.05); }
-        }
-
-        /* Shake Animation for Errors */
-        .shake {
-            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
         .comment-input::-webkit-scrollbar {
             display: none;
         }
@@ -4570,414 +4010,6 @@
         /* Mythic Chat Effects */
         .chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
         .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
-
-        /* ===== ULTIMATE EFFECT COLLECTION ===== */
-
-        /* Particle Explosion Effect */
-        .particle-burst {
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
-        }
-
-        .burst-particle {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: burstParticle 0.8s ease-out forwards;
-        }
-
-        @keyframes burstParticle {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
-        }
-
-        /* Comet Trail Cursor */
-        .cursor-trail {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(10,132,255,0.8) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 9998;
-            animation: trailFade 0.5s ease-out forwards;
-        }
-
-        @keyframes trailFade {
-            0% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.2); }
-        }
-
-        /* Hologram Effect */
-        .hologram {
-            position: relative;
-            background: linear-gradient(135deg, rgba(10,132,255,0.1), rgba(52,198,255,0.1));
-            border: 1px solid rgba(10,132,255,0.5);
-            box-shadow: 
-                0 0 20px rgba(10,132,255,0.3),
-                inset 0 0 20px rgba(10,132,255,0.1);
-            animation: hologramFlicker 3s infinite;
-        }
-
-        .hologram::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 2px,
-                rgba(10,132,255,0.1) 2px,
-                rgba(10,132,255,0.1) 4px
-            );
-            pointer-events: none;
-            animation: scanlines 8s linear infinite;
-        }
-
-        @keyframes hologramFlicker {
-            0%, 100% { opacity: 1; }
-            5% { opacity: 0.95; }
-            10% { opacity: 1; }
-            15% { opacity: 0.9; }
-            20% { opacity: 1; }
-            50% { opacity: 1; }
-            52% { opacity: 0.9; }
-            54% { opacity: 1; }
-        }
-
-        @keyframes scanlines {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(4px); }
-        }
-
-        /* Fireworks Effect */
-        .firework {
-            position: fixed;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 10000;
-        }
-
-        /* Floating Heart Effect */
-        .floating-heart {
-            position: fixed;
-            font-size: 24px;
-            pointer-events: none;
-            z-index: 9999;
-            animation: floatHeart 1.5s ease-out forwards;
-        }
-
-        @keyframes floatHeart {
-            0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
-            50% { transform: translateY(-100px) scale(1.2) rotate(10deg); opacity: 0.8; }
-            100% { transform: translateY(-200px) scale(0.5) rotate(-10deg); opacity: 0; }
-        }
-
-        /* Aurora Background Effect */
-        .aurora-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.3;
-            background: 
-                radial-gradient(ellipse at 20% 20%, rgba(10,132,255,0.3) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(52,198,255,0.3) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(18,209,142,0.2) 0%, transparent 60%);
-            animation: auroraMove 20s ease-in-out infinite;
-        }
-
-        @keyframes auroraMove {
-            0%, 100% { 
-                transform: translate(0, 0) rotate(0deg);
-                filter: hue-rotate(0deg);
-            }
-            25% { 
-                transform: translate(5%, 5%) rotate(2deg);
-                filter: hue-rotate(10deg);
-            }
-            50% { 
-                transform: translate(-5%, 10%) rotate(-1deg);
-                filter: hue-rotate(-10deg);
-            }
-            75% { 
-                transform: translate(-5%, -5%) rotate(1deg);
-                filter: hue-rotate(5deg);
-            }
-        }
-
-        /* Electric Border Effect - Fixed for better rendering */
-        .electric-border {
-            position: relative;
-            border: 2px solid transparent;
-        }
-
-        .electric-border::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border-radius: 22px;
-            background: linear-gradient(90deg, #0A84FF, #34C6FF, #12D18E, #0A84FF);
-            background-size: 300% 100%;
-            z-index: -1;
-            animation: electricFlow 2s linear infinite;
-        }
-
-        @keyframes electricFlow {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 300% 50%; }
-        }
-
-        /* Spotlight Hover Effect */
-        .spotlight {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .spotlight::before {
-            content: '';
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            transform: translate(-50%, -50%);
-            left: var(--x, 50%);
-            top: var(--y, 50%);
-        }
-
-        .spotlight:hover::before {
-            opacity: 1;
-        }
-
-        /* Glowing Border Animation - Fixed for better rendering */
-        .glow-border {
-            position: relative;
-            border: 2px solid transparent;
-            background-clip: padding-box;
-        }
-
-        .glow-border::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border-radius: calc(inherit + 2px);
-            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
-            background-size: 400%;
-            z-index: -1;
-            animation: glowBorderRotate 6s linear infinite;
-        }
-
-        @keyframes glowBorderRotate {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 400% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Typing Sound Visual Feedback */
-        .typing-pulse {
-            animation: typingPulse 0.1s ease;
-        }
-
-        @keyframes typingPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        /* Liquid Morph Effect */
-        .liquid-morph {
-            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-            animation: liquidMorph 4s ease-in-out infinite;
-        }
-
-        @keyframes liquidMorph {
-            0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-            25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-            50% { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
-            75% { border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%; }
-        }
-
-        /* Shake Intensity Levels */
-        .shake-light { animation: shakeLight 0.5s ease-in-out; }
-        .shake-medium { animation: shakeMedium 0.5s ease-in-out; }
-        .shake-heavy { animation: shakeHeavy 0.5s ease-in-out; }
-
-        @keyframes shakeLight {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-3px); }
-            75% { transform: translateX(3px); }
-        }
-
-        @keyframes shakeMedium {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-5px); }
-            40% { transform: translateX(5px); }
-            60% { transform: translateX(-5px); }
-            80% { transform: translateX(5px); }
-        }
-
-        @keyframes shakeHeavy {
-            0%, 100% { transform: translateX(0) rotate(0); }
-            10% { transform: translateX(-10px) rotate(-5deg); }
-            20% { transform: translateX(10px) rotate(5deg); }
-            30% { transform: translateX(-10px) rotate(-5deg); }
-            40% { transform: translateX(10px) rotate(5deg); }
-            50% { transform: translateX(-10px) rotate(-5deg); }
-            60% { transform: translateX(10px) rotate(5deg); }
-            70% { transform: translateX(-10px) rotate(-5deg); }
-            80% { transform: translateX(10px) rotate(5deg); }
-            90% { transform: translateX(-10px) rotate(-5deg); }
-        }
-
-        /* Flip 3D Effect */
-        .flip-3d {
-            transform-style: preserve-3d;
-            animation: flip3D 0.6s ease-in-out;
-        }
-
-        @keyframes flip3D {
-            0% { transform: rotateY(0); }
-            50% { transform: rotateY(180deg); }
-            100% { transform: rotateY(360deg); }
-        }
-
-        /* Spiral In Animation */
-        .spiral-in {
-            animation: spiralIn 0.8s ease-out forwards;
-        }
-
-        @keyframes spiralIn {
-            0% { 
-                opacity: 0;
-                transform: rotate(-720deg) scale(0);
-            }
-            100% { 
-                opacity: 1;
-                transform: rotate(0) scale(1);
-            }
-        }
-
-        /* Elastic Scale */
-        .elastic-scale {
-            animation: elasticScale 0.6s ease;
-        }
-
-        @keyframes elasticScale {
-            0% { transform: scale(0.3); }
-            40% { transform: scale(1.2); }
-            60% { transform: scale(0.9); }
-            80% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        /* Page Transition Wipe */
-        .page-wipe {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--primary);
-            z-index: 99999;
-            animation: pageWipe 0.6s ease-in-out forwards;
-            pointer-events: none;
-        }
-
-        @keyframes pageWipe {
-            0% { transform: translateX(-100%); }
-            50% { transform: translateX(0); }
-            100% { transform: translateX(100%); }
-        }
-
-        /* Star Field Effect */
-        .star-field {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .star {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: white;
-            border-radius: 50%;
-            animation: starTwinkle2 3s infinite;
-        }
-
-        @keyframes starTwinkle2 {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.5); }
-        }
-
-        /* Vortex Effect */
-        .vortex {
-            animation: vortexSpin 2s linear infinite;
-        }
-
-        @keyframes vortexSpin {
-            0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg); }
-            50% { transform: rotate(180deg) scale(1.1); filter: hue-rotate(180deg); }
-            100% { transform: rotate(360deg) scale(1); filter: hue-rotate(360deg); }
-        }
-
-        /* Glitch Image Effect */
-        .glitch-img {
-            position: relative;
-        }
-
-        .glitch-img::before,
-        .glitch-img::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: inherit;
-            background-size: cover;
-        }
-
-        .glitch-img::before {
-            animation: glitchImg1 0.3s infinite;
-            clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
-        }
-
-        .glitch-img::after {
-            animation: glitchImg2 0.3s infinite;
-            clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
-        }
-
-        @keyframes glitchImg1 {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-5px); }
-            40% { transform: translateX(5px); }
-        }
-
-        @keyframes glitchImg2 {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(5px); }
-            40% { transform: translateX(-5px); }
-        }
     </style>
 </head>
 <body>
@@ -4993,14 +4025,14 @@
         <header class="header">
             <div class="brand" onclick="handleBrandClick()">
                 <div class="brand-icon">
-                    ✝️
+                    &#10010;
                     <span class="admin-badge" id="adminBadge">ADMIN</span>
                     <span class="role-badge" id="roleBadge"></span>
                 </div>
                 <div class="brand-copy">
-                    <div class="brand-text wave-text" id="brandText">Bible AI</div>
+                    <div class="brand-text">Bible AI</div>
                     <a class="mobile-donate-btn" href="https://buy.stripe.com/7sY00j7sh4Do6Plaap4ko0b" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
-                        <span>💰</span>
+                        <span>&#128176;</span>
                         <span>Donate</span>
                     </a>
                 </div>
@@ -5008,43 +4040,43 @@
             
             <nav class="desktop-nav">
                 <button class="nav-item active" onclick="switchTab('discover')" data-tab="discover">
-                    <span class="nav-icon">✨</span>
+                    <span class="nav-icon">&#10024;</span>
                     <span>Discover</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('recommendations')" data-tab="recommendations">
-                    <span class="nav-icon">🎯</span>
+                    <span class="nav-icon">&#127919;</span>
                     <span>For You</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('library')" data-tab="library">
-                    <span class="nav-icon">📚</span>
+                    <span class="nav-icon">&#128218;</span>
                     <span>Library</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('comments')" data-tab="comments">
-                    <span class="nav-icon">💬</span>
+                    <span class="nav-icon">&#128172;</span>
                     <span>Comments</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('shop')" data-tab="shop">
-                    <span class="nav-icon">🛒</span>
+                    <span class="nav-icon">&#128722;</span>
                     <span>Shop</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('inventory')" data-tab="inventory">
-                    <span class="nav-icon">🎒</span>
+                    <span class="nav-icon">&#127890;</span>
                     <span>My Items</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('achievements')" data-tab="achievements">
-                    <span class="nav-icon">🏆</span>
+                    <span class="nav-icon">&#127941;</span>
                     <span>Achievements</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('xp-guide')" data-tab="xp-guide">
-                    <span class="nav-icon">💡</span>
+                    <span class="nav-icon">&#128161;</span>
                     <span>XP Guide</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('profile')" data-tab="profile">
-                    <span class="nav-icon">👤</span>
+                    <span class="nav-icon">&#128100;</span>
                     <span>Profile</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('about')" data-tab="about">
-                    <span class="nav-icon">🎬</span>
+                    <span class="nav-icon">&#127909;</span>
                     <span>About Us</span>
                 </button>
             </nav>
@@ -5059,14 +4091,14 @@
                 </a>
                 <div class="lovewell-credit-text">Credit To Cross Community Lovewell for more info check out the About us Or Click the logo thanks for your support!</div>
                 <a class="lovewell-donate-btn" href="https://buy.stripe.com/7sY00j7sh4Do6Plaap4ko0b" target="_blank" rel="noopener noreferrer">
-                    <span>💰</span>
+                    <span>&#128176;</span>
                     <span>Donate Securely</span>
                 </a>
             </div>
 
             <div class="header-actions">
-                <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
-                <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+                <button class="icon-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+                <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen">&#9974;</button>
                 <button class="icon-btn" onclick="showUser()" title="Profile">
                     <span class="avatar-wrap" id="headerAvatarWrap">
                         <img id="headerAvatarImg" src="{{ user.picture }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name={{ user.name }}&background=0a84ff&color=fff'">
@@ -5149,15 +4181,14 @@
                     <div class="filter-chip" onclick="filterDiscover('recent')">🕐 Recent</div>
                 </div>
 
-                <div class="glass-card verse-container glow-pulse" onclick="toggleFullscreen()" id="mainVerseCard">
-                    <div style="position: absolute; top: -30%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(10,132,255,0.1) 0%, transparent 70%); pointer-events: none;"></div>
-                    <div class="verse-text" id="verseText" style="font-weight: 500; line-height: 1.7;">
+                <div class="glass-card verse-container" onclick="toggleFullscreen()">
+                    <div class="verse-text" id="verseText">
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 100%;"></div>
                         <div class="skeleton" style="height: 32px; margin-bottom: 12px; width: 90%;"></div>
                         <div class="skeleton" style="height: 32px; width: 70%;"></div>
                     </div>
                     <div class="verse-meta">
-                        <div class="verse-ref gradient-text" id="verseRef" style="cursor: pointer; transition: all 0.3s;">Loading...</div>
+                        <div class="verse-ref" id="verseRef">Loading...</div>
                         <div class="verse-source-wrapper">
                             <span class="signed-by">-Signed By George-</span>
                             <span class="verse-badge" id="verseSource">...</span>
@@ -5167,20 +4198,20 @@
 
                 <div class="glass-card">
                     <div class="action-grid">
-                        <button class="action-btn magnetic-btn ripple" onclick="toggleLike(); createRipple(event, this);">
-                            <span class="action-icon elastic-bounce" id="likeIcon">♡</span>
+                        <button class="action-btn" id="likeBtn" onclick="toggleLike()">
+                            <span class="action-icon like" id="likeIcon" aria-hidden="true"></span>
                             <span>Like</span>
                         </button>
-                        <button class="action-btn magnetic-btn ripple" onclick="toggleSave(); createRipple(event, this);">
-                            <span class="action-icon elastic-bounce" id="saveIcon">🔖</span>
+                        <button class="action-btn" id="saveBtn" onclick="toggleSave()">
+                            <span class="action-icon save" id="saveIcon" aria-hidden="true"></span>
                             <span>Save</span>
                         </button>
-                        <button class="action-btn magnetic-btn ripple" onclick="copyVerse(); createRipple(event, this);">
-                            <span class="action-icon">📋</span>
+                        <button class="action-btn" onclick="copyVerse()">
+                            <span class="action-icon">&#128203;</span>
                             <span>Copy</span>
                         </button>
-                        <button class="action-btn magnetic-btn ripple" onclick="shareVerse(); createRipple(event, this);">
-                            <span class="action-icon">📤</span>
+                        <button class="action-btn" onclick="shareVerse()">
+                            <span class="action-icon">&#128228;</span>
                             <span>Share</span>
                         </button>
                     </div>
@@ -5197,44 +4228,13 @@
                 </div>
 
                 <!-- Verse of the Day -->
-                <div class="glass-card glow-pulse" id="verseOfDayCard" style="margin-top: 16px; position: relative; overflow: hidden;">
-                    <div style="position: absolute; top: -50%; right: -20%; width: 200px; height: 200px; background: radial-gradient(circle, rgba(10,132,255,0.15) 0%, transparent 70%); pointer-events: none;"></div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; position: relative; z-index: 1;">
-                        <div style="font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
-                            <span style="animation: sparkle 2s infinite;">✨</span> Verse of the Day
-                        </div>
+                <div class="glass-card" id="verseOfDayCard" style="margin-top: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📖 Verse of the Day</div>
                         <div style="font-size: 12px; opacity: 0.6;" id="vodDate">Today</div>
                     </div>
-                    <div id="verseOfDayContent" style="font-style: italic; opacity: 0.9; position: relative; z-index: 1; min-height: 24px;">Loading...</div>
-                    <div id="verseOfDayRef" style="margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--primary); position: relative; z-index: 1;"></div>
-                </div>
-
-                <!-- Community Testimony Spotlight -->
-                <div class="glass-card" id="testimonySpotlight" style="margin-top: 16px; position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(255,107,53,0.1), rgba(247,147,30,0.1));">
-                    <div style="position: absolute; top: -30%; left: -10%; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,215,0,0.2) 0%, transparent 70%); pointer-events: none;"></div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; position: relative; z-index: 1;">
-                        <div style="font-size: 14px; font-weight: 700; color: var(--warning); display: flex; align-items: center; gap: 6px;">
-                            <span style="animation: sparkle 2s infinite 0.5s;">💫</span> Community Spotlight
-                        </div>
-                        <div style="font-size: 11px; opacity: 0.6; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">Inspiring Stories</div>
-                    </div>
-                    <div id="testimonyContent" style="position: relative; z-index: 1;">
-                        <div style="font-style: italic; opacity: 0.95; line-height: 1.6; margin-bottom: 10px;">
-                            "This app has transformed my morning routine. Starting each day with God's word has brought so much peace to my life."
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #ff6b35, #f7931e); display: flex; align-items: center; justify-content: center; font-size: 16px;">🙏</div>
-                            <div>
-                                <div style="font-size: 13px; font-weight: 600;">Sarah M.</div>
-                                <div style="font-size: 11px; opacity: 0.6;">128 day streak 🔥</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 6px; margin-top: 12px; position: relative; z-index: 1;">
-                        <button class="filter-chip" style="font-size: 11px; padding: 4px 10px;" onclick="rotateTestimony(-1)">← Prev</button>
-                        <button class="filter-chip" style="font-size: 11px; padding: 4px 10px;" onclick="rotateTestimony(1)">Next →</button>
-                        <button class="filter-chip" style="font-size: 11px; padding: 4px 10px; margin-left: auto;" onclick="shareTestimony()">Share Yours 💬</button>
-                    </div>
+                    <div id="verseOfDayContent" style="font-style: italic; opacity: 0.9;">Loading...</div>
+                    <div id="verseOfDayRef" style="margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--primary);"></div>
                 </div>
 
             </div>
@@ -5264,8 +4264,8 @@
                 </div>
 
                 <div class="glass-card">
-                    <button id="generateRecBtn" class="gen-btn" onclick="generateRec(); if(settings.particleExplosions) { const rect = this.getBoundingClientRect(); createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']); }">
-                        <span>🎯</span>
+                    <button class="gen-btn" onclick="generateRec()">
+                        <span>&#128276;</span>
                         <span>Generate Smart Recommendation</span>
                     </button>
                     
@@ -5323,7 +4323,7 @@
                      ondragover="handleDragOver(event)" 
                      ondrop="handleDrop(event)"
                      ondragleave="handleDragLeave(event)">
-                    <div class="favorites-header">💖 Quick Add</div>
+                    <div class="favorites-header">&#128150; Quick Add</div>
                     <div class="favorites-text">Drag verses here to add to favorites</div>
                     <div class="favorites-count" id="favoritesCountDrop">0</div>
                     <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 5px;">verses</div>
@@ -5342,13 +4342,13 @@
                 <!-- All Verses List -->
                 <div class="glass-card" id="versesListCard">
                     <div class="library-header" style="margin-bottom: 12px;">
-                        <span>📚</span>
+                        <span>&#128218;</span>
                         <span id="libraryListTitle">My Verses</span>
                     </div>
                     
                     <div class="verse-list" id="libraryVersesList">
                         <div class="empty-state">
-                            <div class="empty-state-icon">♡</div>
+                            <div class="empty-state-icon">&#9825;</div>
                             <div class="empty-state-text">No verses yet. Start liking and saving!</div>
                         </div>
                     </div>
@@ -5379,7 +4379,7 @@
                     <!-- Current Verse Comments -->
                     <div class="comment-section" id="verseCommentsSection">
                         <div class="comment-section-header">
-                            <span>💬</span>
+                            <span>&#128172;</span>
                             <span>Comments on <span id="commentVerseRef" style="color: var(--primary);">Current Verse</span></span>
                             <button class="comment-pin-btn" id="commentVerseSyncBtn" onclick="syncCommentVerse()">Use current verse</button>
                         </div>
@@ -5400,7 +4400,7 @@
 
                         <div class="comment-input-area" id="commentInputArea">
                             <textarea class="comment-input" id="commentInput" name="comment_text" autocomplete="off" data-form-type="other" placeholder="Share your thoughts on this verse... Use @ to mention" rows="1" onkeydown="handleCommentKey(event)"></textarea>
-                            <button class="send-btn" id="commentSendBtn" onclick="postComment()">↑</button>
+                            <button class="send-btn" id="commentSendBtn" onclick="postComment()">&#8593;</button>
                         </div>
 
                         <div class="comments-list" id="commentsList"></div>
@@ -5409,7 +4409,7 @@
                     <!-- Community Chat -->
                     <div class="comment-section community-section" id="communityCommentsSection" style="display:none;">
                         <div class="comment-section-header">
-                            <span>🌍</span>
+                            <span>&#127757;</span>
                             <span>Community Chat</span>
                             <span class="community-badge">Life & Support</span>
                             <span class="trending-tag" id="trendingBadge" style="display: none;">🔥 Trending</span>
@@ -5428,7 +4428,7 @@
 
                         <div class="comment-input-area" id="communityInputArea">
                             <textarea class="comment-input" id="communityInput" name="community_text" autocomplete="off" data-form-type="other" placeholder="Share about life, ask for help, or offer guidance... #topic" rows="1" onkeydown="handleCommunityKey(event)"></textarea>
-                            <button class="send-btn" id="communitySendBtn" onclick="postCommunityMessage()">↑</button>
+                            <button class="send-btn" id="communitySendBtn" onclick="postCommunityMessage()">&#8593;</button>
                         </div>
 
                         <div class="comments-list" id="communityList"></div>
@@ -5673,8 +4673,8 @@
                 <div class="about-shell">
                     <div class="about-video-column">
                         <div class="about-slider-wrap">
-                            <button class="about-nav-btn prev" onclick="aboutPrev()" aria-label="Previous video">‹</button>
-                            <button class="about-nav-btn next" onclick="aboutNext()" aria-label="Next video">›</button>
+                            <button class="about-nav-btn prev" onclick="aboutPrev()" aria-label="Previous video">&#8249;</button>
+                            <button class="about-nav-btn next" onclick="aboutNext()" aria-label="Next video">&#8250;</button>
                             <div class="about-progress" id="aboutProgress">
                                 <div class="about-progress-item"><div class="about-progress-fill" id="aboutProgressFill0"></div></div>
                                 <div class="about-progress-item"><div class="about-progress-fill" id="aboutProgressFill1"></div></div>
@@ -5689,7 +4689,7 @@
                                         <video class="about-video" id="aboutVideo0" loop playsinline muted preload="none">
                                             <source src="/media/videos/1.mp4?v=20260216-1100" type="video/mp4">
                                         </video>
-                                        <div class="about-paused-indicator">▶ Paused</div>
+                                        <div class="about-paused-indicator">&#9654; Paused</div>
                                     </div>
                                 </div>
                                 <div class="about-slide">
@@ -5697,7 +4697,7 @@
                                         <video class="about-video" id="aboutVideo1" loop playsinline muted preload="none">
                                             <source src="/media/videos/2.mp4?v=20260216-1100" type="video/mp4">
                                         </video>
-                                        <div class="about-paused-indicator">▶ Paused</div>
+                                        <div class="about-paused-indicator">&#9654; Paused</div>
                                     </div>
                                 </div>
                             </div>
@@ -5746,39 +4746,39 @@
         <!-- Mobile Tab Bar - No Images -->
         <nav class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('discover', this)">
-                <span class="tab-icon">✨</span>
+                <span class="tab-icon">&#10024;</span>
                 <span class="tab-label">Discover</span>
             </button>
             <button class="tab-btn" onclick="switchTab('recommendations', this)">
-                <span class="tab-icon">🎯</span>
+                <span class="tab-icon">&#127919;</span>
                 <span class="tab-label">For You</span>
             </button>
             <button class="tab-btn" onclick="switchTab('library', this)">
-                <span class="tab-icon">📚</span>
+                <span class="tab-icon">&#128218;</span>
                 <span class="tab-label">Library</span>
             </button>
             <button class="tab-btn" onclick="switchTab('comments', this)">
-                <span class="tab-icon">💬</span>
+                <span class="tab-icon">&#128172;</span>
                 <span class="tab-label">Chat</span>
             </button>
             <button class="tab-btn" onclick="switchTab('achievements', this)">
-                <span class="tab-icon">🏆</span>
+                <span class="tab-icon">&#127942;</span>
                 <span class="tab-label">Awards</span>
             </button>
             <button class="tab-btn" onclick="switchTab('xp-guide', this)">
-                <span class="tab-icon">⚡</span>
+                <span class="tab-icon">&#9889;</span>
                 <span class="tab-label">XP</span>
             </button>
             <button class="tab-btn" onclick="switchTab('shop', this)">
-                <span class="tab-icon">🛒</span>
+                <span class="tab-icon">&#128722;</span>
                 <span class="tab-label">Shop</span>
             </button>
             <button class="tab-btn" onclick="switchTab('profile', this)">
-                <span class="tab-icon">👤</span>
+                <span class="tab-icon">&#128100;</span>
                 <span class="tab-label">Profile</span>
             </button>
             <button class="tab-btn" onclick="switchTab('about', this)">
-                <span class="tab-icon">🎬</span>
+                <span class="tab-icon">&#127909;</span>
                 <span class="tab-label">About</span>
             </button>
         </nav>
@@ -5789,15 +4789,15 @@
         <div class="fullscreen-text" id="fullscreenText"></div>
         <div class="fullscreen-actions">
             <button class="fullscreen-btn" onclick="event.stopPropagation(); toggleLike(); updateFullscreenButtons();">
-                <span id="fsLikeIcon">♡</span>
+                <span id="fsLikeIcon">&#9825;</span>
                 <span>Like</span>
             </button>
             <button class="fullscreen-btn" onclick="event.stopPropagation(); toggleSave(); updateFullscreenButtons();">
-                <span id="fsSaveIcon">🔖</span>
+                <span id="fsSaveIcon">&#128278;</span>
                 <span>Save</span>
             </button>
             <button class="fullscreen-btn" onclick="event.stopPropagation(); copyVerse();">
-                <span>📋</span>
+                <span>&#128203;</span>
                 <span>Copy</span>
             </button>
         </div>
@@ -5826,7 +4826,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">Settings</div>
-                <button class="close-btn" onclick="closeSettings()">✕</button>
+                <button class="close-btn" onclick="closeSettings()">&#10005;</button>
             </div>
 
             <div class="setting-item">
@@ -5962,74 +4962,6 @@
 
             <div class="setting-item">
                 <div>
-                    <div class="setting-label">Advanced Animations</div>
-                    <div class="setting-desc">Text scramble, magnetic buttons, ripple effects</div>
-                </div>
-                <div class="toggle" id="advancedAnimToggle" onclick="toggleAdvancedAnimations()">
-                    <div class="toggle-thumb"></div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Animated Background</div>
-                    <div class="setting-desc">Subtle gradient movement in background</div>
-                </div>
-                <div class="toggle" id="animatedBgToggle" onclick="toggleAnimatedBackground()">
-                    <div class="toggle-thumb"></div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Cursor Trail</div>
-                    <div class="setting-desc">Comet tail effect following your mouse</div>
-                </div>
-                <div class="toggle" id="cursorTrailToggle" onclick="toggleCursorTrail()">
-                    <div class="toggle-thumb"></div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Star Field</div>
-                    <div class="setting-desc">Twinkling stars in the background</div>
-                </div>
-                <div class="toggle" id="starFieldToggle" onclick="toggleStarField()">
-                    <div class="toggle-thumb"></div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Aurora Effect</div>
-                    <div class="setting-desc">Northern lights style gradient animation</div>
-                </div>
-                <div class="toggle" id="auroraToggle" onclick="toggleAurora()">
-                    <div class="toggle-thumb"></div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Particle Explosions</div>
-                    <div class="setting-desc">Burst effect on button clicks</div>
-                </div>
-                <div class="toggle" id="particleExplosionToggle" onclick="toggleParticleExplosions()">
-                    <div class="toggle-thumb"></div>
-                </div>
-            </div>
-
-            <div class="setting-item" style="background: linear-gradient(90deg, rgba(255,215,0,0.1), rgba(255,107,53,0.1)); border-radius: 12px; padding: 16px; margin-top: 10px;">
-                <div>
-                    <div class="setting-label" style="color: #FFD700; font-weight: 800;">✨ BLESSING MODE ✨</div>
-                    <div class="setting-desc">Activate ALL effects at once for maximum wow!</div>
-                </div>
-                <button class="bible-picks-btn" style="background: linear-gradient(135deg, #FFD700, #FF6B35); color: #000; font-weight: 700;" onclick="activateBlessingMode()">ACTIVATE</button>
-            </div>
-
-            <div class="setting-item">
-                <div>
                     <div class="setting-label">High Contrast</div>
                     <div class="setting-desc">Stronger colors for accessibility</div>
                 </div>
@@ -6149,7 +5081,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">🔐 Staff Access</div>
-                <button class="close-btn" onclick="closeAdminUnlock()">✕</button>
+                <button class="close-btn" onclick="closeAdminUnlock()">&#10005;</button>
             </div>
             
             <p style="color: var(--text-secondary); margin-bottom: 16px;">Select your role and enter the access code</p>
@@ -6207,13 +5139,7 @@
             autoCopyVerse: false,
             keepAwake: false,
             ttsEnabled: false,
-            ttsSpeed: 1,
-            advancedAnimations: false,
-            animatedBackground: false,
-            cursorTrail: false,
-            starField: false,
-            aurora: false,
-            particleExplosions: false
+            ttsSpeed: 1
         };
         let commentRestriction = { restricted: false, reason: '', expires_at: null };
         let notificationsCache = [];
@@ -6391,47 +5317,6 @@
             if (notificationPollInterval) clearInterval(notificationPollInterval);
             notificationPollInterval = setInterval(pollNotifications, 30000);
             handleDeepLinkParams();
-            
-            // Apply wave animation to brand text
-            const brandText = document.getElementById('brandText');
-            if (brandText) applyWaveText(brandText);
-            
-            // Add magnetic effect to buttons
-            document.querySelectorAll('.action-btn, .tab-btn').forEach(btn => {
-                btn.classList.add('magnetic-btn', 'ripple');
-            });
-            
-            // Restore animation settings
-            if (settings.cursorTrail) enableCursorTrail();
-            if (settings.starField) createStarField();
-            if (settings.aurora) {
-                const aurora = document.createElement('div');
-                aurora.className = 'aurora-bg';
-                aurora.id = 'auroraBg';
-                document.body.insertBefore(aurora, document.body.firstChild);
-            }
-            if (settings.animatedBackground) document.body.classList.add('animated-bg');
-            
-            // Update toggle states
-            if (settings.cursorTrail) document.getElementById('cursorTrailToggle')?.classList.add('active');
-            if (settings.starField) document.getElementById('starFieldToggle')?.classList.add('active');
-            if (settings.aurora) document.getElementById('auroraToggle')?.classList.add('active');
-            if (settings.animatedBackground) document.getElementById('animatedBgToggle')?.classList.add('active');
-            if (settings.advancedAnimations) document.getElementById('advancedAnimToggle')?.classList.add('active');
-            if (settings.particleExplosions) document.getElementById('particleExplosionToggle')?.classList.add('active');
-            
-            // DISABLED: Text scramble on verse reference - causing glitches
-            // Apply scramble effect to verse reference on hover
-            // const verseRef = document.getElementById('verseRef');
-            // if (verseRef) {
-            //     const scrambler = new TextScramble(verseRef);
-            //     const originalText = verseRef.textContent;
-            //     
-            //     verseRef.addEventListener('mouseenter', () => {
-            //         scrambler.setText(originalText);
-            //     });
-            // }
-            
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) stopVersePolling();
                 else startVersePolling();
@@ -6963,9 +5848,6 @@
                     const isNew = !!currentVerse && nextVerseKey !== currentVerseKey;
                     currentVerse = data.verse;
                     
-                    // DISABLED: Typewriter effect causing glitches
-                    // Simplified text display
-                    stopTypewriter();
                     document.getElementById('verseText').textContent = data.verse.text;
                     document.getElementById('verseRef').textContent = data.verse.ref;
                     document.getElementById('verseSource').textContent = data.verse.source;
@@ -7059,15 +5941,13 @@
 
         function updateLikeUI(liked) {
             const icon = document.getElementById('likeIcon');
-            if (!icon) return;
-            icon.textContent = liked ? '♥️' : '♡';
+            icon.classList.toggle('active', !!liked);
             icon.style.color = liked ? 'var(--danger)' : '';
         }
 
         function updateSaveUI(saved) {
             const icon = document.getElementById('saveIcon');
-            if (!icon) return;
-            icon.textContent = saved ? '📑' : '🔖';
+            icon.classList.toggle('active', !!saved);
             icon.style.color = saved ? 'var(--warning)' : '';
         }
 
@@ -7090,22 +5970,7 @@
             const data = await res.json();
             updateLikeUI(data.liked);
             animateActionFeedback('likeIcon', data.liked ? '❤️' : '');
-            
-            // Visual effects
-            if (data.liked) {
-                const likeBtn = document.querySelector('[onclick="toggleLike()"]');
-                if (likeBtn) {
-                    const rect = likeBtn.getBoundingClientRect();
-                    spawnFloatingHearts(rect.left + rect.width/2, rect.top);
-                    elasticScale(likeBtn);
-                    
-                    if (settings.particleExplosions) {
-                        createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#FF6B6B', '#FF8787', '#FFB4B4']);
-                    }
-                }
-            }
-            
-            if (settings.notifications) showToast(data.liked ? 'Added to likes ❤️' : 'Removed from likes');
+            if (settings.notifications) showToast(data.liked ? 'Added to likes' : 'Removed from likes');
             
             if (data.recommendation && settings.autoRec) {
                 showRecommendation(data.recommendation);
@@ -7136,16 +6001,6 @@
                     }
                 })
             });
-            
-            // Visual effects
-            const saveBtn = document.querySelector('[onclick="toggleSave()"]');
-            if (saveBtn) {
-                elasticScale(saveBtn);
-                if (settings.particleExplosions) {
-                    const rect = saveBtn.getBoundingClientRect();
-                    createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#FFD700', '#FFA500', '#FF8C00']);
-                }
-            }
             const data = await res.json();
             updateSaveUI(data.saved);
             animateActionFeedback('saveIcon', data.saved ? '🔖' : '');
@@ -7165,33 +6020,12 @@
             if (!currentVerse) return;
             const text = `"${currentVerse.text}" — ${currentVerse.ref}`;
             await navigator.clipboard.writeText(text);
-            
-            // Visual effects
-            const copyBtn = document.querySelector('[onclick="copyVerse()"]');
-            if (copyBtn) {
-                flip3D(copyBtn);
-                if (settings.particleExplosions) {
-                    const rect = copyBtn.getBoundingClientRect();
-                    createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#0A84FF', '#34C6FF', '#12D18E']);
-                }
-            }
-            
-            if (settings.notifications) showToast('Copied to clipboard! 📋');
+            if (settings.notifications) showToast('Copied to clipboard!');
         }
 
         async function shareVerse() {
             if (!currentVerse) return;
             const text = `"${currentVerse.text}" — ${currentVerse.ref}`;
-            
-            // Visual effects
-            const shareBtn = document.querySelector('[onclick="shareVerse()"]');
-            if (shareBtn) {
-                spiralIn(shareBtn);
-                if (settings.particleExplosions) {
-                    const rect = shareBtn.getBoundingClientRect();
-                    createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2, ['#BF5AF2', '#9F5AF2', '#7B68EE']);
-                }
-            }
             
             try {
                 if (navigator.share) {
@@ -7209,34 +6043,14 @@
 
         // Fullscreen
         function toggleFullscreen(verse = null) {
-            try {
-                const fs = document.getElementById('fullscreen');
-                if (!fs) {
-                    console.warn('Fullscreen element not found');
-                    return;
-                }
-                
-                const v = verse || currentVerse;
-                
-                if (!v) {
-                    console.warn('No verse available for fullscreen view');
-                    if (settings.notifications) showToast('No verse to display');
-                    return;
-                }
-                
-                const fullscreenText = document.getElementById('fullscreenText');
-                if (!fullscreenText) {
-                    console.warn('Fullscreen text element not found');
-                    return;
-                }
-                
-                fullscreenText.textContent = `"${v.text}"\n\n— ${v.ref}`;
+            const fs = document.getElementById('fullscreen');
+            const v = verse || currentVerse;
+            
+            if (v) {
+                document.getElementById('fullscreenText').textContent = `"${v.text}"\n\n— ${v.ref}`;
                 updateFullscreenButtons(v.id);
                 fs.classList.add('active');
                 AudioSys.playModal();
-            } catch (error) {
-                console.error('Error in toggleFullscreen:', error);
-                if (settings.notifications) showToast('Unable to open fullscreen view');
             }
         }
 
@@ -7248,37 +6062,18 @@
         }
 
         async function updateFullscreenButtons(verseId = null) {
-            try {
-                const id = verseId || (currentVerse ? currentVerse.id : null);
-                if (!id) return;
-                
-                const fsLikeIcon = document.getElementById('fsLikeIcon');
-                const fsSaveIcon = document.getElementById('fsSaveIcon');
-                
-                if (!fsLikeIcon || !fsSaveIcon) {
-                    console.warn('Fullscreen button icons not found');
-                    return;
-                }
-                
-                const [likeRes, saveRes] = await Promise.all([
-                    fetch(`/api/check_like/${id}`),
-                    fetch(`/api/check_save/${id}`)
-                ]);
-                
-                if (!likeRes.ok || !saveRes.ok) {
-                    console.warn('Failed to fetch like/save status');
-                    return;
-                }
-                
-                const likeData = await likeRes.json();
-                const saveData = await saveRes.json();
-                
-                fsLikeIcon.textContent = likeData.liked ? '♥️' : '♡';
-                fsSaveIcon.textContent = saveData.saved ? '📑' : '🔖';
-            } catch (error) {
-                console.error('Error in updateFullscreenButtons:', error);
-                // Silently fail - UI will show default state
-            }
+            const id = verseId || (currentVerse ? currentVerse.id : null);
+            if (!id) return;
+            
+            const [likeRes, saveRes] = await Promise.all([
+                fetch(`/api/check_like/${id}`),
+                fetch(`/api/check_save/${id}`)
+            ]);
+            const likeData = await likeRes.json();
+            const saveData = await saveRes.json();
+            
+            document.getElementById('fsLikeIcon').innerHTML = likeData.liked ? '&#9829;' : '&#9825;';
+            document.getElementById('fsSaveIcon').innerHTML = saveData.saved ? '&#128209;' : '&#128278;';
         }
 
         // Recommendations
@@ -7308,11 +6103,9 @@
         }
 
         async function generateRec(silent = false) {
-            const btn = document.getElementById('generateRecBtn');
-            if (btn) {
-                btn.style.transform = 'scale(0.97)';
-                setTimeout(() => btn.style.transform = '', 100);
-            }
+            const btn = document.querySelector('.gen-btn');
+            btn.style.transform = 'scale(0.97)';
+            setTimeout(() => btn.style.transform = '', 100);
             
             const excludeIds = getRecentRecIds(20);
             const res = await fetch('/api/generate-recommendation', {
@@ -7366,14 +6159,14 @@
             div.dataset.rec = JSON.stringify(rec || {});
             div.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primary);">
-                    <span>✨</span>
+                    <span>&#10024;</span>
                     <span>${rec.reason}</span>
                 </div>
                 <div style="font-size: 15px; line-height: 1.5; margin-bottom: 10px;">${rec.text}</div>
                 <div style="font-size: 13px; opacity: 0.7; font-weight: 600; margin-bottom: 12px;">${rec.ref}</div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">♡ Like</button>
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">🔖 Save</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">&#9825; Like</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">&#128278; Save</button>
                 </div>
             `;
             return div;
@@ -7399,7 +6192,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            btn.textContent = '♥️ Liked';
+            btn.innerHTML = '&#9829; Liked';
             btn.classList.add('liked');
             btn.classList.add('pop-success');
             setTimeout(() => btn.classList.remove('pop-success'), 420);
@@ -7426,7 +6219,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            btn.textContent = '📑 Saved';
+            btn.innerHTML = '&#128209; Saved';
             btn.classList.add('saved');
             btn.classList.add('pop-success');
             setTimeout(() => btn.classList.remove('pop-success'), 420);
@@ -7469,7 +6262,7 @@
             if (uniqueVerses.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">♡</div>
+                        <div class="empty-state-icon">&#9825;</div>
                         <div class="empty-state-text">No verses yet. Start liking and saving!</div>
                     </div>
                 `;
@@ -7491,10 +6284,10 @@
                     <div class="verse-card-ref">${v.ref}</div>
                     <div class="verse-card-actions">
                         <button class="verse-card-btn ${v.liked_at ? 'liked' : ''}" onclick="event.stopPropagation(); libraryLike(${v.id})">
-                            ${v.liked_at ? '♥️ Liked' : '♡ Like'}
+                            ${v.liked_at ? '&#9829; Liked' : '&#9825; Like'}
                         </button>
                         <button class="verse-card-btn ${v.saved_at ? 'saved' : ''}" onclick="event.stopPropagation(); librarySave(${v.id})">
-                            ${v.saved_at ? '📑 Saved' : '🔖 Save'}
+                            ${v.saved_at ? '&#128209; Saved' : '&#128278; Save'}
                         </button>
                     </div>
                 </div>
@@ -8228,7 +7021,7 @@
             
             return `
                 <div class="comment-item ${chatEffectClass}" id="${type}-${c.id}" data-user-id="${c.user_id || ''}">
-                    <button class="delete-comment-btn" onclick="deleteComment(${c.id}, '${type}')" title="Delete (Admin only)">✕</button>
+                    <button class="delete-comment-btn" onclick="deleteComment(${c.id}, '${type}')" title="Delete (Admin only)">&#10005;</button>
                     <div class="comment-header">
                         ${c.user_id ? `
                             <a class="comment-user-link" href="/u/${c.user_id}">
@@ -8970,10 +7763,6 @@
                 
                 if (i === 0) {
                     dayEl.classList.add('today', 'active');
-                    // Add milestone animation for significant streaks
-                    if ([7, 30, 50, 100, 200, 365].includes(streak)) {
-                        dayEl.classList.add('streak-milestone');
-                    }
                 } else if (i < streak && streakData.lastVisit === today) {
                     dayEl.classList.add('active');
                 } else {
@@ -8981,56 +7770,6 @@
                 }
                 
                 calendar.appendChild(dayEl);
-            }
-            
-            // Celebration confetti for milestones
-            if ([7, 30, 50, 100, 200, 365].includes(streak) && !sessionStorage.getItem('streakCelebrated')) {
-                sessionStorage.setItem('streakCelebrated', 'true');
-                showStreakConfetti();
-            }
-        }
-
-        // Streak milestone confetti celebration
-        function showStreakConfetti() {
-            const colors = ['#ff6b35', '#f7931e', '#ffd700', '#ffec8b', '#ffffff'];
-            for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.style.cssText = `
-                        position: fixed;
-                        width: 10px;
-                        height: 10px;
-                        background: ${colors[Math.floor(Math.random() * colors.length)]};
-                        left: 50%;
-                        top: 50%;
-                        border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
-                        pointer-events: none;
-                        z-index: 9999;
-                    `;
-                    document.body.appendChild(confetti);
-                    
-                    const angle = Math.random() * Math.PI * 2;
-                    const velocity = 5 + Math.random() * 10;
-                    const vx = Math.cos(angle) * velocity;
-                    const vy = Math.sin(angle) * velocity - 5;
-                    let x = 0, y = 0;
-                    let rotation = 0;
-                    
-                    const animate = () => {
-                        x += vx;
-                        y += vy + 0.5; // gravity
-                        rotation += 10;
-                        confetti.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
-                        confetti.style.opacity = 1 - (Math.abs(y) / 400);
-                        
-                        if (Math.abs(y) < 400) {
-                            requestAnimationFrame(animate);
-                        } else {
-                            confetti.remove();
-                        }
-                    };
-                    requestAnimationFrame(animate);
-                }, i * 20);
             }
         }
 
@@ -10246,18 +8985,6 @@ async function checkAchievement(type, value) {
             el.classList.remove('verse-reveal');
             void el.offsetWidth;
             el.classList.add('verse-reveal');
-            
-            // Apply hologram effect randomly (10% chance)
-            if (Math.random() < 0.1) {
-                applyHologramEffect();
-            }
-            
-            // Apply liquid morph border
-            liquidMorph(el, 4000);
-            
-            // Spotlight effect on verse card
-            el.classList.add('spotlight');
-            initSpotlightEffect();
         }
 
         function animateActionFeedback(iconId, burstEmoji = '') {
@@ -10670,17 +9397,6 @@ async function checkAchievement(type, value) {
 
         function setupGlobalShortcuts() {
             document.addEventListener('keydown', (e) => {
-                // Fireworks shortcut (F key)
-                if (e.key === 'f' || e.key === 'F') {
-                    const centerX = window.innerWidth / 2;
-                    const centerY = window.innerHeight / 2;
-                    launchFireworks(centerX, centerY);
-                    launchFireworks(centerX - 200, centerY - 100);
-                    launchFireworks(centerX + 200, centerY - 100);
-                    showToast('🎆 Fireworks! Press F anytime!');
-                    return;
-                }
-                
                 if (currentTab !== 'about') return;
                 const activeEl = document.activeElement;
                 const tag = activeEl && activeEl.tagName ? activeEl.tagName.toLowerCase() : '';
@@ -10984,150 +9700,6 @@ async function checkAchievement(type, value) {
             saveSettings();
             showToast(settings.particles ? 'Crosses ON ✝️' : 'Crosses OFF');
         }
-
-        function toggleAdvancedAnimations() {
-            settings.advancedAnimations = !settings.advancedAnimations;
-            document.getElementById('advancedAnimToggle').classList.toggle('active');
-            
-            document.body.classList.toggle('advanced-animations', settings.advancedAnimations);
-            
-            if (settings.advancedAnimations) {
-                // Apply advanced effects
-                document.querySelectorAll('.tab-btn, .action-btn').forEach(btn => {
-                    btn.classList.add('magnetic-btn', 'ripple');
-                });
-                showToast('Advanced animations ON ✨');
-            } else {
-                document.querySelectorAll('.magnetic-btn, .ripple').forEach(btn => {
-                    btn.classList.remove('magnetic-btn', 'ripple');
-                });
-                showToast('Advanced animations OFF');
-            }
-            
-            AudioSys.playClick();
-            saveSettings();
-        }
-
-        function toggleAnimatedBackground() {
-            settings.animatedBackground = !settings.animatedBackground;
-            document.getElementById('animatedBgToggle').classList.toggle('active');
-            document.body.classList.toggle('animated-bg', settings.animatedBackground);
-            
-            AudioSys.playClick();
-            saveSettings();
-            showToast(settings.animatedBackground ? 'Animated background ON 🌊' : 'Animated background OFF');
-        }
-
-        function toggleCursorTrail() {
-            settings.cursorTrail = !settings.cursorTrail;
-            document.getElementById('cursorTrailToggle').classList.toggle('active');
-            
-            if (settings.cursorTrail) {
-                enableCursorTrail();
-                showToast('Cursor trail ON ✨');
-            } else {
-                cursorTrailEnabled = false;
-                showToast('Cursor trail OFF');
-            }
-            
-            AudioSys.playClick();
-            saveSettings();
-        }
-
-        function toggleStarField() {
-            settings.starField = !settings.starField;
-            document.getElementById('starFieldToggle').classList.toggle('active');
-            
-            if (settings.starField) {
-                createStarField();
-                showToast('Star field ON ⭐');
-            } else {
-                document.querySelector('.star-field')?.remove();
-                showToast('Star field OFF');
-            }
-            
-            AudioSys.playClick();
-            saveSettings();
-        }
-
-        function toggleAurora() {
-            settings.aurora = !settings.aurora;
-            document.getElementById('auroraToggle').classList.toggle('active');
-            
-            if (settings.aurora) {
-                const aurora = document.createElement('div');
-                aurora.className = 'aurora-bg';
-                aurora.id = 'auroraBg';
-                document.body.insertBefore(aurora, document.body.firstChild);
-                showToast('Aurora effect ON 🌌');
-            } else {
-                document.getElementById('auroraBg')?.remove();
-                showToast('Aurora effect OFF');
-            }
-            
-            AudioSys.playClick();
-            saveSettings();
-        }
-
-        function toggleParticleExplosions() {
-            settings.particleExplosions = !settings.particleExplosions;
-            document.getElementById('particleExplosionToggle').classList.toggle('active');
-            
-            AudioSys.playClick();
-            saveSettings();
-            showToast(settings.particleExplosions ? 'Particle explosions ON 💥' : 'Particle explosions OFF');
-        }
-
-        // BLESSING MODE - Activate ALL effects!
-        function activateBlessingMode() {
-            // Launch massive fireworks
-            for (let i = 0; i < 5; i++) {
-                setTimeout(() => {
-                    launchFireworks(
-                        Math.random() * window.innerWidth,
-                        Math.random() * window.innerHeight * 0.5
-                    );
-                }, i * 300);
-            }
-            
-            // Apply all effects
-            document.body.classList.add('animated-bg');
-            if (!document.querySelector('.star-field')) createStarField();
-            if (!document.getElementById('auroraBg')) {
-                const aurora = document.createElement('div');
-                aurora.className = 'aurora-bg';
-                aurora.id = 'auroraBg';
-                document.body.insertBefore(aurora, document.body.firstChild);
-            }
-            enableCursorTrail();
-            
-            // Apply effects to all cards
-            document.querySelectorAll('.glass-card').forEach((card, i) => {
-                setTimeout(() => {
-                    electricBorder(card, 2000);
-                    spiralIn(card);
-                }, i * 100);
-            });
-            
-            // Hologram on verse
-            applyHologramEffect();
-            
-            // Show blessing message
-            showToast('🙏 BLESSING MODE ACTIVATED! 🙏');
-            
-            // Create particle explosions across the screen
-            for (let i = 0; i < 10; i++) {
-                setTimeout(() => {
-                    createParticleExplosion(
-                        Math.random() * window.innerWidth,
-                        Math.random() * window.innerHeight,
-                        ['#FFD700', '#FF6B35', '#0A84FF', '#12D18E', '#BF5AF2']
-                    );
-                }, i * 200);
-            }
-            
-            AudioSys.playSuccess?.();
-        }
         
         function toggleHighContrast() {
             settings.highContrast = !settings.highContrast;
@@ -11414,9 +9986,7 @@ async function checkAchievement(type, value) {
             if (!container) return;
             
             container.innerHTML = '';
-            
-            // Regular particles
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 18; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 p.style.left = Math.random() * 100 + '%';
@@ -11426,65 +9996,19 @@ async function checkAchievement(type, value) {
                 container.appendChild(p);
             }
 
-            // Enhanced glowing crosses
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 18; i++) {
                 const s = document.createElement('div');
                 s.className = 'particle cross-image';
                 s.style.left = Math.random() * 100 + '%';
                 s.style.animationDuration = (18 + Math.random() * 22) + 's';
                 s.style.animationDelay = Math.random() * 18 + 's';
-                s.style.opacity = 0.75 + Math.random() * 0.2;
-                const size = 60 + Math.random() * 50;
+                s.style.opacity = 0.65 + Math.random() * 0.3;
+                const size = 70 + Math.random() * 60;
                 s.style.width = `${size}px`;
                 s.style.height = `${size}px`;
                 s.style.transform = `translateY(100vh) rotate(${Math.random() * 40 - 20}deg)`;
                 container.appendChild(s);
             }
-
-            // Bible verse symbols floating
-            const symbols = ['✝️', '✨', '🕊️', '🙏', '❤️', '📖', '⭐', '💫'];
-            for (let i = 0; i < 10; i++) {
-                const sym = document.createElement('div');
-                sym.className = 'particle verse-symbol';
-                sym.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-                sym.style.left = Math.random() * 100 + '%';
-                sym.style.animationDuration = (20 + Math.random() * 20) + 's';
-                sym.style.animationDelay = Math.random() * 15 + 's';
-                sym.style.fontSize = (16 + Math.random() * 12) + 'px';
-                container.appendChild(sym);
-            }
-        }
-
-        // Typewriter effect for verse display
-        let typewriterTimeout;
-        function typewriteVerse(element, text, speed = 25) {
-            if (!element) return;
-            
-            // Clear any ongoing typewriter
-            clearTimeout(typewriterTimeout);
-            element.innerHTML = '';
-            
-            // Add cursor
-            const cursor = document.createElement('span');
-            cursor.className = 'typewriter-cursor';
-            
-            let i = 0;
-            function type() {
-                if (i < text.length) {
-                    element.textContent = text.substring(0, i + 1);
-                    element.appendChild(cursor);
-                    i++;
-                    typewriterTimeout = setTimeout(type, speed);
-                } else {
-                    // Remove cursor when done
-                    element.textContent = text;
-                }
-            }
-            type();
-        }
-
-        function stopTypewriter() {
-            clearTimeout(typewriterTimeout);
         }
 
         // Toast with sound
@@ -11940,484 +10464,11 @@ async function checkAchievement(type, value) {
                 stats: userStats
             }));
         }
-
-        // ===== ADVANCED ANIMATION SYSTEMS =====
-
-        // Particle Explosion Effect
-        function createParticleExplosion(x, y, colors = ['#0A84FF', '#34C6FF', '#12D18E', '#FFD700', '#FF6B6B']) {
-            const particleCount = 30;
-            
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'burst-particle';
-                particle.style.left = x + 'px';
-                particle.style.top = y + 'px';
-                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-                
-                const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
-                const velocity = 50 + Math.random() * 150;
-                particle.style.setProperty('--tx', Math.cos(angle) * velocity + 'px');
-                particle.style.setProperty('--ty', Math.sin(angle) * velocity + 'px');
-                
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 800);
-            }
-        }
-
-        // Comet Trail Cursor Effect
-        let cursorTrailEnabled = false;
-        function enableCursorTrail() {
-            if (cursorTrailEnabled) return;
-            cursorTrailEnabled = true;
-            
-            document.addEventListener('mousemove', (e) => {
-                if (Math.random() > 0.7) return; // Limit trail density
-                
-                const trail = document.createElement('div');
-                trail.className = 'cursor-trail';
-                trail.style.left = e.clientX + 'px';
-                trail.style.top = e.clientY + 'px';
-                
-                // Random colors
-                const colors = ['rgba(10,132,255,0.6)', 'rgba(52,198,255,0.6)', 'rgba(18,209,142,0.6)'];
-                trail.style.background = `radial-gradient(circle, ${colors[Math.floor(Math.random() * colors.length)]} 0%, transparent 70%)`;
-                
-                document.body.appendChild(trail);
-                setTimeout(() => trail.remove(), 500);
-            });
-        }
-
-        // Fireworks Celebration
-        function launchFireworks(x, y) {
-            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE'];
-            const particleCount = 50;
-            
-            for (let i = 0; i < particleCount; i++) {
-                const firework = document.createElement('div');
-                firework.className = 'firework';
-                firework.style.left = x + 'px';
-                firework.style.top = y + 'px';
-                firework.style.background = colors[Math.floor(Math.random() * colors.length)];
-                firework.style.boxShadow = `0 0 6px ${firework.style.background}`;
-                
-                const angle = (Math.PI * 2 * i) / particleCount;
-                const velocity = 80 + Math.random() * 120;
-                const tx = Math.cos(angle) * velocity;
-                const ty = Math.sin(angle) * velocity - 100; // Gravity offset
-                
-                document.body.appendChild(firework);
-                
-                // Animate with Web Animations API
-                firework.animate([
-                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-                    { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
-                ], {
-                    duration: 1000 + Math.random() * 500,
-                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-                }).onfinish = () => firework.remove();
-            }
-        }
-
-        // Floating Hearts on Like
-        function spawnFloatingHearts(x, y) {
-            const hearts = ['❤️', '💖', '💕', '💗', '💓', '💝'];
-            
-            for (let i = 0; i < 5; i++) {
-                setTimeout(() => {
-                    const heart = document.createElement('div');
-                    heart.className = 'floating-heart';
-                    heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
-                    heart.style.left = (x + Math.random() * 40 - 20) + 'px';
-                    heart.style.top = (y + Math.random() * 20 - 10) + 'px';
-                    heart.style.fontSize = (20 + Math.random() * 15) + 'px';
-                    
-                    document.body.appendChild(heart);
-                    setTimeout(() => heart.remove(), 1500);
-                }, i * 100);
-            }
-        }
-
-        // Star Field Background
-        function createStarField() {
-            const container = document.createElement('div');
-            container.className = 'star-field';
-            
-            for (let i = 0; i < 100; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDelay = Math.random() * 3 + 's';
-                star.style.animationDuration = (2 + Math.random() * 2) + 's';
-                container.appendChild(star);
-            }
-            
-            document.body.insertBefore(container, document.body.firstChild);
-        }
-
-        // Spotlight Effect
-        function initSpotlightEffect() {
-            document.querySelectorAll('.spotlight').forEach(el => {
-                el.addEventListener('mousemove', (e) => {
-                    const rect = el.getBoundingClientRect();
-                    el.style.setProperty('--x', e.clientX - rect.left + 'px');
-                    el.style.setProperty('--y', e.clientY - rect.top + 'px');
-                });
-            });
-        }
-
-        // Page Wipe Transition
-        function pageTransition(callback) {
-            const wipe = document.createElement('div');
-            wipe.className = 'page-wipe';
-            document.body.appendChild(wipe);
-            
-            setTimeout(() => {
-                if (callback) callback();
-                setTimeout(() => wipe.remove(), 600);
-            }, 300);
-        }
-
-        // Enhanced Button Click with Particle Explosion
-        function enhancedButtonClick(event, callback) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            
-            createParticleExplosion(x, y);
-            
-            if (callback) callback();
-        }
-
-        // Apply hologram effect to verse on special occasions
-        function applyHologramEffect() {
-            const verseCard = document.getElementById('mainVerseCard');
-            if (verseCard) {
-                verseCard.classList.add('hologram');
-                setTimeout(() => verseCard.classList.remove('hologram'), 5000);
-            }
-        }
-
-        // Shake element for errors
-        function shakeElement(element, intensity = 'medium') {
-            element.classList.add(`shake-${intensity}`);
-            setTimeout(() => element.classList.remove(`shake-${intensity}`), 500);
-        }
-
-        // Elastic scale animation
-        function elasticScale(element) {
-            element.classList.add('elastic-scale');
-            setTimeout(() => element.classList.remove('elastic-scale'), 600);
-        }
-
-        // Spiral in animation
-        function spiralIn(element) {
-            element.classList.add('spiral-in');
-            setTimeout(() => element.classList.remove('spiral-in'), 800);
-        }
-
-        // 3D Flip animation
-        function flip3D(element) {
-            element.classList.add('flip-3d');
-            setTimeout(() => element.classList.remove('flip-3d'), 600);
-        }
-
-        // Vortex effect
-        function startVortex(element, duration = 2000) {
-            element.classList.add('vortex');
-            setTimeout(() => element.classList.remove('vortex'), duration);
-        }
-
-        // Liquid morph border
-        function liquidMorph(element, duration = 4000) {
-            element.classList.add('liquid-morph');
-            setTimeout(() => element.classList.remove('liquid-morph'), duration);
-        }
-
-        // Glowing border effect
-        function glowBorder(element, duration = 6000) {
-            element.classList.add('glow-border');
-            setTimeout(() => element.classList.remove('glow-border'), duration);
-        }
-
-        // Electric border effect
-        function electricBorder(element, duration = 2000) {
-            element.classList.add('electric-border');
-            setTimeout(() => element.classList.remove('electric-border'), duration);
-        }
-
-        // Ripple Effect for Buttons
-        function createRipple(event, button) {
-            const circle = document.createElement('span');
-            const diameter = Math.max(button.clientWidth, button.clientHeight);
-            const radius = diameter / 2;
-
-            const rect = button.getBoundingClientRect();
-            circle.style.width = circle.style.height = `${diameter}px`;
-            circle.style.left = `${event.clientX - rect.left - radius}px`;
-            circle.style.top = `${event.clientY - rect.top - radius}px`;
-            circle.classList.add('ripple');
-
-            const ripple = button.getElementsByClassName('ripple')[0];
-            if (ripple) {
-                ripple.remove();
-            }
-
-            button.appendChild(circle);
-            setTimeout(() => circle.remove(), 600);
-        }
-
-        // Magnetic Button Effect
-        document.querySelectorAll('.magnetic-btn').forEach(btn => {
-            btn.addEventListener('mousemove', function(e) {
-                const rect = this.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-                
-                this.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) scale(1.05)`;
-            });
-
-            btn.addEventListener('mouseleave', function() {
-                this.style.transform = 'translate(0, 0) scale(1)';
-            });
-        });
-
-        // Parallax Scroll Effect
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            document.querySelectorAll('.parallax-element').forEach(el => {
-                const speed = el.dataset.speed || 0.5;
-                el.style.transform = `translateY(${scrolled * speed}px)`;
-            });
-        });
-
-        // Text Scramble Effect
-        class TextScramble {
-            constructor(el) {
-                this.el = el;
-                this.chars = '!<>-_\\/[]{}—=+*^?#________';
-                this.update = this.update.bind(this);
-            }
-
-            setText(newText) {
-                const oldText = this.el.innerText;
-                const length = Math.max(oldText.length, newText.length);
-                const promise = new Promise(resolve => this.resolve = resolve);
-                this.queue = [];
-                for (let i = 0; i < length; i++) {
-                    const from = oldText[i] || '';
-                    const to = newText[i] || '';
-                    const start = Math.floor(Math.random() * 20);
-                    const end = start + Math.floor(Math.random() * 20);
-                    this.queue.push({ from, to, start, end });
-                }
-                cancelAnimationFrame(this.frameRequest);
-                this.frame = 0;
-                this.update();
-                return promise;
-            }
-
-            update() {
-                let output = '';
-                let complete = 0;
-                for (let i = 0, n = this.queue.length; i < n; i++) {
-                    let { from, to, start, end, char } = this.queue[i];
-                    if (this.frame >= end) {
-                        complete++;
-                        output += to;
-                    } else if (this.frame >= start) {
-                        if (!char || Math.random() < 0.28) {
-                            char = this.randomChar();
-                            this.queue[i].char = char;
-                        }
-                        output += `<span style="color: var(--primary)">${char}</span>`;
-                    } else {
-                        output += from;
-                    }
-                }
-                this.el.innerHTML = output;
-                if (complete === this.queue.length) {
-                    this.resolve();
-                } else {
-                    this.frameRequest = requestAnimationFrame(this.update);
-                    this.frame++;
-                }
-            }
-
-            randomChar() {
-                return this.chars[Math.floor(Math.random() * this.chars.length)];
-            }
-        }
-
-        // Apply scramble effect to verse reference on hover
-        document.addEventListener('DOMContentLoaded', () => {
-            const verseRef = document.getElementById('verseRef');
-            if (verseRef) {
-                const scrambler = new TextScramble(verseRef);
-                const originalText = verseRef.textContent;
-                
-                verseRef.addEventListener('mouseenter', () => {
-                    scrambler.setText(originalText);
-                });
-            }
-        });
-
-        // Wave Text Animation Helper
-        function applyWaveText(element) {
-            const text = element.textContent;
-            element.innerHTML = '';
-            text.split('').forEach((char, i) => {
-                const span = document.createElement('span');
-                span.textContent = char === ' ' ? '\u00A0' : char;
-                span.style.animationDelay = `${i * 0.1}s`;
-                element.appendChild(span);
-            });
-            element.classList.add('wave-text');
-        }
-
-        // Intersection Observer for Scroll Animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('animate-in');
-                }
-            });
-        }, observerOptions);
-
-        // Observe all glass cards for scroll animation
-        document.querySelectorAll('.glass-card').forEach(card => {
-            observer.observe(card);
-        });
-
-        // Enhanced Tab Switch with Sound
-        // Extend switchTab with animation effects
-        const enhancedSwitchTab = switchTab;
-        switchTab = function(tabName, btn = null) {
-            // Play subtle sound effect
-            if (settings.sound) {
-                playClickSound();
-            }
-            
-            // Call original function
-            enhancedSwitchTab(tabName, btn);
-        };
-
-        // Soft click sound using Web Audio API
-        function playClickSound() {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
-            } catch (e) {}
-        }
-
-        // Floating animation for elements
-        function addFloatingAnimation(selector) {
-            document.querySelectorAll(selector).forEach((el, index) => {
-                el.style.animationDelay = `${index * 0.2}s`;
-                el.classList.add('float-animation');
-            });
-        }
-
-        // Add floating to stat cards
-        setTimeout(() => addFloatingAnimation('.stat-card'), 1000);
-
-        // ===== TESTIMONY SPOTLIGHT =====
-        const testimonies = [
-            { text: "This app has transformed my morning routine. Starting each day with God's word has brought so much peace to my life.", name: "Sarah M.", streak: 128, emoji: "🙏" },
-            { text: "I was going through a difficult time and the verses I found here gave me strength to keep going. Thank you!", name: "Michael R.", streak: 45, emoji: "💪" },
-            { text: "Sharing verses with my family has become our new tradition. It brings us closer together every day.", name: "The Johnson Family", streak: 256, emoji: "❤️" },
-            { text: "The daily challenges helped me build a consistent habit of reading the Bible. Now I can't start my day without it!", name: "David K.", streak: 90, emoji: "📖" },
-            { text: "Finding this community has been a blessing. The encouragement I've received here has been life-changing.", name: "Emily T.", streak: 67, emoji: "🕊️" },
-            { text: "From skeptic to believer - the verses I discovered here opened my heart to God's love.", name: "Anonymous", streak: 30, emoji: "✨" }
-        ];
-        let currentTestimonyIndex = 0;
-
-        function rotateTestimony(direction) {
-            currentTestimonyIndex = (currentTestimonyIndex + direction + testimonies.length) % testimonies.length;
-            const t = testimonies[currentTestimonyIndex];
-            const content = document.getElementById('testimonyContent');
-            
-            // Fade out
-            content.style.opacity = '0';
-            content.style.transition = 'opacity 0.3s';
-            
-            setTimeout(() => {
-                content.innerHTML = `
-                    <div style="font-style: italic; opacity: 0.95; line-height: 1.6; margin-bottom: 10px;">
-                        "${t.text}"
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #ff6b35, #f7931e); display: flex; align-items: center; justify-content: center; font-size: 16px;">${t.emoji}</div>
-                        <div>
-                            <div style="font-size: 13px; font-weight: 600;">${t.name}</div>
-                            <div style="font-size: 11px; opacity: 0.6;">${t.streak} day streak 🔥</div>
-                        </div>
-                    </div>
-                `;
-                // Fade in
-                content.style.opacity = '1';
-            }, 300);
-        }
-
-        function shareTestimony() {
-            const modal = document.createElement('div');
-            modal.className = 'modal active';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 420px;">
-                    <div class="modal-header">
-                        <div class="modal-title">💫 Share Your Story</div>
-                        <button class="close-btn" onclick="this.closest('.modal').remove()">✕</button>
-                    </div>
-                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">How has God's Word impacted your life? Your testimony could inspire others!</p>
-                    <textarea id="testimonyInput" style="width: 100%; min-height: 100px; background: var(--surface); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px; color: var(--text); font-family: inherit; resize: vertical; margin-bottom: 12px;" placeholder="Share your story..."></textarea>
-                    <button class="gen-btn" onclick="submitTestimony()">Submit Testimony</button>
-                </div>
-            `;
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-            document.body.appendChild(modal);
-        }
-
-        function submitTestimony() {
-            const input = document.getElementById('testimonyInput');
-            if (!input || !input.value.trim()) {
-                showToast('Please write something before submitting ❌', 'error');
-                return;
-            }
-            showToast('Thank you for sharing! Your testimony will be reviewed 💫', 'success');
-            document.querySelector('.modal.active')?.remove();
-        }
-
-        // Auto-rotate testimonies every 30 seconds
-        setInterval(() => {
-            if (document.getElementById('testimonySpotlight')) {
-                rotateTestimony(1);
-            }
-        }, 30000);
-
         // Start
         init();
     </script>
 </body>
 </html>
-
 
 
 
