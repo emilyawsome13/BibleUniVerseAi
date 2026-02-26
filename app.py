@@ -345,6 +345,64 @@ def get_cursor(conn, db_type):
     else:
         return conn.cursor()
 
+
+def _ensure_system_settings_table(c):
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS system_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+
+def get_system_setting(key, default=None):
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        _ensure_system_settings_table(c)
+        conn.commit()
+        placeholder = "%s" if db_type == 'postgres' else "?"
+        c.execute(f"SELECT value FROM system_settings WHERE key = {placeholder}", (key,))
+        row = c.fetchone()
+        if not row:
+            return default
+        value = row['value'] if hasattr(row, 'keys') else row[0]
+        return default if value is None else value
+    except Exception:
+        return default
+    finally:
+        conn.close()
+
+
+def set_system_setting(key, value):
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        _ensure_system_settings_table(c)
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO system_settings (key, value, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) DO UPDATE SET
+                    value = EXCLUDED.value,
+                    updated_at = EXCLUDED.updated_at
+            """, (key, str(value)))
+        else:
+            c.execute("""
+                INSERT INTO system_settings (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+            """, (key, str(value)))
+        conn.commit()
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
 def row_value(row, key, default=None):
     """Safely read a key from dict-like or sqlite3.Row results."""
     try:
@@ -386,39 +444,7 @@ def _table_columns(conn, db_type, table):
     return [r[1] for r in c.fetchall()]
 
 def read_system_setting(key, default=None):
-    conn = None
-    try:
-        conn, db_type = get_db()
-        c = get_cursor(conn, db_type)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS system_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        if db_type == 'postgres':
-            c.execute("SELECT value FROM system_settings WHERE key = %s", (key,))
-        else:
-            c.execute("SELECT value FROM system_settings WHERE key = ?", (key,))
-        row = c.fetchone()
-        conn.close()
-        if not row:
-            return default
-        if hasattr(row, 'keys'):
-            try:
-                val = row['value']
-            except Exception:
-                val = None
-            return default if val is None else val
-        return row[0] if row[0] is not None else default
-    except Exception:
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
-        return default
+    return get_system_setting(key, default)
 
 def init_db():
     """Initialize database tables"""
@@ -2000,28 +2026,9 @@ class BibleGenerator:
     def _load_interval_from_db(self):
         """Load verse interval from database, default to 60 seconds"""
         try:
-            conn, db_type = get_db()
-            c = conn.cursor()
-            
-            # Ensure table exists
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS system_settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            conn.commit()
-            
-            # Get verse_interval setting
-            c.execute("SELECT value FROM system_settings WHERE key = 'verse_interval'")
-            row = c.fetchone()
-            conn.close()
-            
-            if row:
-                interval = int(row[0])
-                logger.info(f"Loaded verse interval from database: {interval} seconds")
-                return interval
+            interval = int(read_system_setting('verse_interval', '60'))
+            logger.info(f"Loaded verse interval from database: {interval} seconds")
+            return interval
         except Exception as e:
             logger.error(f"Failed to load interval from DB: {e}")
         
@@ -3435,39 +3442,10 @@ def set_interval():
     
     # Save to database for persistence
     try:
-        conn, db_type = get_db()
-        c = conn.cursor()
-        
-        # Ensure table exists
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS system_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Save interval
-        if db_type == 'postgres':
-            c.execute("""
-                INSERT INTO system_settings (key, value, updated_at)
-                VALUES ('verse_interval', %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (key) DO UPDATE SET
-                    value = EXCLUDED.value,
-                    updated_at = EXCLUDED.updated_at
-            """, (str(interval),))
+        if set_system_setting('verse_interval', interval):
+            logger.info(f"Verse interval saved to database: {interval} seconds")
         else:
-            c.execute("""
-                INSERT INTO system_settings (key, value, updated_at)
-                VALUES ('verse_interval', ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(key) DO UPDATE SET
-                    value = excluded.value,
-                    updated_at = excluded.updated_at
-            """, (str(interval),))
-        
-        conn.commit()
-        conn.close()
-        logger.info(f"Verse interval saved to database: {interval} seconds")
+            logger.error("Failed to save interval to DB")
     except Exception as e:
         logger.error(f"Failed to save interval to DB: {e}")
     
