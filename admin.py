@@ -3185,12 +3185,12 @@ def admin_give_xp(user_id):
             "leveled_up": leveled_up,
             "message": f"Successfully gave {amount} XP to {user_name}"
         })
-        except Exception as e:
-            print(f"[ERROR] Admin give XP: {e}")
-            import traceback
-            traceback.print_exc()
-            conn.close()
-            return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        print(f"[ERROR] Admin give XP: {e}")
+        import traceback
+        traceback.print_exc()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.route('/api/users/reset-levels', methods=['POST'])
