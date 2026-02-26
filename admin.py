@@ -3185,11 +3185,31 @@ def admin_give_xp(user_id):
             "leveled_up": leveled_up,
             "message": f"Successfully gave {amount} XP to {user_name}"
         })
-    except Exception as e:
-        print(f"[ERROR] Admin give XP: {e}")
-        import traceback
-        traceback.print_exc()
+        except Exception as e:
+            print(f"[ERROR] Admin give XP: {e}")
+            import traceback
+            traceback.print_exc()
+            conn.close()
+            return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route('/api/users/reset-levels', methods=['POST'])
+@require_permission('manage_xp')
+def reset_all_levels():
+    conn = None
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE user_xp SET xp = 0, total_xp_earned = 0, level = 1")
+        conn.commit()
+        log_action("RESET_LEVELS", "Reset all user XP and levels", status="success",
+                   extras={"module": "xp_management"})
         conn.close()
+        return jsonify({"success": True, "reset": True, "notes": "All levels reset to 1"})
+    except Exception as e:
+        print(f"[ERROR] Reset levels failed: {e}")
+        if conn:
+            conn.close()
         return jsonify({"error": str(e)}), 500
 
 

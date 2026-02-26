@@ -1906,6 +1906,24 @@ def auto_ban_user(user_id, reason, original_user_id=None, ip_address=None):
 from admin import admin_bp
 app.register_blueprint(admin_bp)
 
+LEVEL_BASE_XP = 900
+LEVEL_GROWTH_XP = 150
+
+def xp_for_level(level):
+    return LEVEL_BASE_XP + LEVEL_GROWTH_XP * max(0, level - 1)
+
+def level_info_from_xp(total_xp):
+    level = 1
+    remaining = total_xp
+    while True:
+        needed = xp_for_level(level)
+        if remaining < needed:
+            break
+        remaining -= needed
+        level += 1
+    return level, remaining, xp_for_level(level)
+
+
 class BibleGenerator:
     def __init__(self):
         self.running = True
@@ -3977,16 +3995,15 @@ def get_user_xp():
         if row:
             xp = row['xp'] if hasattr(row, 'keys') else row[0]
             total_earned = row['total_xp_earned'] if hasattr(row, 'keys') else row[1]
-            level = row['level'] if hasattr(row, 'keys') else row[2]
         else:
             xp = total_earned = 0
-            level = 1
+        level, _, next_req = level_info_from_xp(total_earned)
         
         return jsonify({
             "xp": xp,
             "total_xp_earned": total_earned,
             "level": level,
-            "next_level_xp": level * 1000
+            "next_level_xp": next_req
         })
     except Exception as e:
         logger.error(f"Error getting user XP: {e}")
@@ -4955,15 +4972,13 @@ def award_xp_to_user(user_id, amount, description):
         if row:
             current_xp = row[0] or 0
             total_earned = row[1] or 0
-            current_level = row[2] or 1
         else:
             current_xp = 0
             total_earned = 0
-            current_level = 1
-        
+        current_level, _, _ = level_info_from_xp(total_earned)
         new_xp = current_xp + amount
         new_total = total_earned + amount
-        new_level = (new_total // 1000) + 1
+        new_level, _, _ = level_info_from_xp(new_total)
         
         # Update user XP
         if db_type == 'postgres':
@@ -5030,10 +5045,10 @@ def award_xp():
         else:
             current_xp = 0
             total_earned = 0
-        
+        current_level, _, _ = level_info_from_xp(total_earned)
         new_xp = current_xp + amount
         new_total = total_earned + amount
-        new_level = (new_total // 1000) + 1
+        new_level, _, _ = level_info_from_xp(new_total)
         
         # Update user XP
         if db_type == 'postgres':
@@ -5068,7 +5083,7 @@ def award_xp():
             "xp_awarded": amount,
             "new_total": new_xp,
             "level": new_level,
-            "leveled_up": new_level > ((total_earned // 1000) + 1)
+            "leveled_up": new_level > current_level
         })
     except Exception as e:
         logger.error(f"Error awarding XP: {e}")

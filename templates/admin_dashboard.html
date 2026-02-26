@@ -1014,6 +1014,10 @@
                         <div class="quick-action-icon">&#128202;</div>
                         <div style="font-size: 0.85rem; font-weight: 500;">Export Data</div>
                     </div>
+                    <div class="quick-action quick-action-reset perm-manage-xp hidden" onclick="resetAllLevels()">
+                        <div class="quick-action-icon">&#9889;</div>
+                        <div style="font-size: 0.85rem; font-weight: 500;">Reset All Levels</div>
+                    </div>
                 </div>
             </div>
 
@@ -1441,8 +1445,37 @@
                 if (permissions.includes('delete_comments')) {
                     document.querySelectorAll('.perm-delete-comments').forEach(el => el.classList.remove('hidden'));
                 }
+                if (permissions.includes('manage_xp')) {
+                    document.querySelectorAll('.perm-manage-xp').forEach(el => el.classList.remove('hidden'));
+                }
             } catch (err) {
                 console.error('Failed to load permissions:', err);
+            }
+        }
+
+        async function resetAllLevels() {
+            if (!confirm('Reset every user to level 1 and clear XP progress?')) return;
+            const btn = document.querySelector('.quick-action-reset');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Resetting…';
+            }
+            try {
+                const res = await fetch('/admin/api/users/reset-levels', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast('All levels reset. Reloaded stats.');
+                    await loadStats();
+                } else {
+                    showToast('Reset failed: ' + (data.error || 'unknown'));
+                }
+            } catch (err) {
+                showToast('Reset failed: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<div class="quick-action-icon">&#9889;</div><div style="font-size: 0.85rem; font-weight: 500;">Reset All Levels</div>';
+                }
             }
         }
 

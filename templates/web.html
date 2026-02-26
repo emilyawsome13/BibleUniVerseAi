@@ -8529,10 +8529,32 @@ async function checkAchievement(type, value) {
         // Daily Challenge + XP System
         const ACHIEVEMENT_XP = 750;
         const ACHIEVEMENT_XP_MULTIPLIER = 4;
+        const LEVEL_BASE_XP = 900;
+        const LEVEL_GROWTH_XP = 150;
 
         function getAchievementReward(ach) {
             const base = Math.max(50, Number((ach && ach.xp) || 50));
             return Math.max(ACHIEVEMENT_XP, Math.round(base * ACHIEVEMENT_XP_MULTIPLIER));
+        }
+
+        function xpNeededForLevel(level) {
+            return LEVEL_BASE_XP + LEVEL_GROWTH_XP * Math.max(0, level - 1);
+        }
+
+        function getLevelInfoFromXp(totalXp) {
+            let level = 1;
+            let remaining = Math.max(0, Number(totalXp) || 0);
+            while (true) {
+                const requirement = xpNeededForLevel(level);
+                if (remaining < requirement) break;
+                remaining -= requirement;
+                level += 1;
+            }
+            return { level, xpIntoLevel: remaining, nextLevelXp: xpNeededForLevel(level) };
+        }
+
+        function getLevelFromXp(xp) {
+            return getLevelInfoFromXp(xp).level;
         }
 
         function getXpState() {
@@ -8550,11 +8572,6 @@ async function checkAchievement(type, value) {
 
         function saveXpState(state) {
             localStorage.setItem(XP_STORAGE_KEY, JSON.stringify(state));
-        }
-
-        function getLevelFromXp(xp) {
-            const level = Math.floor(xp / 1000) + 1;
-            return { level };
         }
 
         async function syncXpWithServer() {
