@@ -38,6 +38,28 @@
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --font-size: 1.05rem;
             --animation-speed: 1;
+            --equip-halo-inset: -24px;
+            --equip-halo-start-scale: 0.72;
+            --equip-halo-mid-scale: 1.12;
+            --equip-halo-end-scale: 1.32;
+            --equip-halo-start-opacity: 0.75;
+            --equip-halo-mid-opacity: 0.44;
+            --equip-item-pop-scale-peak: 1.12;
+            --equip-item-pop-rise-peak: -8px;
+            --equip-item-pop-tilt-peak: -1.4deg;
+            --equip-item-pop-scale-settle: 1.04;
+            --equip-item-pop-rise-settle: -2px;
+            --equip-item-pop-tilt-settle: 0.9deg;
+            --equip-ring-start-scale: 0.72;
+            --equip-ring-mid-scale: 1.22;
+            --equip-ring-end-scale: 1.45;
+            --equip-avatar-pop-scale: 1.12;
+            --equip-avatar-pop-tilt: -2deg;
+            --equip-avatar-settle-scale: 1.04;
+            --equip-avatar-settle-tilt: 1.3deg;
+            --equip-screen-saturate: 1.16;
+            --equip-screen-bright: 1.1;
+            --equip-impact-duration: calc(0.56s * var(--animation-speed));
         }
 
         [data-theme="dark"] {
@@ -100,6 +122,50 @@
         body {
             display: flex;
             flex-direction: column;
+        }
+        body.equip-fx-subtle {
+            --equip-halo-inset: -18px;
+            --equip-halo-mid-scale: 1.05;
+            --equip-halo-end-scale: 1.18;
+            --equip-halo-start-opacity: 0.55;
+            --equip-halo-mid-opacity: 0.25;
+            --equip-item-pop-scale-peak: 1.07;
+            --equip-item-pop-rise-peak: -4px;
+            --equip-item-pop-tilt-peak: -0.7deg;
+            --equip-item-pop-scale-settle: 1.02;
+            --equip-item-pop-rise-settle: -1px;
+            --equip-item-pop-tilt-settle: 0.4deg;
+            --equip-ring-mid-scale: 1.1;
+            --equip-ring-end-scale: 1.22;
+            --equip-avatar-pop-scale: 1.06;
+            --equip-avatar-pop-tilt: -0.8deg;
+            --equip-avatar-settle-scale: 1.015;
+            --equip-avatar-settle-tilt: 0.4deg;
+            --equip-screen-saturate: 1.08;
+            --equip-screen-bright: 1.04;
+            --equip-impact-duration: calc(0.42s * var(--animation-speed));
+        }
+        body.equip-fx-extreme {
+            --equip-halo-inset: -34px;
+            --equip-halo-mid-scale: 1.2;
+            --equip-halo-end-scale: 1.45;
+            --equip-halo-start-opacity: 0.88;
+            --equip-halo-mid-opacity: 0.58;
+            --equip-item-pop-scale-peak: 1.17;
+            --equip-item-pop-rise-peak: -12px;
+            --equip-item-pop-tilt-peak: -2.4deg;
+            --equip-item-pop-scale-settle: 1.06;
+            --equip-item-pop-rise-settle: -3px;
+            --equip-item-pop-tilt-settle: 1.5deg;
+            --equip-ring-mid-scale: 1.32;
+            --equip-ring-end-scale: 1.62;
+            --equip-avatar-pop-scale: 1.16;
+            --equip-avatar-pop-tilt: -2.6deg;
+            --equip-avatar-settle-scale: 1.06;
+            --equip-avatar-settle-tilt: 1.8deg;
+            --equip-screen-saturate: 1.22;
+            --equip-screen-bright: 1.14;
+            --equip-impact-duration: calc(0.72s * var(--animation-speed));
         }
 
         html[data-theme="dark"] body {
@@ -275,6 +341,45 @@
         .fx-xp-spark.show {
             animation: xpSparkBurstFx calc(0.92s * var(--animation-speed)) ease-out forwards;
         }
+        .fx-equip-flash {
+            --equip-core: rgba(10,132,255,0.95);
+            --equip-mid: rgba(94,177,255,0.45);
+            position: fixed;
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            pointer-events: none;
+            z-index: 10001;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.25);
+            background: radial-gradient(circle, var(--equip-core) 0%, var(--equip-mid) 42%, rgba(255,255,255,0.08) 62%, transparent 76%);
+            filter: blur(0.8px);
+            mix-blend-mode: screen;
+        }
+        .fx-equip-flash.show {
+            animation: equipFlashBlastFx calc(0.9s * var(--animation-speed)) cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
+        }
+        .fx-equip-spark {
+            --dx: 0px;
+            --dy: -60px;
+            --equip-spark: rgba(255,255,255,0.95);
+            position: fixed;
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            pointer-events: none;
+            z-index: 10001;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(1);
+            background: radial-gradient(circle, var(--equip-spark) 0%, rgba(255,255,255,0.16) 68%, transparent 100%);
+            box-shadow: 0 0 18px var(--equip-spark);
+        }
+        .fx-equip-spark.show {
+            animation: equipSparkBurstFx calc(0.86s * var(--animation-speed)) ease-out forwards;
+        }
+        body.equip-impact .content {
+            animation: equipScreenSurgeFx var(--equip-impact-duration, calc(0.56s * var(--animation-speed))) ease-out;
+        }
         body.xp-fever .ambient-orb {
             opacity: 0.54;
             filter: saturate(1.35) brightness(1.08);
@@ -293,6 +398,31 @@
         @keyframes xpSparkBurstFx {
             0% { opacity: 0.95; transform: translate(-50%, -50%) scale(1); }
             100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.18); }
+        }
+        @keyframes equipFlashBlastFx {
+            0% { opacity: 0.96; transform: translate(-50%, -50%) scale(0.35); }
+            46% { opacity: 0.66; transform: translate(-50%, -50%) scale(8.5); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(11.5); }
+        }
+        @keyframes equipSparkBurstFx {
+            0% { opacity: 0.98; transform: translate(-50%, -50%) scale(1.05); }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2); }
+        }
+        @keyframes equipScreenSurgeFx {
+            0% { filter: saturate(1) brightness(1); }
+            38% { filter: saturate(var(--equip-screen-saturate, 1.16)) brightness(var(--equip-screen-bright, 1.1)); }
+            100% { filter: saturate(1) brightness(1); }
+        }
+        @keyframes equipHaloBurstFx {
+            0% { opacity: var(--equip-halo-start-opacity, 0.75); transform: scale(var(--equip-halo-start-scale, 0.72)); }
+            45% { opacity: var(--equip-halo-mid-opacity, 0.44); transform: scale(var(--equip-halo-mid-scale, 1.12)); }
+            100% { opacity: 0; transform: scale(var(--equip-halo-end-scale, 1.32)); }
+        }
+        @keyframes equipAvatarHeroFx {
+            0% { transform: scale(1) rotate(0deg); }
+            32% { transform: scale(var(--equip-avatar-pop-scale, 1.12)) rotate(var(--equip-avatar-pop-tilt, -2deg)); }
+            62% { transform: scale(var(--equip-avatar-settle-scale, 1.04)) rotate(var(--equip-avatar-settle-tilt, 1.3deg)); }
+            100% { transform: scale(1) rotate(0deg); }
         }
 
         /* ===== HIGH CONTRAST ===== */
@@ -2304,7 +2434,24 @@
             pointer-events: none;
         }
         #profileAvatarWrap.equip-pulse::after {
-            animation: equipRingPulse 0.82s ease-out;
+            animation: equipRingPulse 1.12s cubic-bezier(0.16, 0.84, 0.24, 1);
+        }
+        #profileAvatarWrap::before {
+            content: '';
+            position: absolute;
+            inset: var(--equip-halo-inset, -24px);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(var(--equip-halo-start-scale, 0.72));
+            background: radial-gradient(circle, rgba(10,132,255,0.3) 0%, rgba(94,177,255,0.16) 38%, transparent 72%);
+            z-index: 0;
+        }
+        #profileAvatarWrap.equip-hero::before {
+            animation: equipHaloBurstFx 1.14s cubic-bezier(0.16, 0.84, 0.24, 1);
+        }
+        #profileAvatarWrap.equip-hero img:not(.avatar-decor) {
+            animation: equipAvatarHeroFx 0.92s cubic-bezier(0.18, 0.84, 0.2, 1);
         }
         .avatar-shop-grid {
             display: grid;
@@ -3889,8 +4036,23 @@
         .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
         @media (min-width: 768px) { .shop-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
         
-        .shop-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: all 0.2s; cursor: pointer; position: relative; overflow: hidden; }
-        .shop-item:hover { transform: translateY(-4px); box-shadow: 0 12px 32px var(--shadow); border-color: var(--primary); }
+        .shop-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: all 0.32s cubic-bezier(0.2, 0.84, 0.2, 1); cursor: pointer; position: relative; overflow: hidden; transform-style: preserve-3d; }
+        .shop-item.animated-in { animation: shopCardInFx calc(0.58s * var(--animation-speed)) cubic-bezier(0.2, 0.84, 0.2, 1) both; animation-delay: var(--item-delay, 0ms); }
+        .shop-item:hover { transform: translateY(-10px) scale(1.015); box-shadow: 0 20px 46px rgba(0,0,0,0.34), 0 0 32px rgba(10,132,255,0.25); border-color: var(--primary); }
+        .shop-item::before {
+            content: '';
+            position: absolute;
+            inset: -35%;
+            background: radial-gradient(circle at 50% 45%, rgba(10,132,255,0.2), rgba(10,132,255,0.05) 35%, transparent 62%);
+            opacity: 0;
+            transform: scale(0.72);
+            transition: opacity 0.34s ease, transform 0.34s ease;
+            pointer-events: none;
+        }
+        .shop-item:hover::before {
+            opacity: 1;
+            transform: scale(1);
+        }
         .shop-item::after {
             content: '';
             position: absolute;
@@ -3907,7 +4069,7 @@
             animation: shineSweepFx calc(0.78s * var(--animation-speed)) ease-out;
         }
         .shop-item.owned { border-color: var(--success); opacity: 0.7; }
-        .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
+        .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 26px var(--primary-glow), 0 14px 36px rgba(10,132,255,0.24); animation: equippedCardAura 2.3s ease-in-out infinite; }
         .shop-item.equip-pop {
             animation: equipItemPop 0.58s cubic-bezier(0.2, 0.84, 0.2, 1);
         }
@@ -3916,7 +4078,8 @@
         .shop-item.rare { border-color: #0A84FF; background: linear-gradient(135deg, rgba(10,132,255,0.1), var(--surface)); }
         .shop-item.mythic { border-color: #FF1493; background: linear-gradient(135deg, rgba(255,20,147,0.15), var(--surface)); box-shadow: 0 0 30px rgba(255,20,147,0.2); }
         
-        .shop-item-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+        .shop-item-icon { font-size: 48px; margin-bottom: 12px; display: block; transition: transform 0.26s ease, filter 0.26s ease; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.28)); }
+        .shop-item:hover .shop-item-icon { transform: translateY(-4px) scale(1.12) rotate(-4deg); filter: drop-shadow(0 8px 16px rgba(10,132,255,0.42)); animation: iconPulseHero 0.95s ease-in-out infinite alternate; }
         .shop-item-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--text-primary); }
         .shop-item-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
         .shop-item-help { font-size: 10px; color: var(--text-tertiary); margin: -6px 0 10px; min-height: 26px; line-height: 1.35; }
@@ -3929,10 +4092,10 @@
         
         .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
         .shop-item-price.owned { color: var(--success); }
-        .shop-item-price.active { color: #34C759; text-shadow: 0 0 12px rgba(52,199,89,0.4); }
+        .shop-item-price.active { color: #34C759; text-shadow: 0 0 12px rgba(52,199,89,0.4); animation: boostTimerPulse 1.25s ease-in-out infinite; }
         
         .shop-item-btn { width: 100%; padding: 10px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .shop-item-btn:hover:not(:disabled) { background: var(--secondary); transform: scale(1.02); }
+        .shop-item-btn:hover:not(:disabled) { background: var(--secondary); transform: translateY(-1px) scale(1.05); box-shadow: 0 8px 18px rgba(10,132,255,0.35); }
         .shop-item-btn:disabled { background: var(--surface); color: var(--text-secondary); cursor: not-allowed; }
         .shop-item-btn.equip { background: var(--success); }
         .shop-item-btn.equip:hover { background: #2eb872; }
@@ -4085,7 +4248,7 @@
         
         /* Profile customization display */
         .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; z-index: 2; }
-        .profile-frame.equip-pulse { animation: equipFrameFlash 0.82s ease !important; }
+        .profile-frame.equip-pulse { animation: equipFrameFlash 1.05s cubic-bezier(0.18, 0.9, 0.25, 1) !important; }
         .profile-frame.gold { border: 3px solid #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.5); animation: goldPulse 2s ease-in-out infinite; }
         .profile-frame.silver { border: 3px solid #C0C0C0; box-shadow: 0 0 15px rgba(192,192,192,0.4); }
         .profile-frame.bronze { border: 3px solid #CD7F32; box-shadow: 0 0 12px rgba(205,127,50,0.4); }
@@ -4187,19 +4350,39 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-2px); }
         }
+        @keyframes shopCardInFx {
+            0% { opacity: 0; transform: translateY(18px) scale(0.93); filter: blur(6px); }
+            56% { opacity: 1; transform: translateY(-4px) scale(1.03); filter: blur(0); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
         @keyframes equipFrameFlash {
-            0% { filter: brightness(1); }
-            50% { filter: brightness(1.28); }
-            100% { filter: brightness(1); }
+            0% { filter: brightness(1) saturate(1); transform: scale(1); }
+            45% { filter: brightness(1.46) saturate(1.26); transform: scale(1.08); }
+            75% { filter: brightness(1.18) saturate(1.08); transform: scale(1.03); }
+            100% { filter: brightness(1) saturate(1); transform: scale(1); }
         }
         @keyframes equipItemPop {
-            0% { transform: scale(1); }
-            35% { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 0 1px rgba(255,255,255,0.28), 0 14px 36px var(--primary-glow); }
-            100% { transform: scale(1); }
+            0% { transform: scale(1) translateY(0); }
+            26% { transform: scale(var(--equip-item-pop-scale-peak, 1.12)) translateY(var(--equip-item-pop-rise-peak, -8px)) rotate(var(--equip-item-pop-tilt-peak, -1.4deg)); box-shadow: 0 0 0 2px rgba(255,255,255,0.32), 0 22px 46px rgba(10,132,255,0.48); }
+            58% { transform: scale(var(--equip-item-pop-scale-settle, 1.04)) translateY(var(--equip-item-pop-rise-settle, -2px)) rotate(var(--equip-item-pop-tilt-settle, 0.9deg)); }
+            100% { transform: scale(1) translateY(0) rotate(0deg); }
         }
         @keyframes equipRingPulse {
-            0% { opacity: 0.75; transform: scale(0.9); }
-            100% { opacity: 0; transform: scale(1.16); }
+            0% { opacity: 0.82; transform: scale(var(--equip-ring-start-scale, 0.72)); }
+            55% { opacity: 0.48; transform: scale(var(--equip-ring-mid-scale, 1.22)); }
+            100% { opacity: 0; transform: scale(var(--equip-ring-end-scale, 1.45)); }
+        }
+        @keyframes equippedCardAura {
+            0%, 100% { box-shadow: 0 0 24px rgba(10,132,255,0.34), 0 12px 30px rgba(0,0,0,0.25); }
+            50% { box-shadow: 0 0 42px rgba(10,132,255,0.58), 0 18px 44px rgba(10,132,255,0.26); }
+        }
+        @keyframes iconPulseHero {
+            0% { transform: translateY(-4px) scale(1.1) rotate(-4deg); }
+            100% { transform: translateY(-7px) scale(1.16) rotate(3deg); }
+        }
+        @keyframes boostTimerPulse {
+            0%, 100% { text-shadow: 0 0 12px rgba(52,199,89,0.45); transform: scale(1); }
+            50% { text-shadow: 0 0 24px rgba(52,199,89,0.85), 0 0 36px rgba(105,255,149,0.38); transform: scale(1.06); }
         }
         
         /* Shop Item Effects - Profile Frames */
@@ -5218,6 +5401,18 @@
 
             <div class="setting-item">
                 <div>
+                    <div class="setting-label">Equip FX Intensity</div>
+                    <div class="setting-desc">Controls equip burst and glow strength</div>
+                </div>
+                <div class="segment-control" id="equipFxSegment">
+                    <button class="segment-btn" onclick="setEquipFxIntensity('subtle', this)">Subtle</button>
+                    <button class="segment-btn active" onclick="setEquipFxIntensity('balanced', this)">Balanced</button>
+                    <button class="segment-btn" onclick="setEquipFxIntensity('extreme', this)">Extreme</button>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
                     <div class="setting-label">Sound Effects</div>
                     <div class="setting-desc">Professional interface sounds</div>
                 </div>
@@ -5439,6 +5634,7 @@
             darkMode: false,
             fontSize: 'medium',
             animations: true,
+            equipFxIntensity: 'balanced',
             sound: true,
             autoRec: true,
             compact: false,
@@ -10146,6 +10342,41 @@ async function checkAchievement(type, value) {
             showToast(`Font size: ${size}`);
         }
 
+        function normalizeEquipFxIntensity(level) {
+            const value = String(level || '').toLowerCase();
+            if (value === 'subtle' || value === 'extreme' || value === 'balanced') return value;
+            return 'balanced';
+        }
+
+        function applyEquipFxIntensityClass(level) {
+            const normalized = normalizeEquipFxIntensity(level);
+            document.body.classList.remove('equip-fx-subtle', 'equip-fx-extreme');
+            if (normalized === 'subtle') document.body.classList.add('equip-fx-subtle');
+            if (normalized === 'extreme') document.body.classList.add('equip-fx-extreme');
+        }
+
+        function setEquipFxIntensity(level, btn = null, silent = false, persist = true) {
+            const normalized = normalizeEquipFxIntensity(level);
+            settings.equipFxIntensity = normalized;
+            applyEquipFxIntensityClass(normalized);
+
+            document.querySelectorAll('#equipFxSegment .segment-btn').forEach(b => b.classList.remove('active'));
+            if (btn) {
+                btn.classList.add('active');
+            } else {
+                const map = { subtle: 0, balanced: 1, extreme: 2 };
+                const buttons = document.querySelectorAll('#equipFxSegment .segment-btn');
+                if (buttons[map[normalized]]) buttons[map[normalized]].classList.add('active');
+            }
+
+            if (persist) saveSettings();
+            if (!silent) {
+                AudioSys.playClick();
+                const label = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+                showToast(`Equip FX: ${label}`);
+            }
+        }
+
         function toggleAnimations() {
             settings.animations = !settings.animations;
             document.body.classList.toggle('no-animations', !settings.animations);
@@ -10356,6 +10587,7 @@ async function checkAchievement(type, value) {
                 darkMode: false,
                 fontSize: 'medium',
                 animations: true,
+                equipFxIntensity: 'balanced',
                 sound: true,
                 autoRec: true,
                 compact: false,
@@ -10403,6 +10635,7 @@ async function checkAchievement(type, value) {
                 fontBtns.forEach(b => b.classList.remove('active'));
                 fontBtns[fontSizeMap[settings.fontSize]].classList.add('active');
             }
+            setEquipFxIntensity(settings.equipFxIntensity || 'balanced', null, true, false);
             
             // Apply animations
             if (!settings.animations) {
@@ -10680,6 +10913,17 @@ async function checkAchievement(type, value) {
             return `${s}s`;
         }
 
+        function updateVisibleBoostCountdown() {
+            if (!activeBoost) return;
+            const remaining = getBoostRemainingSeconds(activeBoost);
+            if (remaining <= 0) return;
+            const text = '\u26A1 Active ' + formatRemainingDuration(remaining);
+            const selector = '.shop-item[data-item-id="' + activeBoost.item_id + '"] .shop-item-price.active';
+            document.querySelectorAll(selector).forEach(el => {
+                if (el.textContent !== text) el.textContent = text;
+            });
+        }
+
         function refreshBoostTicker() {
             if (boostUiTicker) {
                 clearInterval(boostUiTicker);
@@ -10687,6 +10931,7 @@ async function checkAchievement(type, value) {
             }
             const hasActiveBoost = !!(activeBoost && getBoostRemainingSeconds(activeBoost) > 0);
             if (!hasActiveBoost) return;
+            updateVisibleBoostCountdown();
             boostUiTicker = setInterval(async () => {
                 const remaining = getBoostRemainingSeconds(activeBoost);
                 if (remaining <= 0) {
@@ -10697,8 +10942,7 @@ async function checkAchievement(type, value) {
                     if (currentTab === 'shop' && currentCategory === 'consumable') renderShopItems();
                     return;
                 }
-                if (currentTab === 'inventory') renderInventory();
-                if (currentTab === 'shop' && currentCategory === 'consumable') renderShopItems();
+                updateVisibleBoostCountdown();
             }, 1000);
         }
         
@@ -10740,11 +10984,11 @@ async function checkAchievement(type, value) {
             }
 
             if (items.length === 0) {
-                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">Shop</div><p>No items found</p></div>';
+                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">&#128722;</div><p>No items found</p></div>';
                 return;
             }
 
-            container.innerHTML = items.map(item => {
+            container.innerHTML = items.map((item, index) => {
                 const ownedCount = getItemOwnedCount(item.item_id);
                 const isConsumable = item.category === 'consumable';
                 const isOwned = ownedCount > 0;
@@ -10763,8 +11007,9 @@ async function checkAchievement(type, value) {
                        '</div>')
                     : ('<button class="shop-item-btn" ' + (canBuy ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buyLabel + '</button>');
 
-                return '<div class="shop-item ' + rarityClass + ' ' + (isOwned ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
-                    '<span class="shop-item-icon">' + (item.icon || '[Item]') + '</span>' +
+                const delayMs = Math.min(index * 42, 294);
+                return '<div class="shop-item animated-in ' + rarityClass + ' ' + (isOwned ? 'owned' : '') + '" style="--item-delay:' + delayMs + 'ms;" data-item-id="' + item.item_id + '">' +
+                    '<span class="shop-item-icon">' + (item.icon || '&#128230;') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
                     '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
@@ -10783,11 +11028,11 @@ async function checkAchievement(type, value) {
             }
 
             if (items.length === 0) {
-                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">Items</div><p>No items in this category</p></div>';
+                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">&#127890;</div><p>No items in this category</p></div>';
                 return;
             }
 
-            container.innerHTML = items.map(item => {
+            container.innerHTML = items.map((item, index) => {
                 const rarityClass = item.rarity || 'common';
                 const isEquipped = item.equipped;
                 const isConsumable = item.category === 'consumable';
@@ -10813,8 +11058,9 @@ async function checkAchievement(type, value) {
                        '</div>')
                     : ('<button class="shop-item-btn ' + btnClass + '" ' + btnDisabled + ' onclick="' + onClick + '">' + btnLabel + '</button>');
 
-                return '<div class="shop-item ' + rarityClass + ' ' + cardStateClass + '" data-item-id="' + item.item_id + '">' +
-                    '<span class="shop-item-icon">' + (item.icon || '[Item]') + '</span>' +
+                const delayMs = Math.min(index * 42, 294);
+                return '<div class="shop-item animated-in ' + rarityClass + ' ' + cardStateClass + '" style="--item-delay:' + delayMs + 'ms;" data-item-id="' + item.item_id + '">' +
+                    '<span class="shop-item-icon">' + (item.icon || '&#128230;') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
                     '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
@@ -11054,22 +11300,138 @@ async function checkAchievement(type, value) {
             }
         }
 
+        function getEquipFxLevel() {
+            return normalizeEquipFxIntensity(settings && settings.equipFxIntensity ? settings.equipFxIntensity : 'balanced');
+        }
+
+        function getEquipFxConfig() {
+            const level = getEquipFxLevel();
+            if (level === 'subtle') {
+                return {
+                    sparkCount: 8,
+                    distMin: 38,
+                    distMax: 70,
+                    flashSize: 18,
+                    flashMs: 700,
+                    sparkMs: 660,
+                    impactMs: 430,
+                    itemPopMs: 560,
+                    avatarPulseMs: 740,
+                    heroMs: 820,
+                    framePulseMs: 740
+                };
+            }
+            if (level === 'extreme') {
+                return {
+                    sparkCount: 26,
+                    distMin: 74,
+                    distMax: 158,
+                    flashSize: 30,
+                    flashMs: 1040,
+                    sparkMs: 980,
+                    impactMs: 760,
+                    itemPopMs: 940,
+                    avatarPulseMs: 1200,
+                    heroMs: 1320,
+                    framePulseMs: 1200
+                };
+            }
+            return {
+                sparkCount: 16,
+                distMin: 58,
+                distMax: 112,
+                flashSize: 22,
+                flashMs: 900,
+                sparkMs: 860,
+                impactMs: 620,
+                itemPopMs: 760,
+                avatarPulseMs: 980,
+                heroMs: 1120,
+                framePulseMs: 980
+            };
+        }
+
+        function getEquipBurstPalette(itemEl) {
+            const classNames = itemEl && itemEl.classList ? itemEl.classList : { contains: () => false };
+            if (classNames.contains('mythic')) return { core: 'rgba(255,20,147,0.96)', mid: 'rgba(179,90,255,0.5)', spark: 'rgba(255,160,232,0.98)' };
+            if (classNames.contains('legendary')) return { core: 'rgba(255,215,0,0.96)', mid: 'rgba(255,171,64,0.48)', spark: 'rgba(255,239,159,0.98)' };
+            if (classNames.contains('epic')) return { core: 'rgba(191,90,242,0.95)', mid: 'rgba(148,85,255,0.46)', spark: 'rgba(215,180,255,0.98)' };
+            if (classNames.contains('rare')) return { core: 'rgba(10,132,255,0.95)', mid: 'rgba(80,170,255,0.46)', spark: 'rgba(180,230,255,0.98)' };
+            return { core: 'rgba(52,199,89,0.92)', mid: 'rgba(10,132,255,0.4)', spark: 'rgba(200,255,225,0.95)' };
+        }
+
+        function triggerEquipImpactFx(fxConfig = null) {
+            if (document.body.classList.contains('no-animations')) return;
+            const fx = fxConfig || getEquipFxConfig();
+            document.body.classList.add('equip-impact');
+            clearTimeout(triggerEquipImpactFx._timer);
+            triggerEquipImpactFx._timer = setTimeout(() => {
+                document.body.classList.remove('equip-impact');
+            }, Math.max(260, Number(fx.impactMs) || 620));
+        }
+
+        function spawnEquipBurstFx(itemEl, fxConfig = null) {
+            if (document.body.classList.contains('no-animations')) return;
+            const fx = fxConfig || getEquipFxConfig();
+            const layer = document.getElementById('fxLayer');
+            const anchor = document.getElementById('profileAvatarWrap') || itemEl;
+            if (!layer || !anchor) return;
+
+            const rect = anchor.getBoundingClientRect();
+            const x = Math.round(rect.left + rect.width / 2);
+            const y = Math.round(rect.top + rect.height / 2);
+            const palette = getEquipBurstPalette(itemEl);
+
+            const flash = document.createElement('span');
+            flash.className = 'fx-equip-flash';
+            flash.style.left = x + 'px';
+            flash.style.top = y + 'px';
+            flash.style.width = `${fx.flashSize}px`;
+            flash.style.height = `${fx.flashSize}px`;
+            flash.style.animationDuration = `${fx.flashMs}ms`;
+            flash.style.setProperty('--equip-core', palette.core);
+            flash.style.setProperty('--equip-mid', palette.mid);
+            layer.appendChild(flash);
+            requestAnimationFrame(() => flash.classList.add('show'));
+            setTimeout(() => flash.remove(), Math.max(500, fx.flashMs + 140));
+
+            for (let i = 0; i < fx.sparkCount; i += 1) {
+                const spark = document.createElement('span');
+                spark.className = 'fx-equip-spark';
+                spark.style.left = x + 'px';
+                spark.style.top = y + 'px';
+                spark.style.animationDuration = `${fx.sparkMs}ms`;
+                spark.style.setProperty('--equip-spark', palette.spark);
+                const angle = Math.random() * Math.PI * 2;
+                const dist = fx.distMin + Math.random() * (fx.distMax - fx.distMin);
+                spark.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+                spark.style.setProperty('--dy', `${Math.sin(angle) * dist - 14}px`);
+                layer.appendChild(spark);
+                requestAnimationFrame(() => spark.classList.add('show'));
+                setTimeout(() => spark.remove(), Math.max(420, fx.sparkMs + 120));
+            }
+        }
+
         function playEquipAnimation(itemId) {
+            const fx = getEquipFxConfig();
             const safeItemId = String(itemId || '').replace(/"/g, '\\"');
             const itemEl = document.querySelector(`#inventoryItems .shop-item[data-item-id="${safeItemId}"]`);
             if (itemEl) {
                 itemEl.classList.remove('equip-pop');
                 void itemEl.offsetWidth;
                 itemEl.classList.add('equip-pop');
-                setTimeout(() => itemEl.classList.remove('equip-pop'), 650);
+                setTimeout(() => itemEl.classList.remove('equip-pop'), fx.itemPopMs);
             }
 
             const avatarWrap = document.getElementById('profileAvatarWrap');
             if (avatarWrap) {
                 avatarWrap.classList.remove('equip-pulse');
+                avatarWrap.classList.remove('equip-hero');
                 void avatarWrap.offsetWidth;
                 avatarWrap.classList.add('equip-pulse');
-                setTimeout(() => avatarWrap.classList.remove('equip-pulse'), 900);
+                avatarWrap.classList.add('equip-hero');
+                setTimeout(() => avatarWrap.classList.remove('equip-pulse'), fx.avatarPulseMs);
+                setTimeout(() => avatarWrap.classList.remove('equip-hero'), fx.heroMs);
             }
 
             const frameEl = document.getElementById('profileFrame');
@@ -11077,8 +11439,11 @@ async function checkAchievement(type, value) {
                 frameEl.classList.remove('equip-pulse');
                 void frameEl.offsetWidth;
                 frameEl.classList.add('equip-pulse');
-                setTimeout(() => frameEl.classList.remove('equip-pulse'), 900);
+                setTimeout(() => frameEl.classList.remove('equip-pulse'), fx.framePulseMs);
             }
+
+            triggerEquipImpactFx(fx);
+            spawnEquipBurstFx(itemEl, fx);
         }
         
         async function toggleEquipItem(itemId, equip) {
