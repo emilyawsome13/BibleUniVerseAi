@@ -6387,11 +6387,26 @@
             }
         }
 
+        const fortuneThemes = [
+            'gentle surprise',
+            'peaceful breakthrough',
+            'grace-filled win',
+            'unexpected uplift',
+            'delightful twist',
+            'quiet victory',
+            'joyful payoff',
+            'calm momentum'
+        ];
+
+        function randomChoice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
         const fortunePrompts = [
-            ctx => `AI whispers that your ${formatNumber(ctx.likes)} likes have warmed hearts, so a gentle surprise will arrive as a reminder of purpose.`,
-            ctx => `Because you turned ${formatNumber(ctx.dislikes)} mini setbacks into lessons, expect a blessing on a plan you recently revisited.`,
-            ctx => `The AI sees ${formatNumber(ctx.saves)} saved treasures and ${formatNumber(ctx.replies)} heart-filled replies—luck is aligning to bless a quiet moment of rest.`,
-            ctx => `Your steady rhythm of giving grace (level ${ctx.level}) means a grateful voice will celebrate you this week with unexpected good news.`
+            ctx => `AI whispers that your ${formatNumber(ctx.likes)} likes have warmed hearts, so ${randomChoice(fortuneThemes)} arrives as a reminder of purpose.`,
+            ctx => `Since you turned ${formatNumber(ctx.dislikes)} mini setbacks into lessons, expect a ${randomChoice(fortuneThemes)} on a plan you recently revisited.`,
+            ctx => `The AI spots ${formatNumber(ctx.saves)} saved treasures and ${formatNumber(ctx.replies)} heart-filled replies—luck is aligning to bless a ${randomChoice(fortuneThemes)}.`,
+            ctx => `Your steady rhythm of giving grace (level ${ctx.level}) means a grateful voice will celebrate you soon with ${randomChoice(fortuneThemes)}.`
         ];
 
         function buildFortuneContext() {
@@ -6408,9 +6423,9 @@
             const list = document.getElementById('fortuneList');
             if (!list) return;
             const context = buildFortuneContext();
-            const fortunes = fortunePrompts.map((fn, idx) => ({
+            const fortunes = Array.from({ length: 4 }, (_, idx) => ({
                 id: idx,
-                text: fn(context)
+                text: randomChoice(fortunePrompts)(context)
             }));
             list.innerHTML = fortunes.map(f => `
                 <div class="fortune-item">
