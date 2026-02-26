@@ -3919,6 +3919,7 @@
         .shop-item-icon { font-size: 48px; margin-bottom: 12px; display: block; }
         .shop-item-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--text-primary); }
         .shop-item-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
+        .shop-item-help { font-size: 10px; color: var(--text-tertiary); margin: -6px 0 10px; min-height: 26px; line-height: 1.35; }
         .shop-item-rarity { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 10px; display: inline-block; margin-bottom: 10px; }
         .shop-item-rarity.legendary { background: rgba(255,215,0,0.2); color: #FFD700; }
         .shop-item-rarity.epic { background: rgba(191,90,242,0.2); color: #BF5AF2; }
@@ -3928,6 +3929,7 @@
         
         .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
         .shop-item-price.owned { color: var(--success); }
+        .shop-item-price.active { color: #34C759; text-shadow: 0 0 12px rgba(52,199,89,0.4); }
         
         .shop-item-btn { width: 100%; padding: 10px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .shop-item-btn:hover:not(:disabled) { background: var(--secondary); transform: scale(1.02); }
@@ -4088,12 +4090,15 @@
         .profile-frame.cross { border: 3px solid #8B4513; box-shadow: 0 0 15px rgba(139,69,19,0.4); }
         .profile-frame.cross::before { content: '✝️'; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 20px; filter: drop-shadow(0 0 5px rgba(255,215,0,0.8)); }
         .profile-frame.heart { border: 3px solid #FF69B4; box-shadow: 0 0 15px rgba(255,105,180,0.5); animation: heartBeat 1.5s ease-in-out infinite; }
-        .profile-frame.fire { border: 3px solid transparent; background: linear-gradient(135deg, #FF4500, #FFD700) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fireFlicker 0.5s ease-in-out infinite alternate; }
+        .profile-frame.fire { border: 3px solid transparent; background: linear-gradient(135deg, #FF4500, #FFD700) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fireFlicker 1.35s ease-in-out infinite alternate; }
         .profile-frame.ice { border: 3px solid #00CED1; box-shadow: 0 0 15px rgba(0,206,209,0.5), inset 0 0 10px rgba(0,206,209,0.2); animation: iceGlow 2s ease-in-out infinite alternate; }
         .profile-frame.nature { border: 3px solid #228B22; box-shadow: 0 0 15px rgba(34,139,34,0.4); }
         .profile-frame.nature::before { content: '🌿'; position: absolute; top: -10px; left: -10px; font-size: 18px; animation: leafSway 2s ease-in-out infinite; }
         .profile-frame.nature::after { content: '🌿'; position: absolute; bottom: -10px; right: -10px; font-size: 18px; animation: leafSway 2s ease-in-out infinite 1s; }
-        .profile-frame.stars { border: 3px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: starTwinkle 1s ease-in-out infinite; }
+        .profile-frame.stars { border: 3px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: starTwinkle 2.2s ease-in-out infinite; }
+        .profile-frame.royal { border: 3px solid #6a3ee0; box-shadow: 0 0 18px rgba(106,62,224,0.5), inset 0 0 8px rgba(255,215,0,0.24); animation: goldPulse 2.6s ease-in-out infinite; }
+        .profile-frame.royal::after { content: '👑'; position: absolute; top: -12px; right: -8px; font-size: 16px; filter: drop-shadow(0 0 5px rgba(255,215,0,0.75)); }
+        .profile-frame.aurora { border: 3px solid transparent; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 4.2s linear infinite; }
         
         /* Name Colors */
         .user-name.gold { color: #FFD700 !important; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
@@ -4121,7 +4126,7 @@
         .chat-message.sparkle::before { content: '✨'; position: absolute; left: -20px; animation: sparkle 1s ease-in-out infinite; }
         .chat-message.rainbow-text { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: rainbow 3s linear infinite; }
         .chat-message.glow { text-shadow: 0 0 10px #FFD700, 0 0 20px #FFD700; }
-        .chat-message.fire-text { color: #FF4500; text-shadow: 0 0 10px #FF4500; animation: fireText 0.5s ease-in-out infinite alternate; }
+        .chat-message.fire-text { color: #FF4500; text-shadow: 0 0 10px #FF4500; animation: fireText 1.25s ease-in-out infinite alternate; }
         
         /* Profile Backgrounds */
         .profile-bg-golden { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,165,0,0.2)) !important; }
@@ -4145,6 +4150,9 @@
         .comment-avatar-frame.ice { border: 2px solid #00CED1; box-shadow: 0 0 8px rgba(0,206,209,0.4); }
         .comment-avatar-frame.nature { border: 2px solid #228B22; box-shadow: 0 0 8px rgba(34,139,34,0.3); }
         .comment-avatar-frame.stars { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .comment-avatar-frame.royal { border: 2px solid #6a3ee0; box-shadow: 0 0 10px rgba(106,62,224,0.5); }
+        .comment-avatar-frame.royal::after { content: '👑'; position: absolute; top: -8px; right: -6px; font-size: 12px; }
+        .comment-avatar-frame.aurora { border: 2px solid transparent; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 3.6s linear infinite; }
         .comment-avatar-frame.wood { border: 2px solid #8B4513; box-shadow: 0 0 6px rgba(139,69,19,0.35); }
         .comment-avatar-frame.stone { border: 2px solid #808080; box-shadow: inset 0 0 8px rgba(128,128,128,0.34); }
         .comment-avatar-frame.divine { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF1493, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: mythicPulse 1.8s infinite; }
@@ -4170,6 +4178,10 @@
         @keyframes fireText { 0% { text-shadow: 0 0 10px #FF4500; } 100% { text-shadow: 0 0 20px #FF4500, 0 0 30px #FF4500; } }
         @keyframes mythicPulse { 0%, 100% { box-shadow: 0 0 10px rgba(255,20,147,0.4); } 50% { box-shadow: 0 0 25px rgba(255,20,147,0.7); } }
         @keyframes mythicShine { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes waveText {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
         @keyframes equipFrameFlash {
             0% { filter: brightness(1); }
             50% { filter: brightness(1.28); }
@@ -4203,6 +4215,8 @@
         .profile-frame-frame_stars { border: 2px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box !important; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: starTwinkle 2s infinite; }
         .profile-frame-frame_wood { border: 3px solid #8B4513 !important; }
         .profile-frame-frame_stone { border: 3px solid #808080 !important; box-shadow: inset 0 0 10px rgba(128,128,128,0.3) !important; }
+        .profile-frame-frame_royal { border: 3px solid #6a3ee0 !important; box-shadow: 0 0 16px rgba(106,62,224,0.5) !important; }
+        .profile-frame-frame_aurora { border: 2px solid transparent !important; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box !important; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 4s linear infinite; }
         /* Mythic Frames */
         .profile-frame-frame_divine { border: 3px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF1493, #00CED1) border-box !important; animation: mythicPulse 2s infinite; }
         .profile-frame-frame_divine::after { content: '😇'; position: absolute; top: -10px; right: -10px; font-size: 22px; animation: angelFloat 2s ease-in-out infinite; }
@@ -4281,13 +4295,15 @@
         .chat-effect-chat_sparkle::before { content: '✨'; position: absolute; left: -20px; animation: sparkle 1.5s infinite; }
         .chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; }
         .chat-effect-chat_glow { box-shadow: 0 0 20px rgba(255,215,0,0.3); border-radius: 8px; padding: 8px; background: rgba(255,215,0,0.05); }
-        .chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 0.8s infinite alternate; }
+        .chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 1.35s infinite alternate; }
         .chat-effect-chat_shadow { color: #666 !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important; }
-        .chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1s infinite alternate; }
+        .chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1.8s infinite alternate; }
         .chat-effect-chat_gold { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; animation: goldPulse 2s infinite; }
+        .chat-effect-chat_wave { display: inline-block; color: #7fd6ff !important; text-shadow: 0 0 12px rgba(127,214,255,0.45); animation: waveText 1.7s ease-in-out infinite; }
+        .chat-effect-chat_starlight { background: linear-gradient(90deg, #b7e3ff, #9b8bff, #ff9de1) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; text-shadow: 0 0 18px rgba(159,128,255,0.35); animation: rainbow 4s linear infinite; }
         /* Mythic Chat Effects */
         .chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
-        .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
+        .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1.6s infinite; font-weight: 700 !important; }
     </style>
 </head>
 <body>
@@ -7377,6 +7393,8 @@
             if (id.includes('ice') || frameColor === '#00CED1') return 'ice';
             if (id.includes('nature') || frameStyle === 'nature') return 'nature';
             if (id.includes('stars') || frameStyle === 'stars') return 'stars';
+            if (id.includes('royal') || frameStyle === 'royal') return 'royal';
+            if (id.includes('aurora') || frameStyle === 'aurora') return 'aurora';
             if (id.includes('wood')) return 'wood';
             if (id.includes('stone')) return 'stone';
             if (id.includes('divine') || frameStyle === 'divine') return 'divine';
@@ -10555,6 +10573,7 @@ async function checkAchievement(type, value) {
         let shopItems = [];
         let userInventory = [];
         let userXP = { xp: 0, level: 1 };
+        let activeBoost = null;
         let currentShopTab = 'shop';
         let currentCategory = 'all';
         
@@ -10583,7 +10602,9 @@ async function checkAchievement(type, value) {
                 }
                 
                 await loadInventory();
+                await loadBoostStatus();
                 renderShopItems();
+                if (currentShopTab === 'inventory' || currentTab === 'inventory') renderInventory();
             } catch (e) {
                 console.error('Error loading shop:', e);
             }
@@ -10594,9 +10615,57 @@ async function checkAchievement(type, value) {
                 const res = await fetch('/api/shop/inventory');
                 const data = await res.json();
                 if (data.inventory) userInventory = data.inventory;
+                activeBoost = data.active_boost || null;
             } catch (e) {
                 console.error('Error loading inventory:', e);
             }
+        }
+
+        async function loadBoostStatus() {
+            try {
+                const res = await fetch('/api/shop/boost/status');
+                const data = await res.json();
+                activeBoost = data.active_boost || null;
+            } catch (e) {
+                console.error('Error loading boost status:', e);
+            }
+        }
+
+        function getItemOwnedCount(itemId) {
+            const inv = userInventory.find(i => i.item_id === itemId);
+            if (!inv) return 0;
+            const qty = Number(inv.quantity);
+            return Number.isFinite(qty) ? Math.max(0, qty) : 1;
+        }
+
+        function getItemEffectHint(item) {
+            const category = String(item.category || '');
+            if (category === 'frame') return 'Shows around your avatar on your profile, comments, and replies.';
+            if (category === 'chat_effect') return 'Styles your comment/community message text when equipped.';
+            if (category === 'name_color') return 'Changes your display name color in profile and comments.';
+            if (category === 'badge') return 'Adds badge icon next to your name.';
+            if (category === 'title') return 'Adds a title tag near your name.';
+            if (category === 'profile_bg') return 'Changes your profile card background.';
+            if (category === 'consumable') return 'Use from My Items to activate timed XP multiplier.';
+            return 'Equip from My Items after purchase.';
+        }
+
+        function getBoostRemainingSeconds(boost) {
+            if (!boost) return 0;
+            if (Number.isFinite(Number(boost.remaining_seconds))) return Math.max(0, Number(boost.remaining_seconds));
+            const expiresAt = boost.expires_at ? new Date(boost.expires_at) : null;
+            if (!expiresAt || Number.isNaN(expiresAt.getTime())) return 0;
+            return Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+        }
+
+        function formatRemainingDuration(totalSeconds) {
+            const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
         }
         
         function updateShopXPDisplay() {
@@ -10643,16 +10712,22 @@ async function checkAchievement(type, value) {
             }
             
             container.innerHTML = items.map(item => {
-                const owned = userInventory.find(i => i.item_id === item.item_id);
+                const ownedCount = getItemOwnedCount(item.item_id);
+                const isConsumable = item.category === 'consumable';
+                const isOwned = ownedCount > 0;
                 const rarityClass = item.rarity || 'common';
+                const canBuy = isConsumable || !isOwned;
+                const priceText = isOwned ? (ownedCount + ' owned') : ('⚡ ' + formatNumber(item.price) + ' XP');
+                const buyLabel = isConsumable ? 'Buy +1' : (isOwned ? 'Owned' : 'Buy');
                 
-                return '<div class="shop-item ' + rarityClass + ' ' + (owned ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
+                return '<div class="shop-item ' + rarityClass + ' ' + (isOwned ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
+                    '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price ' + (owned ? 'owned' : '') + '">' + (owned ? '✓ Owned' : '⚡ ' + formatNumber(item.price) + ' XP') + '</div>' +
-                    '<button class="shop-item-btn" ' + (owned ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + (owned ? 'Owned' : 'Buy') + '</button>' +
+                    '<div class="shop-item-price ' + (isOwned ? 'owned' : '') + '">' + priceText + '</div>' +
+                    '<button class="shop-item-btn" ' + (canBuy ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buyLabel + '</button>' +
                     '</div>';
             }).join('');
         }
@@ -10673,14 +10748,29 @@ async function checkAchievement(type, value) {
             container.innerHTML = items.map(item => {
                 const rarityClass = item.rarity || 'common';
                 const isEquipped = item.equipped;
-                
-                return '<div class="shop-item ' + rarityClass + ' ' + (isEquipped ? 'equipped' : '') + '" data-item-id="' + item.item_id + '">' +
+                const isConsumable = item.category === 'consumable';
+                const quantity = Math.max(0, Number(item.quantity || 1));
+                const isActiveBoost = !!(activeBoost && activeBoost.item_id === item.item_id && getBoostRemainingSeconds(activeBoost) > 0);
+                const boostLeft = isActiveBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
+                const cardStateClass = (isEquipped && !isConsumable) || isActiveBoost ? 'equipped' : '';
+                const statusText = isConsumable
+                    ? (isActiveBoost ? ('⚡ Active ' + boostLeft) : (quantity + ' in bag'))
+                    : (isEquipped ? '✓ Equipped' : (quantity + ' owned'));
+                const btnClass = isConsumable ? 'equip' : (isEquipped ? 'unequip' : 'equip');
+                const btnLabel = isConsumable ? (isActiveBoost ? 'Use Again' : 'Use Boost') : (isEquipped ? 'Unequip' : 'Equip');
+                const btnDisabled = isConsumable ? (quantity <= 0 ? 'disabled' : '') : '';
+                const onClick = isConsumable
+                    ? ("useBoostItem('" + item.item_id + "')")
+                    : ("toggleEquipItem('" + item.item_id + "', " + (!isEquipped) + ")");
+
+                return '<div class="shop-item ' + rarityClass + ' ' + cardStateClass + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
+                    '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price owned">' + (isEquipped ? '✓ Equipped' : 'Owned') + '</div>' +
-                    '<button class="shop-item-btn ' + (isEquipped ? 'unequip' : 'equip') + '" onclick="toggleEquipItem(' + "'" + item.item_id + "'" + ', ' + (!isEquipped) + ')">' + (isEquipped ? 'Unequip' : 'Equip') + '</button>' +
+                    '<div class="shop-item-price ' + (isActiveBoost ? 'active' : 'owned') + '">' + statusText + '</div>' +
+                    '<button class="shop-item-btn ' + btnClass + '" ' + btnDisabled + ' onclick="' + onClick + '">' + btnLabel + '</button>' +
                     '</div>';
             }).join('');
         }
@@ -10873,14 +10963,42 @@ async function checkAchievement(type, value) {
                     userXP.xp = data.remaining_xp;
                     updateShopXPDisplay();
                     await loadInventory();
+                    await loadBoostStatus();
                     renderShopItems();
-                    showToast('✅ Purchased ' + data.name + '!');
+                    if (currentCategory === 'consumable' || currentInventoryCategory === 'consumable') renderInventory();
+                    const qtyText = Number.isFinite(Number(data.quantity)) ? ` (${data.quantity} owned)` : '';
+                    showToast('✅ Purchased ' + data.name + qtyText + '. Open My Items to equip/use.');
                     trackStat('purchases');
                 } else {
                     showToast('❌ ' + (data.error || 'Purchase failed'));
                 }
             } catch (e) {
                 showToast('❌ Purchase failed');
+            }
+        }
+
+        async function useBoostItem(itemId) {
+            try {
+                const res = await fetch('/api/shop/boost/use', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: itemId })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    showToast('❌ ' + (data.error || 'Unable to use boost'));
+                    return;
+                }
+                activeBoost = data.active_boost || null;
+                await loadInventory();
+                renderInventory();
+                renderShopItems();
+                const mult = activeBoost && activeBoost.multiplier ? `${activeBoost.multiplier}x` : 'boost';
+                const left = activeBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
+                showToast(`⚡ ${data.name} active (${mult}) ${left ? 'for ' + left : ''}`);
+            } catch (e) {
+                console.error('Boost activation error:', e);
+                showToast('❌ Failed to activate boost');
             }
         }
 
@@ -10923,7 +11041,9 @@ async function checkAchievement(type, value) {
                 
                 if (data.success) {
                     await loadInventory();
+                    await loadBoostStatus();
                     renderInventory();
+                    renderShopItems();
                     await loadProfileCustomization();
                     applyShopEffectsToComments();
                     if (equip) playEquipAnimation(itemId);
@@ -10939,7 +11059,10 @@ async function checkAchievement(type, value) {
         const originalSwitchTab = switchTab;
         switchTab = function(tab, btn) {
             originalSwitchTab(tab, btn);
-            if (tab === 'shop') loadShopData();
+            if (tab === 'shop' || tab === 'inventory') {
+                currentShopTab = tab;
+                loadShopData();
+            }
         };
         
         async function awardXP(amount, action) {
@@ -10957,8 +11080,11 @@ async function checkAchievement(type, value) {
                     userXP.level = data.level;
                     updateShopXPDisplay();
                     updateInventoryXPDisplay();
-                    spawnXpBurst(amount, action === 'view' ? 'Verse XP' : 'XP');
+                    spawnXpBurst(data.xp_awarded || amount, action === 'view' ? 'Verse XP' : 'XP');
                     pulseSceneFx();
+                    if (data.boost_multiplier && data.boost_multiplier > 1.01) {
+                        showToast(`⚡ Boost applied: ${data.boost_multiplier}x XP`);
+                    }
                     if (data.leveled_up) showToast('Level Up! You are now level ' + data.level + '!');
                     return data;
                 }
