@@ -1391,7 +1391,7 @@ def get_hour_window():
 def get_hourly_xp_reward(user_id, period_key):
     seed = f"{user_id}:{period_key}"
     value = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16)
-    return 100 + (value % 401)
+    return 400 + (value % 1001)
 
 def pick_hourly_challenge(user_id, period_key):
     challenges = [

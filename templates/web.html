@@ -230,6 +230,71 @@
             100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
         }
 
+        /* XP Reward FX Layer */
+        .fx-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 10000;
+        }
+        .fx-xp-float {
+            position: absolute;
+            left: 50%;
+            top: 62%;
+            transform: translate(-50%, 0) scale(0.9);
+            opacity: 0;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.35);
+            background: linear-gradient(135deg, rgba(10,132,255,0.95), rgba(191,90,242,0.95));
+            box-shadow: 0 14px 34px rgba(10,132,255,0.4);
+            backdrop-filter: blur(8px);
+            white-space: nowrap;
+        }
+        .fx-xp-float.show {
+            animation: xpFloatRiseFx calc(1.2s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) forwards;
+        }
+        .fx-xp-spark {
+            --dx: 0px;
+            --dy: -60px;
+            position: absolute;
+            left: 50%;
+            top: 62%;
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0.35) 65%, transparent 100%);
+            box-shadow: 0 0 12px rgba(255,255,255,0.7);
+            transform: translate(-50%, -50%);
+            opacity: 0;
+        }
+        .fx-xp-spark.show {
+            animation: xpSparkBurstFx calc(0.92s * var(--animation-speed)) ease-out forwards;
+        }
+        body.xp-fever .ambient-orb {
+            opacity: 0.54;
+            filter: saturate(1.35) brightness(1.08);
+            animation-duration: 12s;
+        }
+        body.xp-fever .verse-container,
+        body.xp-fever .achievement-item.completed,
+        body.xp-fever .shop-item.equipped {
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.24), 0 16px 40px var(--primary-glow);
+        }
+        @keyframes xpFloatRiseFx {
+            0% { opacity: 0; transform: translate(-50%, 10px) scale(0.88); }
+            18% { opacity: 1; transform: translate(-50%, -4px) scale(1.06); }
+            100% { opacity: 0; transform: translate(-50%, -92px) scale(0.94); }
+        }
+        @keyframes xpSparkBurstFx {
+            0% { opacity: 0.95; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.18); }
+        }
+
         /* ===== HIGH CONTRAST ===== */
         body.high-contrast {
             --primary: #0a5bff;
@@ -944,6 +1009,12 @@
             display: block;
             animation: tabEnter calc(0.34s * var(--animation-speed)) cubic-bezier(0.2, 0.7, 0.2, 1);
         }
+        body:not(.no-animations) .tab-view.active .glass-card {
+            animation: cardRiseFx calc(0.52s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) both;
+        }
+        body:not(.no-animations) .nav-item.active {
+            animation: navPulseFx calc(0.64s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1);
+        }
 
         body.tab-discover .ambient-bg { filter: hue-rotate(0deg) saturate(1.02); }
         body.tab-recommendations .ambient-bg { filter: hue-rotate(26deg) saturate(1.08); }
@@ -956,6 +1027,15 @@
         @keyframes tabEnter {
             0% { opacity: 0; transform: translateY(10px) scale(0.995); filter: blur(3px); }
             100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes cardRiseFx {
+            0% { opacity: 0.68; transform: translateY(10px) scale(0.985); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes navPulseFx {
+            0% { transform: scale(0.96); }
+            55% { transform: scale(1.04); }
+            100% { transform: scale(1); }
         }
 
         .about-hero {
@@ -3756,6 +3836,21 @@
         
         .shop-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: all 0.2s; cursor: pointer; position: relative; overflow: hidden; }
         .shop-item:hover { transform: translateY(-4px); box-shadow: 0 12px 32px var(--shadow); border-color: var(--primary); }
+        .shop-item::after {
+            content: '';
+            position: absolute;
+            inset: -120% auto auto -120%;
+            width: 80%;
+            height: 260%;
+            background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.34) 48%, transparent 100%);
+            transform: rotate(14deg);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .shop-item:hover::after {
+            opacity: 0.9;
+            animation: shineSweepFx calc(0.78s * var(--animation-speed)) ease-out;
+        }
         .shop-item.owned { border-color: var(--success); opacity: 0.7; }
         .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
         .shop-item.legendary { border-color: #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.1), var(--surface)); }
@@ -3802,6 +3897,23 @@
         .achievement-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: flex-start; gap: 16px; transition: all 0.2s; cursor: pointer; position: relative; }
         .achievement-item.animated-in { animation: achievementInFx calc(0.46s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) both; animation-delay: var(--ach-delay, 0ms); }
         .achievement-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+        .achievement-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            border: 1px solid transparent;
+            background: linear-gradient(120deg, rgba(10,132,255,0.45), rgba(52,198,255,0.2), rgba(191,90,242,0.42)) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .achievement-item:hover::before {
+            opacity: 1;
+            animation: achievementBorderPulseFx calc(1.2s * var(--animation-speed)) ease-out;
+        }
         .achievement-item.completed { background: linear-gradient(135deg, rgba(48,209,88,0.1), var(--surface)); border-color: var(--success); }
         .achievement-item.completed:hover { border-color: var(--success); box-shadow: 0 8px 24px rgba(48,209,88,0.2); }
         .achievement-item.just-unlocked { animation: achievementUnlockFx calc(0.96s * var(--animation-speed)) ease-out; }
@@ -3825,6 +3937,15 @@
             0% { box-shadow: 0 0 0 rgba(48,209,88,0); }
             35% { box-shadow: 0 0 0 2px rgba(48,209,88,0.4), 0 14px 34px rgba(48,209,88,0.35); }
             100% { box-shadow: 0 0 0 rgba(48,209,88,0); }
+        }
+        @keyframes shineSweepFx {
+            0% { transform: translateX(0) rotate(14deg); }
+            100% { transform: translateX(360%) rotate(14deg); }
+        }
+        @keyframes achievementBorderPulseFx {
+            0% { opacity: 0; }
+            30% { opacity: 1; }
+            100% { opacity: 0; }
         }
         /* Mobile click-to-expand progress */
         .achievement-detail-panel { 
@@ -4063,6 +4184,7 @@
     </div>
     
     <div class="particles"></div>
+    <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
 
     <div class="app">
         <header class="header">
@@ -5954,11 +6076,11 @@
                         trackDailyAction('view', nextVerseKey);
                         
                         // Award XP and track stat for viewing
-                        awardXP(5, 'view');
+                        awardXP(30, 'view');
                         trackStat('total_verses');
                         
                         if (settings.notifications) {
-                            showToast('New verse discovered! +5 XP');
+                            showToast('New verse discovered! +30 XP');
                         }
                         if (currentTab === 'comments') loadComments();
                     }
@@ -6058,7 +6180,7 @@
             // Track daily challenge and achievements
             if (data.liked) {
                 trackDailyAction('like');
-                awardXP(50, 'like');
+                awardXP(150, 'like');
                 trackStat('likes');
             }
         }
@@ -6086,7 +6208,7 @@
             // Track daily challenge and achievements
             if (data.saved) {
                 trackDailyAction('save');
-                awardXP(50, 'save');
+                awardXP(160, 'save');
                 trackStat('saves');
             }
             if (settings.notifications) showToast(data.saved ? 'Verse saved' : 'Removed from saved');
@@ -6619,7 +6741,7 @@
             loadProfileStats();
             if (settings.notifications) showToast('Comment posted!');
             trackDailyAction('comment');
-            awardXP(100, 'comment');
+            awardXP(300, 'comment');
             trackStat('comments');
         }
 
@@ -7921,6 +8043,8 @@ const ACHIEVEMENTS = [
     { id: 'master', icon: '👑', name: 'Master', desc: 'View 2500 verses', goal: 2500, category: 'special', xp: 1000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 2500 },
     { id: 'pilgrim', icon: '🥾', name: 'Pilgrim', desc: 'View 5000 verses', goal: 5000, category: 'special', xp: 2000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 5000 },
     { id: 'seeker_10000', icon: '🔍', name: 'Divine Seeker', desc: 'View 10000 verses', goal: 10000, category: 'special', xp: 5000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 10000 },
+    { id: 'seer_15000', icon: '🧿', name: 'Verse Seer', desc: 'View 15000 verses', goal: 15000, category: 'special', xp: 8000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 15000 },
+    { id: 'eternal_reader_25000', icon: '🌌', name: 'Eternal Reader', desc: 'View 25000 verses', goal: 25000, category: 'special', xp: 15000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 25000 },
 
     // Streak Achievements
     { id: 'first_day', icon: '☀️', name: 'First Day', desc: 'Start your streak', goal: 1, category: 'streak', xp: 25, progress: () => getStreakCount(), check: () => getStreakCount() >= 1 },
@@ -7994,15 +8118,16 @@ async function loadAchievements(stats) {
     // Check for new unlocks and calculate XP
     ACHIEVEMENTS.forEach(ach => {
         if (unlocked.includes(ach.id)) {
-            totalXPEarned += ach.xp || 50;
+            totalXPEarned += getAchievementReward(ach);
         } else if (ach.check(stats)) {
             unlocked.push(ach.id);
             newUnlockIds.push(ach.id);
-            totalXPEarned += ach.xp || 50;
+            const rewardXp = getAchievementReward(ach);
+            totalXPEarned += rewardXp;
             newUnlocks = true;
-            const awarded = awardXp(ach.xp || 50, 'achievement', ach.id);
+            const awarded = awardXp(rewardXp, 'achievement', ach.id);
             if (settings.notifications) {
-                showToast(`🏆 Unlocked: ${ach.name}! +${ach.xp || 50} XP`);
+                showToast(`🏆 Unlocked: ${ach.name}! +${rewardXp} XP`);
             }
             if (awarded && typeof AudioSys !== 'undefined') AudioSys.playSuccess();
         }
@@ -8077,7 +8202,7 @@ function renderAchievementsList() {
                         ${isUnlocked ? '✓' : ''}
                     </div>
                     <div class="achievement-desc">${ach.desc}</div>
-                    <div class="achievement-reward">⚡ +${ach.xp || 50} XP</div>
+                    <div class="achievement-reward">⚡ +${getAchievementReward(ach)} XP</div>
                     <div class="achievement-progress">
                         <div class="achievement-progress-bar">
                             <div class="achievement-progress-fill" style="width: ${progress.pct}%"></div>
@@ -8148,7 +8273,7 @@ function showAchievementDetail(achId, isUnlocked) {
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Reward:</span>
-                <span style="color: var(--primary); font-weight: 600;">⚡ ${ach.xp || 50} XP</span>
+                <span style="color: var(--primary); font-weight: 600;">⚡ ${getAchievementReward(ach)} XP</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>Progress:</span>
@@ -8291,15 +8416,21 @@ async function checkAchievement(type, value) {
             shared.push(Date.now());
             localStorage.setItem(SHARED_VERSES_KEY, shared.join(','));
             trackDailyAction('share');
-            awardXP(35, 'share');
+            awardXP(220, 'share');
             trackStat('shares');
-            showToast('📤 Verse shared! +35 XP');
+            showToast('Verse shared! +220 XP');
         }
 
         // === DISCOVER TAB FEATURES ===
         
         // Daily Challenge + XP System
         const ACHIEVEMENT_XP = 750;
+        const ACHIEVEMENT_XP_MULTIPLIER = 4;
+
+        function getAchievementReward(ach) {
+            const base = Math.max(50, Number((ach && ach.xp) || 50));
+            return Math.max(ACHIEVEMENT_XP, Math.round(base * ACHIEVEMENT_XP_MULTIPLIER));
+        }
 
         function getXpState() {
             try {
@@ -8352,6 +8483,43 @@ async function checkAchievement(type, value) {
             if (levelEl) levelEl.textContent = `Level ${level}`;
         }
 
+        function pulseSceneFx() {
+            if (document.body.classList.contains('no-animations')) return;
+            document.body.classList.add('xp-fever');
+            clearTimeout(pulseSceneFx._timer);
+            pulseSceneFx._timer = setTimeout(() => {
+                document.body.classList.remove('xp-fever');
+            }, 850);
+        }
+
+        function spawnXpBurst(amount, label = 'XP') {
+            if (document.body.classList.contains('no-animations')) return;
+            const layer = document.getElementById('fxLayer');
+            if (!layer) return;
+
+            const xpAmount = Math.max(0, Math.floor(Number(amount) || 0));
+            if (!xpAmount) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'fx-xp-float';
+            bubble.textContent = `+${formatNumber(xpAmount)} ${label}`;
+            layer.appendChild(bubble);
+            requestAnimationFrame(() => bubble.classList.add('show'));
+            setTimeout(() => bubble.remove(), 1400);
+
+            for (let i = 0; i < 9; i += 1) {
+                const spark = document.createElement('span');
+                spark.className = 'fx-xp-spark';
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 34 + Math.random() * 92;
+                spark.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+                spark.style.setProperty('--dy', `${Math.sin(angle) * dist - 62}px`);
+                layer.appendChild(spark);
+                requestAnimationFrame(() => spark.classList.add('show'));
+                setTimeout(() => spark.remove(), 980);
+            }
+        }
+
         async function awardXp(amount, type, key) {
             const state = getXpState();
             if (type === 'challenge') {
@@ -8376,6 +8544,8 @@ async function checkAchievement(type, value) {
             }
             
             updateXpDisplay();
+            spawnXpBurst(amount, type === 'achievement' ? 'Achievement XP' : 'XP');
+            pulseSceneFx();
             return true;
         }
 
@@ -9212,9 +9382,9 @@ async function checkAchievement(type, value) {
                 if (parentType === 'community') loadCommunityMessages(true);
                 else loadComments(true);
                 loadProfileStats();
-                awardXP(20, 'reply');
+                awardXP(120, 'reply');
                 trackStat('replies');
-                showToast('Reply posted! +20 XP');
+                showToast('Reply posted! +120 XP');
             } catch (e) {
                 showToast('Reply failed');
             }
@@ -10315,18 +10485,18 @@ async function checkAchievement(type, value) {
         
         // XP Guide - Functional XP Actions
         const XP_ACTIONS = {
-            like: { min: 25, max: 50, cooldown: 1000, dailyMax: 100 },
-            save: { min: 25, max: 50, cooldown: 1000, dailyMax: 100 },
-            comment: { min: 100, max: 100, cooldown: 5000, dailyMax: 50 },
-            reply: { min: 15, max: 25, cooldown: 3000, dailyMax: 100 },
-            share: { min: 25, max: 50, cooldown: 60000, dailyMax: 20 },
-            view: { min: 5, max: 10, cooldown: 500, dailyMax: 200 },
-            streak: { min: 10, max: 60, cooldown: 86400000, dailyMax: 1 },
-            trivia_correct: { min: 20, max: 50, cooldown: 0, dailyMax: 50 },
-            prayer: { min: 75, max: 75, cooldown: 60000, dailyMax: 10 },
-            memorize: { min: 100, max: 100, cooldown: 0, dailyMax: 10 },
-            study_note: { min: 50, max: 200, cooldown: 0, dailyMax: 20 },
-            achievement: { min: 25, max: 2000, cooldown: 0, dailyMax: 1000 }
+            like: { min: 120, max: 240, cooldown: 1000, dailyMax: 100 },
+            save: { min: 140, max: 260, cooldown: 1000, dailyMax: 100 },
+            comment: { min: 280, max: 420, cooldown: 5000, dailyMax: 50 },
+            reply: { min: 100, max: 180, cooldown: 3000, dailyMax: 100 },
+            share: { min: 200, max: 360, cooldown: 60000, dailyMax: 20 },
+            view: { min: 25, max: 55, cooldown: 500, dailyMax: 200 },
+            streak: { min: 200, max: 450, cooldown: 86400000, dailyMax: 1 },
+            trivia_correct: { min: 120, max: 260, cooldown: 0, dailyMax: 50 },
+            prayer: { min: 220, max: 360, cooldown: 60000, dailyMax: 10 },
+            memorize: { min: 320, max: 480, cooldown: 0, dailyMax: 10 },
+            study_note: { min: 220, max: 520, cooldown: 0, dailyMax: 20 },
+            achievement: { min: 600, max: 12000, cooldown: 0, dailyMax: 1000 }
         };
         
         let xpActionCooldowns = {};
@@ -10398,37 +10568,37 @@ async function checkAchievement(type, value) {
                 daily: {
                     title: '📅 Daily Actions',
                     items: [
-                        { icon: '👍', action: 'Like a verse', type: 'like', xp: '25-50', bonus: 'Streak bonus +50' },
-                        { icon: '💾', action: 'Save a verse', type: 'save', xp: '25-50', bonus: '' },
-                        { icon: '💬', action: 'Post a comment', type: 'comment', xp: '100', bonus: '' },
-                        { icon: '📖', action: 'Read verse (streak)', type: 'view', xp: '5-10', bonus: 'Per verse viewed' },
-                        { icon: '🎯', action: 'Complete daily challenge', type: 'daily_challenge', xp: '50-500', bonus: 'Auto-awarded' }
+                        { icon: '👍', action: 'Like a verse', type: 'like', xp: '120-240', bonus: 'Streak bonus +180' },
+                        { icon: '💾', action: 'Save a verse', type: 'save', xp: '140-260', bonus: '' },
+                        { icon: '💬', action: 'Post a comment', type: 'comment', xp: '280-420', bonus: '' },
+                        { icon: '📖', action: 'Read verse (streak)', type: 'view', xp: '25-55', bonus: 'Per verse viewed' },
+                        { icon: '🎯', action: 'Complete daily challenge', type: 'daily_challenge', xp: '400-1400', bonus: 'Auto-awarded' }
                     ]
                 },
                 social: {
                     title: '👥 Social Interactions',
                     items: [
                         { icon: '❤️', action: 'Get a like on comment', type: 'liked_comment', xp: '10', bonus: 'Auto-awarded' },
-                        { icon: '📤', action: 'Share a verse', type: 'share', xp: '25-50', bonus: '' },
-                        { icon: '🤝', action: 'Reply to someone', type: 'reply', xp: '15-25', bonus: '' },
-                        { icon: '✝️', action: 'Add prayer to journal', type: 'prayer', xp: '75', bonus: 'Limited daily' }
+                        { icon: '📤', action: 'Share a verse', type: 'share', xp: '200-360', bonus: '' },
+                        { icon: '🤝', action: 'Reply to someone', type: 'reply', xp: '100-180', bonus: '' },
+                        { icon: '✝️', action: 'Add prayer to journal', type: 'prayer', xp: '220-360', bonus: 'Limited daily' }
                     ]
                 },
                 study: {
                     title: '📚 Bible Study',
                     items: [
-                        { icon: '🧠', action: 'Memorize a verse', type: 'memorize', xp: '100', bonus: '' },
-                        { icon: '📝', action: 'Write study note', type: 'study_note', xp: '50-200', bonus: 'Based on length' },
-                        { icon: '🎮', action: 'Correct trivia answer', type: 'trivia_correct', xp: '20-50', bonus: 'Streak bonus' },
-                        { icon: '🔥', action: 'Maintain reading streak', type: 'streak', xp: '10-60', bonus: '+2 per streak day' }
+                        { icon: '🧠', action: 'Memorize a verse', type: 'memorize', xp: '320-480', bonus: '' },
+                        { icon: '📝', action: 'Write study note', type: 'study_note', xp: '220-520', bonus: 'Based on length' },
+                        { icon: '🎮', action: 'Correct trivia answer', type: 'trivia_correct', xp: '120-260', bonus: 'Streak bonus' },
+                        { icon: '🔥', action: 'Maintain reading streak', type: 'streak', xp: '200-450', bonus: '+12 per streak day' }
                     ]
                 },
                 special: {
                     title: '⭐ Achievements & Milestones',
                     items: [
-                        { icon: '🏆', action: 'Complete achievement', type: 'achievement', xp: '25-2000', bonus: 'Based on difficulty' },
+                        { icon: '🏆', action: 'Complete achievement', type: 'achievement', xp: '600-12000', bonus: 'Based on difficulty' },
                         { icon: '⬆️', action: 'Level up bonus', type: 'level_up', xp: 'Bonus', bonus: 'Higher level = more' },
-                        { icon: '🛒', action: 'First purchase', type: 'first_purchase', xp: '100', bonus: 'One-time' },
+                        { icon: '🛒', action: 'First purchase', type: 'first_purchase', xp: '600', bonus: 'One-time' },
                         { icon: '🎁', action: 'Special events', type: 'event', xp: 'Varies', bonus: 'Holiday bonuses' }
                     ]
                 }
@@ -10555,6 +10725,8 @@ async function checkAchievement(type, value) {
                     userXP.level = data.level;
                     updateShopXPDisplay();
                     updateInventoryXPDisplay();
+                    spawnXpBurst(amount, action === 'view' ? 'Verse XP' : 'XP');
+                    pulseSceneFx();
                     if (data.leveled_up) showToast('Level Up! You are now level ' + data.level + '!');
                     return data;
                 }
