@@ -1431,6 +1431,59 @@ def record_daily_action(user_id, action, verse_id=None):
     finally:
         conn.close()
 
+def ensure_user_verse_views_table(c, db_type):
+    """Ensure per-user verse view tracking table exists."""
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_verse_views (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                verse_id INTEGER NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                UNIQUE(user_id, verse_id)
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_verse_views (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                verse_id INTEGER NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                UNIQUE(user_id, verse_id)
+            )
+        """)
+
+def track_user_verse_view(user_id, verse_id, verse_payload=None):
+    """Record a verse as viewed by a specific user (unique per verse)."""
+    if not user_id:
+        return
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    now = datetime.now().isoformat()
+    try:
+        ensure_user_verse_views_table(c, db_type)
+        resolved_verse_id = ensure_verse_id(c, db_type, verse_id, verse_payload)
+        if not resolved_verse_id:
+            return
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO user_verse_views (user_id, verse_id, first_seen_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (user_id, verse_id) DO NOTHING
+            """, (user_id, resolved_verse_id, now))
+        else:
+            c.execute("""
+                INSERT OR IGNORE INTO user_verse_views (user_id, verse_id, first_seen_at)
+                VALUES (?, ?, ?)
+            """, (user_id, resolved_verse_id, now))
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"Failed to record user verse view: {e}")
+    finally:
+        conn.close()
+
 def log_action(admin_id, action, target_user_id=None, details=None):
     """Log admin actions for audit trail"""
     try:
@@ -2491,15 +2544,17 @@ def index():
         
         user = c.fetchone()
         
+        ensure_user_verse_views_table(c, db_type)
+
         if db_type == 'postgres':
-            c.execute("SELECT COUNT(*) as count FROM verses")
+            c.execute("SELECT COUNT(*) as count FROM user_verse_views WHERE user_id = %s", (session['user_id'],))
             total_verses = c.fetchone()['count']
             c.execute("SELECT COUNT(*) as count FROM likes WHERE user_id = %s", (session['user_id'],))
             liked_count = c.fetchone()['count']
             c.execute("SELECT COUNT(*) as count FROM saves WHERE user_id = %s", (session['user_id'],))
             saved_count = c.fetchone()['count']
         else:
-            c.execute("SELECT COUNT(*) as count FROM verses")
+            c.execute("SELECT COUNT(*) as count FROM user_verse_views WHERE user_id = ?", (session['user_id'],))
             try:
                 total_verses = c.fetchone()[0]
             except:
@@ -2914,6 +2969,7 @@ def get_current():
 
     user_id = session['user_id']
     now = time.time()
+    previous_payload = None
     is_banned, reason, _ = check_ban_status(user_id)
     if is_banned:
         return jsonify({"error": "banned", "message": "Account banned", "reason": reason}), 403
@@ -2921,12 +2977,24 @@ def get_current():
         cached = _current_api_cache.get(user_id)
         if cached and (now - cached['timestamp']) < CURRENT_API_CACHE_TTL:
             return jsonify(cached['payload'])
+        if cached:
+            previous_payload = cached.get('payload')
 
     # Ensure thread is running
     generator.start_thread()
 
+    verse_payload = generator.get_current_verse()
+    previous_verse_id = None
+    if isinstance(previous_payload, dict):
+        prev_verse = previous_payload.get('verse')
+        if isinstance(prev_verse, dict):
+            previous_verse_id = prev_verse.get('id')
+    current_verse_id = verse_payload.get('id') if isinstance(verse_payload, dict) else None
+    if current_verse_id is not None and str(current_verse_id) != str(previous_verse_id):
+        track_user_verse_view(user_id, current_verse_id, verse_payload)
+
     payload = {
-        "verse": generator.get_current_verse(),
+        "verse": verse_payload,
         "countdown": generator.get_time_left(),
         "total_verses": generator.total_verses,
         "session_id": generator.session_id,
@@ -5053,8 +5121,10 @@ def get_stats():
                 logger.error(f"Query failed: {query}, error: {e}")
                 return 0
         
+        ensure_user_verse_views_table(c, db_type)
+
         if db_type == 'postgres':
-            total = safe_count("SELECT COUNT(*) FROM verses")
+            total = safe_count("SELECT COUNT(*) FROM user_verse_views WHERE user_id = %s", (session['user_id'],))
             liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = %s", (session['user_id'],))
             saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = %s", (session['user_id'],))
             # Count all comments by this user
@@ -5076,7 +5146,7 @@ def get_stats():
                   )
             """, (session['user_id'],))
         else:
-            total = safe_count("SELECT COUNT(*) FROM verses")
+            total = safe_count("SELECT COUNT(*) FROM user_verse_views WHERE user_id = ?", (session['user_id'],))
             liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = ?", (session['user_id'],))
             saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = ?", (session['user_id'],))
             comments = safe_count("SELECT COUNT(*) FROM comments WHERE user_id = ? AND COALESCE(is_deleted, 0) = 0", (session['user_id'],))

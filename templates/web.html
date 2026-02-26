@@ -854,6 +854,15 @@
             .nav-icon {
                 font-size: 20px;
             }
+
+            .nav-item.active .nav-icon {
+                animation: navIconDriftFx calc(2.4s * var(--animation-speed)) ease-in-out infinite;
+            }
+        }
+
+        @keyframes navIconDriftFx {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-2px) scale(1.06); }
         }
 
         .header-actions {
@@ -1334,6 +1343,19 @@
         .verse-container {
             cursor: pointer;
             transition: transform 0.25s;
+            position: relative;
+            isolation: isolate;
+        }
+
+        .verse-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            background: linear-gradient(118deg, transparent 0%, rgba(255, 255, 255, 0.0) 40%, rgba(255, 255, 255, 0.32) 50%, rgba(255, 255, 255, 0.0) 60%, transparent 100%);
+            transform: translateX(-130%);
+            opacity: 0;
         }
 
         .verse-container:hover {
@@ -1344,10 +1366,30 @@
             animation: verseReveal calc(0.7s * var(--animation-speed)) cubic-bezier(0.16, 0.84, 0.3, 1);
         }
 
+        .verse-container.verse-reveal::after {
+            animation: verseSweepFx calc(0.85s * var(--animation-speed)) ease-out;
+        }
+
+        .verse-container.verse-reveal .verse-text {
+            animation: verseTextPopFx calc(0.72s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1);
+        }
+
         @keyframes verseReveal {
             0% { opacity: 0.22; transform: translateY(14px) scale(0.985); filter: blur(6px); }
             60% { opacity: 1; transform: translateY(0) scale(1.003); filter: blur(0); }
             100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        @keyframes verseSweepFx {
+            0% { opacity: 0; transform: translateX(-130%); }
+            30% { opacity: 0.68; }
+            100% { opacity: 0; transform: translateX(130%); }
+        }
+
+        @keyframes verseTextPopFx {
+            0% { transform: translateY(8px); letter-spacing: 0.02em; opacity: 0.35; }
+            55% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(0); letter-spacing: -0.01em; opacity: 1; }
         }
 
         .verse-text {
@@ -2707,11 +2749,46 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             text-align: center;
             max-width: 90%;
+            overflow: hidden;
         }
 
         .toast.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
+        }
+
+        .toast.burst {
+            animation: toastBurstFx calc(0.42s * var(--animation-speed)) cubic-bezier(0.16, 0.84, 0.3, 1);
+        }
+
+        .toast::after {
+            content: '';
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 6px;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform-origin: left center;
+            transform: scaleX(0);
+            opacity: 0.8;
+        }
+
+        .toast.show::after {
+            transform: scaleX(1);
+            animation: toastTimerFx var(--toast-duration, 2800ms) linear forwards;
+        }
+
+        @keyframes toastTimerFx {
+            from { transform: scaleX(1); opacity: 0.9; }
+            to { transform: scaleX(0); opacity: 0.25; }
+        }
+
+        @keyframes toastBurstFx {
+            0% { filter: saturate(1.4); }
+            60% { filter: saturate(1); }
+            100% { filter: saturate(1); }
         }
 
         /* Profile Stats Grid */
@@ -2752,6 +2829,26 @@
             text-transform: uppercase;
             letter-spacing: 0.8px;
             opacity: 0.7;
+        }
+
+        .stat-card.stat-pop {
+            animation: statPulseFx calc(0.44s * var(--animation-speed)) ease-out;
+        }
+
+        .stat-card.stat-pop .stat-value {
+            animation: statValueFx calc(0.44s * var(--animation-speed)) ease-out;
+        }
+
+        @keyframes statPulseFx {
+            0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(10,132,255,0); }
+            45% { transform: translateY(-3px) scale(1.03); box-shadow: 0 12px 26px var(--primary-glow); }
+            100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(10,132,255,0); }
+        }
+
+        @keyframes statValueFx {
+            0% { letter-spacing: 0; opacity: 0.82; }
+            45% { letter-spacing: 0.04em; opacity: 1; }
+            100% { letter-spacing: 0; opacity: 1; }
         }
 
         /* Profile Info Cards */
@@ -3703,9 +3800,11 @@
             .achievement-categories { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         }
         .achievement-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: flex-start; gap: 16px; transition: all 0.2s; cursor: pointer; position: relative; }
+        .achievement-item.animated-in { animation: achievementInFx calc(0.46s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) both; animation-delay: var(--ach-delay, 0ms); }
         .achievement-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
         .achievement-item.completed { background: linear-gradient(135deg, rgba(48,209,88,0.1), var(--surface)); border-color: var(--success); }
         .achievement-item.completed:hover { border-color: var(--success); box-shadow: 0 8px 24px rgba(48,209,88,0.2); }
+        .achievement-item.just-unlocked { animation: achievementUnlockFx calc(0.96s * var(--animation-speed)) ease-out; }
         .achievement-icon { font-size: 40px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--glass); border-radius: 12px; flex-shrink: 0; }
         .achievement-item.completed .achievement-icon { background: rgba(48,209,88,0.2); }
         .achievement-content { flex: 1; min-width: 0; }
@@ -3718,6 +3817,15 @@
         .achievement-progress-text { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
         .achievement-item.completed .achievement-progress-fill { background: var(--success); }
         .achievement-category-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--glass); color: var(--text-secondary); font-weight: 500; }
+        @keyframes achievementInFx {
+            0% { opacity: 0; transform: translateY(10px) scale(0.985); filter: blur(2px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes achievementUnlockFx {
+            0% { box-shadow: 0 0 0 rgba(48,209,88,0); }
+            35% { box-shadow: 0 0 0 2px rgba(48,209,88,0.4), 0 14px 34px rgba(48,209,88,0.35); }
+            100% { box-shadow: 0 0 0 rgba(48,209,88,0); }
+        }
         /* Mobile click-to-expand progress */
         .achievement-detail-panel { 
             position: absolute; 
@@ -5076,6 +5184,41 @@
             ttsEnabled: false,
             ttsSpeed: 1
         };
+        const profileDataEl = document.getElementById('profile');
+        const activeUserId = String(profileDataEl?.dataset?.userId || '0');
+        const ACHIEVEMENTS_STORAGE_VERSION = 'v2';
+        const userScopedKey = (base) => `${base}:u${activeUserId}`;
+        const versionedUserScopedKey = (base) => `${base}:${ACHIEVEMENTS_STORAGE_VERSION}:u${activeUserId}`;
+        const UNLOCKED_ACHIEVEMENTS_KEY = versionedUserScopedKey('unlockedAchievements');
+        const USER_ACHIEVEMENTS_KEY = versionedUserScopedKey('userAchievements');
+        const VERSE_HISTORY_KEY = userScopedKey('verseHistory');
+        const SHARED_VERSES_KEY = userScopedKey('sharedVerses');
+        const VERSE_STREAK_KEY = userScopedKey('verseStreak');
+        const XP_STORAGE_KEY = versionedUserScopedKey('bibleXpState');
+        const DAILY_CHALLENGE_TOAST_KEY = userScopedKey('dailyChallengeCompleteDate');
+        const DAILY_CHALLENGE_COMPLETED_AT_PREFIX = `${userScopedKey('dailyChallengeCompletedAt')}:`;
+        const XP_DAILY_COUNTS_KEY = userScopedKey('xpDailyCounts');
+        const XP_DAILY_RESET_KEY = userScopedKey('xpDailyReset');
+        let userAchievements = [];
+        let userStats = {
+            total_verses: 0,
+            liked: 0,
+            saved: 0,
+            comments: 0,
+            replies: 0,
+            shares: 0,
+            purchases: 0,
+            liked_comments: 0
+        };
+        try {
+            const savedAchievementState = JSON.parse(localStorage.getItem(USER_ACHIEVEMENTS_KEY) || '{}');
+            if (Array.isArray(savedAchievementState.completed)) {
+                userAchievements = savedAchievementState.completed;
+            }
+            if (savedAchievementState.stats && typeof savedAchievementState.stats === 'object') {
+                userStats = { ...userStats, ...savedAchievementState.stats };
+            }
+        } catch (_) {}
         let commentRestriction = { restricted: false, reason: '', expires_at: null };
         let notificationsCache = [];
         let themeAuto = false;
@@ -7104,6 +7247,21 @@
             return div.innerHTML;
         }
 
+        function animateStatValue(statId, value) {
+            const valueEl = document.getElementById(statId);
+            if (!valueEl) return;
+            const nextText = String(value ?? 0);
+            const changed = valueEl.textContent !== nextText;
+            valueEl.textContent = nextText;
+            if (!changed || !settings.animations) return;
+            const card = valueEl.closest('.stat-card');
+            if (!card) return;
+            card.classList.remove('stat-pop');
+            void card.offsetWidth;
+            card.classList.add('stat-pop');
+            setTimeout(() => card.classList.remove('stat-pop'), 520);
+        }
+
         function renderAvatarMarkup(url, name, decor, imgClass) {
             const safeName = name || 'User';
             const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random`;
@@ -7156,12 +7314,13 @@
             } catch (_) {}
 
             const safeStats = stats || { total_verses: 0, liked: 0, saved: 0, comments: 0, replies: 0 };
-            document.getElementById('statVerses').textContent = safeStats.total_verses ?? 0;
-            document.getElementById('statLiked').textContent = safeStats.liked ?? 0;
-            document.getElementById('statSaved').textContent = safeStats.saved ?? 0;
-            document.getElementById('statComments').textContent = safeStats.comments ?? 0;
+            userStats = { ...userStats, ...safeStats };
+            animateStatValue('statVerses', safeStats.total_verses ?? 0);
+            animateStatValue('statLiked', safeStats.liked ?? 0);
+            animateStatValue('statSaved', safeStats.saved ?? 0);
+            animateStatValue('statComments', safeStats.comments ?? 0);
             if (document.getElementById('statReplies')) {
-                document.getElementById('statReplies').textContent = safeStats.replies || 0;
+                animateStatValue('statReplies', safeStats.replies || 0);
             }
             
             let userData = {};
@@ -7646,7 +7805,7 @@
 
         // 1. READING STREAK
         function loadStreak() {
-            const streakData = JSON.parse(localStorage.getItem('verseStreak') || '{}');
+            const streakData = JSON.parse(localStorage.getItem(VERSE_STREAK_KEY) || '{}');
             const today = new Date().toDateString();
             const lastVisit = streakData.lastVisit;
             let streak = streakData.streak || 0;
@@ -7664,7 +7823,7 @@
                 
                 streakData.streak = streak;
                 streakData.lastVisit = today;
-                localStorage.setItem('verseStreak', JSON.stringify(streakData));
+                localStorage.setItem(VERSE_STREAK_KEY, JSON.stringify(streakData));
             }
             
             // Update UI
@@ -7710,11 +7869,11 @@
 
         // 2. ACHIEVEMENT BADGES
 function getSharedVerseCount() {
-    return (localStorage.getItem('sharedVerses') || '').split(',').filter(x => x).length;
+    return (localStorage.getItem(SHARED_VERSES_KEY) || '').split(',').filter(x => x).length;
 }
 
 function getStreakCount() {
-    const s = JSON.parse(localStorage.getItem('verseStreak') || '{}');
+    const s = JSON.parse(localStorage.getItem(VERSE_STREAK_KEY) || '{}');
     return s.streak || 0;
 }
 
@@ -7827,9 +7986,10 @@ async function loadAchievements(stats) {
         stats = await fetchUserStats();
     }
     currentAchievementStats = stats;
-    const unlocked = JSON.parse(localStorage.getItem('unlockedAchievements') || '[]');
+    const unlocked = JSON.parse(localStorage.getItem(UNLOCKED_ACHIEVEMENTS_KEY) || '[]');
     let totalXPEarned = 0;
     let newUnlocks = false;
+    const newUnlockIds = [];
     
     // Check for new unlocks and calculate XP
     ACHIEVEMENTS.forEach(ach => {
@@ -7837,6 +7997,7 @@ async function loadAchievements(stats) {
             totalXPEarned += ach.xp || 50;
         } else if (ach.check(stats)) {
             unlocked.push(ach.id);
+            newUnlockIds.push(ach.id);
             totalXPEarned += ach.xp || 50;
             newUnlocks = true;
             const awarded = awardXp(ach.xp || 50, 'achievement', ach.id);
@@ -7846,10 +8007,22 @@ async function loadAchievements(stats) {
             if (awarded && typeof AudioSys !== 'undefined') AudioSys.playSuccess();
         }
     });
-    localStorage.setItem('unlockedAchievements', JSON.stringify(unlocked));
+    localStorage.setItem(UNLOCKED_ACHIEVEMENTS_KEY, JSON.stringify(unlocked));
     
     // Update achievements list
     renderAchievementsList();
+    if (newUnlockIds.length) {
+        requestAnimationFrame(() => {
+            newUnlockIds.forEach(id => {
+                const el = document.querySelector(`.achievement-item[data-ach-id="${id}"]`);
+                if (!el) return;
+                el.classList.remove('just-unlocked');
+                void el.offsetWidth;
+                el.classList.add('just-unlocked');
+                setTimeout(() => el.classList.remove('just-unlocked'), 1200);
+            });
+        });
+    }
     
     // Update achievements stats header
     const completedEl = document.getElementById('achievementsCompleted');
@@ -7862,7 +8035,7 @@ async function loadAchievements(stats) {
 
 async function fetchUserStats() {
     try {
-        const res = await fetch('/api/profile_stats');
+        const res = await fetch('/api/stats');
         if (!res.ok) return userStats;
         return await res.json();
     } catch (e) {
@@ -7874,7 +8047,7 @@ function renderAchievementsList() {
     const container = document.getElementById('achievementsList');
     if (!container) return;
     
-    const unlocked = JSON.parse(localStorage.getItem('unlockedAchievements') || '[]');
+    const unlocked = JSON.parse(localStorage.getItem(UNLOCKED_ACHIEVEMENTS_KEY) || '[]');
     const stats = currentAchievementStats;
     
     // Filter achievements
@@ -7883,7 +8056,7 @@ function renderAchievementsList() {
         achievementsToShow = ACHIEVEMENTS.filter(ach => ach.category === currentAchievementFilter);
     }
     
-    container.innerHTML = achievementsToShow.map(ach => {
+    container.innerHTML = achievementsToShow.map((ach, idx) => {
         const isUnlocked = unlocked.includes(ach.id);
         const progress = getAchievementProgress(ach, stats, isUnlocked);
         const categoryLabels = {
@@ -7892,9 +8065,10 @@ function renderAchievementsList() {
         };
         
         return `
-            <div class="achievement-item ${isUnlocked ? 'completed' : ''}" 
+            <div class="achievement-item animated-in ${isUnlocked ? 'completed' : ''}" 
                  onclick="showAchievementDetail('${ach.id}', ${isUnlocked})"
-                 data-ach-id="${ach.id}">
+                 data-ach-id="${ach.id}"
+                 style="--ach-delay:${Math.min(idx * 40, 320)}ms;">
                 <div class="achievement-icon">${ach.icon}</div>
                 <div class="achievement-content">
                     <div class="achievement-name">
@@ -8071,7 +8245,7 @@ async function checkAchievement(type, value) {
         // 4. VERSE HISTORY
         function loadVerseHistory() {
             const container = document.getElementById('verseHistory');
-            const history = JSON.parse(localStorage.getItem('verseHistory') || '[]');
+            const history = JSON.parse(localStorage.getItem(VERSE_HISTORY_KEY) || '[]');
             const today = new Date().toDateString();
             
             // Filter to today's verses only
@@ -8100,7 +8274,7 @@ async function checkAchievement(type, value) {
         // Save verse to history when fetched
         function addToVerseHistory(verse) {
             if (!verse || !verse.ref) return;
-            const history = JSON.parse(localStorage.getItem('verseHistory') || '[]');
+            const history = JSON.parse(localStorage.getItem(VERSE_HISTORY_KEY) || '[]');
             history.push({
                 ref: verse.ref,
                 id: verse.id,
@@ -8108,14 +8282,14 @@ async function checkAchievement(type, value) {
             });
             // Keep last 100
             if (history.length > 100) history.shift();
-            localStorage.setItem('verseHistory', JSON.stringify(history));
+            localStorage.setItem(VERSE_HISTORY_KEY, JSON.stringify(history));
         }
 
         // Track shares for achievement
         function trackShare() {
-            const shared = (localStorage.getItem('sharedVerses') || '').split(',').filter(x => x);
+            const shared = (localStorage.getItem(SHARED_VERSES_KEY) || '').split(',').filter(x => x);
             shared.push(Date.now());
-            localStorage.setItem('sharedVerses', shared.join(','));
+            localStorage.setItem(SHARED_VERSES_KEY, shared.join(','));
             trackDailyAction('share');
             awardXP(35, 'share');
             trackStat('shares');
@@ -8125,9 +8299,6 @@ async function checkAchievement(type, value) {
         // === DISCOVER TAB FEATURES ===
         
         // Daily Challenge + XP System
-        const DAILY_CHALLENGE_TOAST_KEY = 'dailyChallengeCompleteDate';
-        const DAILY_CHALLENGE_COMPLETED_AT_PREFIX = 'dailyChallengeCompletedAt:';
-        const XP_STORAGE_KEY = 'bibleXpState';
         const ACHIEVEMENT_XP = 750;
 
         function getXpState() {
@@ -9966,9 +10137,13 @@ async function checkAchievement(type, value) {
 
         function showToast(msg, type = 'info', duration = 2800) {
             const toast = document.getElementById('toast');
+            const safeDuration = Math.max(500, Number(duration) || 2800);
             toast.textContent = msg;
             toast.className = 'toast';
-            toast.classList.add('show');
+            if (toast._hideTimer) clearTimeout(toast._hideTimer);
+            toast.style.setProperty('--toast-duration', `${safeDuration}ms`);
+            void toast.offsetWidth;
+            toast.classList.add('show', 'burst');
             
             // Play appropriate sound
             if (settings.sound) {
@@ -9981,7 +10156,7 @@ async function checkAchievement(type, value) {
                 }
             }
             
-            setTimeout(() => toast.classList.remove('show'), duration);
+            toast._hideTimer = setTimeout(() => toast.classList.remove('show', 'burst'), safeDuration);
         }
 
         function logout() {
@@ -10155,15 +10330,15 @@ async function checkAchievement(type, value) {
         };
         
         let xpActionCooldowns = {};
-        let xpDailyCounts = JSON.parse(localStorage.getItem('xpDailyCounts') || '{}');
+        let xpDailyCounts = JSON.parse(localStorage.getItem(XP_DAILY_COUNTS_KEY) || '{}');
         
         // Reset daily counts at midnight
-        const lastReset = localStorage.getItem('xpDailyReset');
+        const lastReset = localStorage.getItem(XP_DAILY_RESET_KEY);
         const today = new Date().toDateString();
         if (lastReset !== today) {
             xpDailyCounts = {};
-            localStorage.setItem('xpDailyCounts', JSON.stringify(xpDailyCounts));
-            localStorage.setItem('xpDailyReset', today);
+            localStorage.setItem(XP_DAILY_COUNTS_KEY, JSON.stringify(xpDailyCounts));
+            localStorage.setItem(XP_DAILY_RESET_KEY, today);
         }
         
         async function earnXP(actionType, multiplier = 1, customAmount = null) {
@@ -10202,7 +10377,7 @@ async function checkAchievement(type, value) {
             // Apply cooldown and track daily count
             xpActionCooldowns[actionType] = now + action.cooldown;
             xpDailyCounts[dailyKey] = currentCount + 1;
-            localStorage.setItem('xpDailyCounts', JSON.stringify(xpDailyCounts));
+            localStorage.setItem(XP_DAILY_COUNTS_KEY, JSON.stringify(xpDailyCounts));
             
             // Award XP
             const result = await awardXP(amount, actionType);
@@ -10390,11 +10565,28 @@ async function checkAchievement(type, value) {
         
         // Track stats for achievements
         async function trackStat(type, increment = 1) {
-            userStats[type] = (userStats[type] || 0) + increment;
-            await checkAchievement(type, userStats[type]);
+            const statKeyMap = {
+                like: 'liked',
+                likes: 'liked',
+                save: 'saved',
+                saves: 'saved',
+                comment: 'comments',
+                comments: 'comments',
+                reply: 'replies',
+                replies: 'replies',
+                share: 'shares',
+                shares: 'shares',
+                view: 'total_verses',
+                total_verses: 'total_verses',
+                purchase: 'purchases',
+                purchases: 'purchases'
+            };
+            const statKey = statKeyMap[type] || type;
+            userStats[statKey] = (userStats[statKey] || 0) + increment;
+            await checkAchievement(statKey, userStats[statKey]);
             
             // Save to localStorage
-            localStorage.setItem('userAchievements', JSON.stringify({
+            localStorage.setItem(USER_ACHIEVEMENTS_KEY, JSON.stringify({
                 completed: userAchievements,
                 stats: userStats
             }));
@@ -10404,8 +10596,3 @@ async function checkAchievement(type, value) {
     </script>
 </body>
 </html>
-
-
-
-
-
