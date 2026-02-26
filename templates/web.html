@@ -2293,6 +2293,19 @@
             width: 90px;
             height: 90px;
         }
+        #profileAvatarWrap::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            border: 2px solid rgba(10, 132, 255, 0.28);
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+        }
+        #profileAvatarWrap.equip-pulse::after {
+            animation: equipRingPulse 0.82s ease-out;
+        }
         .avatar-shop-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -3895,6 +3908,9 @@
         }
         .shop-item.owned { border-color: var(--success); opacity: 0.7; }
         .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
+        .shop-item.equip-pop {
+            animation: equipItemPop 0.58s cubic-bezier(0.2, 0.84, 0.2, 1);
+        }
         .shop-item.legendary { border-color: #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.1), var(--surface)); }
         .shop-item.epic { border-color: #BF5AF2; background: linear-gradient(135deg, rgba(191,90,242,0.1), var(--surface)); }
         .shop-item.rare { border-color: #0A84FF; background: linear-gradient(135deg, rgba(10,132,255,0.1), var(--surface)); }
@@ -4061,7 +4077,8 @@
         .xp-guide-special { background: linear-gradient(135deg, rgba(191,90,242,0.1), var(--surface)); border-color: rgba(191,90,242,0.3); }
         
         /* Profile customization display */
-        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; }
+        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; z-index: 2; }
+        .profile-frame.equip-pulse { animation: equipFrameFlash 0.82s ease !important; }
         .profile-frame.gold { border: 3px solid #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.5); animation: goldPulse 2s ease-in-out infinite; }
         .profile-frame.silver { border: 3px solid #C0C0C0; box-shadow: 0 0 15px rgba(192,192,192,0.4); }
         .profile-frame.bronze { border: 3px solid #CD7F32; box-shadow: 0 0 12px rgba(205,127,50,0.4); }
@@ -4117,7 +4134,7 @@
         .profile-bg-fire { background: linear-gradient(135deg, rgba(255,69,0,0.3), rgba(255,215,0,0.2)) !important; }
         
         /* Comment Avatar Frames */
-        .comment-avatar-frame { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; }
+        .comment-avatar-frame { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; z-index: 2; }
         .comment-avatar-frame.gold { border: 2px solid #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
         .comment-avatar-frame.silver { border: 2px solid #C0C0C0; box-shadow: 0 0 8px rgba(192,192,192,0.3); }
         .comment-avatar-frame.bronze { border: 2px solid #CD7F32; box-shadow: 0 0 6px rgba(205,127,50,0.3); }
@@ -4128,6 +4145,14 @@
         .comment-avatar-frame.ice { border: 2px solid #00CED1; box-shadow: 0 0 8px rgba(0,206,209,0.4); }
         .comment-avatar-frame.nature { border: 2px solid #228B22; box-shadow: 0 0 8px rgba(34,139,34,0.3); }
         .comment-avatar-frame.stars { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .comment-avatar-frame.wood { border: 2px solid #8B4513; box-shadow: 0 0 6px rgba(139,69,19,0.35); }
+        .comment-avatar-frame.stone { border: 2px solid #808080; box-shadow: inset 0 0 8px rgba(128,128,128,0.34); }
+        .comment-avatar-frame.divine { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF1493, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: mythicPulse 1.8s infinite; }
+        .comment-avatar-frame.divine::after { content: '😇'; position: absolute; top: -8px; right: -6px; font-size: 12px; }
+        .comment-avatar-frame.cosmic { border: 2px solid #9400D3; box-shadow: 0 0 16px rgba(148,0,211,0.55), inset 0 0 9px rgba(148,0,211,0.35); animation: mythicPulse 1.3s infinite; }
+        .comment-avatar-frame.cosmic::after { content: '🌌'; position: absolute; top: -8px; left: -6px; font-size: 12px; animation: starTwinkle 1s infinite; }
+        .comment-avatar-frame.infinity { border: 2px solid transparent; background: linear-gradient(135deg, #FF1493, #00FF87, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 3s linear infinite; }
+        .comment-avatar-frame.infinity::after { content: '♾️'; position: absolute; bottom: -8px; right: -6px; font-size: 12px; }
         
         /* Animations */
         @keyframes rainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
@@ -4145,9 +4170,23 @@
         @keyframes fireText { 0% { text-shadow: 0 0 10px #FF4500; } 100% { text-shadow: 0 0 20px #FF4500, 0 0 30px #FF4500; } }
         @keyframes mythicPulse { 0%, 100% { box-shadow: 0 0 10px rgba(255,20,147,0.4); } 50% { box-shadow: 0 0 25px rgba(255,20,147,0.7); } }
         @keyframes mythicShine { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes equipFrameFlash {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.28); }
+            100% { filter: brightness(1); }
+        }
+        @keyframes equipItemPop {
+            0% { transform: scale(1); }
+            35% { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 0 1px rgba(255,255,255,0.28), 0 14px 36px var(--primary-glow); }
+            100% { transform: scale(1); }
+        }
+        @keyframes equipRingPulse {
+            0% { opacity: 0.75; transform: scale(0.9); }
+            100% { opacity: 0; transform: scale(1.16); }
+        }
         
         /* Shop Item Effects - Profile Frames */
-        .profile-frame { position: relative; }
+        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; z-index: 2; }
         .profile-frame-frame_gold { border: 3px solid #FFD700 !important; box-shadow: 0 0 20px rgba(255,215,0,0.5), inset 0 0 10px rgba(255,215,0,0.2) !important; animation: goldPulse 2s infinite; }
         .profile-frame-frame_silver { border: 3px solid #C0C0C0 !important; box-shadow: 0 0 15px rgba(192,192,192,0.4) !important; }
         .profile-frame-frame_bronze { border: 3px solid #CD7F32 !important; box-shadow: 0 0 12px rgba(205,127,50,0.4) !important; }
@@ -4201,7 +4240,40 @@
         .user-title-mythic { background: linear-gradient(135deg, #FF1493, #9400D3, #00CED1); color: #fff; box-shadow: 0 0 20px rgba(255,20,147,0.5); animation: mythicShine 3s linear infinite; }
         
         /* Shop Item Effects - Badges */
-        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 14px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 18px; min-height: 18px; }
+        .profile-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            margin: 0 3px;
+            font-size: 14px;
+            border: 1px solid rgba(255,255,255,0.28);
+            box-shadow: 0 5px 14px rgba(0,0,0,0.22);
+            background: var(--badge-color, var(--primary));
+        }
+        .profile-badge.badge-mythic { animation: mythicPulse 1.6s infinite; }
+        .user-badge-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            font-size: 12px;
+            cursor: help;
+            vertical-align: middle;
+            flex-shrink: 0;
+            min-width: 20px;
+            min-height: 20px;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.26);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.24);
+            background: var(--badge-color, rgba(255,255,255,0.14));
+            line-height: 1;
+        }
+        .user-badge-icon.badge-mythic { animation: mythicPulse 1.4s infinite; }
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
@@ -7288,6 +7360,60 @@
             }
             return customization;
         }
+
+        function resolveFrameClass(itemId, effects) {
+            const id = String(itemId || '').toLowerCase();
+            const fx = effects || {};
+            const frameStyle = String(fx.frame_style || '').toLowerCase();
+            const frameColor = String(fx.frame_color || '').toUpperCase();
+
+            if (id.includes('gold') || frameColor === '#FFD700') return 'gold';
+            if (id.includes('silver') || frameColor === '#C0C0C0') return 'silver';
+            if (id.includes('bronze') || frameColor === '#CD7F32') return 'bronze';
+            if (id.includes('angel') || frameStyle === 'wings') return 'angel';
+            if (id.includes('cross') || frameStyle === 'cross') return 'cross';
+            if (id.includes('heart') || frameStyle === 'heart') return 'heart';
+            if (id.includes('fire') || frameStyle === 'fire') return 'fire';
+            if (id.includes('ice') || frameColor === '#00CED1') return 'ice';
+            if (id.includes('nature') || frameStyle === 'nature') return 'nature';
+            if (id.includes('stars') || frameStyle === 'stars') return 'stars';
+            if (id.includes('wood')) return 'wood';
+            if (id.includes('stone')) return 'stone';
+            if (id.includes('divine') || frameStyle === 'divine') return 'divine';
+            if (id.includes('cosmic') || frameStyle === 'cosmic') return 'cosmic';
+            if (id.includes('infinity') || frameStyle === 'infinity') return 'infinity';
+            return '';
+        }
+
+        function resolveFrameClassFromItem(frameItem) {
+            if (!frameItem) return '';
+            return resolveFrameClass(frameItem.item_id || '', frameItem.effects || {});
+        }
+
+        function getNameColorClass(nameColorItem) {
+            if (!nameColorItem || !nameColorItem.item_id) return '';
+            const safeItemId = String(nameColorItem.item_id).replace(/[^a-zA-Z0-9_-]/g, '');
+            return safeItemId ? `profile-name-${safeItemId}` : '';
+        }
+
+        function renderBadgeIconMarkup(badge, profileBadge = false) {
+            if (!badge || !(badge.icon || badge.name)) return '';
+            const badgeIcon = badge.icon || '🏅';
+            const badgeName = escapeHtml(badge.name || 'Badge');
+            const badgeColor = badge.effects?.color || 'var(--primary)';
+            const badgeRarity = (badge.rarity || 'common').toLowerCase();
+            if (profileBadge) {
+                return `<span class="profile-badge badge-${badgeRarity}" style="--badge-color: ${badgeColor};" title="${badgeName}">${badgeIcon}</span>`;
+            }
+            return `<span class="user-badge-icon badge-${badgeRarity}" style="--badge-color: ${badgeColor};" title="${badgeName}">${badgeIcon}</span>`;
+        }
+
+        function removeClassesByPrefix(el, prefix) {
+            if (!el) return;
+            Array.from(el.classList).forEach(cls => {
+                if (cls.startsWith(prefix)) el.classList.remove(cls);
+            });
+        }
         
         function renderCommentItem(c, type) {
             const isOwner = c.user_id === parseInt('{{ user.id }}');
@@ -7302,8 +7428,8 @@
             const canDm = c.user_id && !isOwner;
             
             // Extract equipped items from comment data
-            const frameClass = c.equipped_frame ? `profile-frame profile-frame-${c.equipped_frame.item_id}` : '';
-            const nameColorClass = c.equipped_name_color ? `profile-name-${c.equipped_name_color.item_id}` : '';
+            const frameClass = resolveFrameClassFromItem(c.equipped_frame);
+            const nameColorClass = getNameColorClass(c.equipped_name_color);
             
             // Build title HTML with fallback
             let titleHtml = '';
@@ -7313,14 +7439,11 @@
             }
             
             // Build badges HTML with fallback
-            const badgesHtml = (c.equipped_badges || []).filter(b => b && b.name).map(b => {
-                const badgeIcon = b.icon || '🏅';
-                return `<span class="user-badge-icon" title="${b.name}">${badgeIcon}</span>`;
-            }).join('');
+            const badgesHtml = (c.equipped_badges || []).map(b => renderBadgeIconMarkup(b)).join('');
             
             const chatEffectClass = c.equipped_chat_effect ? `chat-effect-${c.equipped_chat_effect.item_id}` : '';
             
-            const avatarHtml = renderAvatarMarkup(c.user_picture, c.user_name, c.avatar_decoration, 'comment-avatar ' + frameClass);
+            const avatarHtml = renderAvatarMarkup(c.user_picture, c.user_name, c.avatar_decoration, 'comment-avatar', frameClass);
             
             return `
                 <div class="comment-item ${chatEffectClass}" id="${type}-${c.id}" data-user-id="${c.user_id || ''}">
@@ -7334,9 +7457,9 @@
                         <div class="comment-meta">
                             <div class="comment-name-row">
                                 ${c.user_id ? `
-                                    <a class="comment-user-link comment-name ${nameColorClass}" href="/u/${c.user_id}" data-user-id="${c.user_id}">${c.user_name}</a>
+                                    <a class="comment-user-link comment-name ${nameColorClass}" href="/u/${c.user_id}" data-user-id="${c.user_id}">${escapeHtml(c.user_name || 'Anonymous')}</a>
                                 ` : `
-                                    <div class="comment-name ${nameColorClass}">${c.user_name}</div>
+                                    <div class="comment-name ${nameColorClass}">${escapeHtml(c.user_name || 'Anonymous')}</div>
                                 `}
                                 <span class="comment-role-badge comment-role-${role}">${escapeHtml(roleDisplay)}</span>
                                 ${badgesHtml}
@@ -7394,8 +7517,8 @@
                 const roleDisplay = role.replace('_', ' ');
                 
                 // Extract equipped items from reply data
-                const frameClass = r.equipped_frame ? `profile-frame profile-frame-${r.equipped_frame.item_id}` : '';
-                const nameColorClass = r.equipped_name_color ? `profile-name-${r.equipped_name_color.item_id}` : '';
+                const frameClass = resolveFrameClassFromItem(r.equipped_frame);
+                const nameColorClass = getNameColorClass(r.equipped_name_color);
                 
                 // Build title HTML with fallback
                 let titleHtml = '';
@@ -7405,14 +7528,11 @@
                 }
                 
                 // Build badges HTML with fallback
-                const badgesHtml = (r.equipped_badges || []).filter(b => b && b.name).map(b => {
-                    const badgeIcon = b.icon || '🏅';
-                    return `<span class="user-badge-icon" title="${b.name}">${badgeIcon}</span>`;
-                }).join('');
+                const badgesHtml = (r.equipped_badges || []).map(b => renderBadgeIconMarkup(b)).join('');
                 
                 const chatEffectClass = r.equipped_chat_effect ? `chat-effect-${r.equipped_chat_effect.item_id}` : '';
                 
-                const avatarHtml = renderAvatarMarkup(r.user_picture || '', r.user_name || 'User', r.avatar_decoration || '', 'comment-avatar ' + frameClass);
+                const avatarHtml = renderAvatarMarkup(r.user_picture || '', r.user_name || 'User', r.avatar_decoration || '', 'comment-avatar', frameClass);
                 return `
                     <div class="comment-item reply-item ${chatEffectClass}" style="margin-left: 26px; margin-top: 8px; border-left: 2px solid rgba(255,255,255,0.12);" data-user-id="${r.user_id || ''}">
                         <div class="comment-header">
@@ -7487,14 +7607,16 @@
             setTimeout(() => card.classList.remove('stat-pop'), 520);
         }
 
-        function renderAvatarMarkup(url, name, decor, imgClass) {
+        function renderAvatarMarkup(url, name, decor, imgClass, frameClass = '') {
             const safeName = name || 'User';
             const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random`;
             const avatarUrl = url || '';
             const decorAnim = (typeof DECOR_ANIMATIONS === 'object' && DECOR_ANIMATIONS[decor]) ? ` ${DECOR_ANIMATIONS[decor]}` : '';
             const decorImg = decor ? `<img class="avatar-decor${decorAnim}" src="${decor}" alt="">` : '';
+            const frameMarkup = frameClass ? `<span class="comment-avatar-frame ${frameClass}" aria-hidden="true"></span>` : '';
             return `
                 <span class="avatar-wrap">
+                    ${frameMarkup}
                     <img src="${avatarUrl}" class="${imgClass}" onerror="this.src='${fallback}'">
                     ${decorImg}
                 </span>
@@ -7633,48 +7755,24 @@
                 // Apply frame - check both equipped_frame (from API) and frame
                 const frameEl = document.getElementById('profileFrame');
                 const equippedFrame = data.equipped_frame || data.frame;
-                if (frameEl && equippedFrame) {
-                    const effects = equippedFrame.effects || {};
-                    const itemId = equippedFrame.item_id || '';
+                if (frameEl) {
                     frameEl.className = 'profile-frame';
-                    
-                    // Apply frame based on item_id for more specific styling
-                    if (itemId.includes('gold') || effects.frame_color === '#FFD700') frameEl.classList.add('gold');
-                    else if (itemId.includes('silver') || effects.frame_color === '#C0C0C0') frameEl.classList.add('silver');
-                    else if (itemId.includes('bronze') || effects.frame_color === '#CD7F32') frameEl.classList.add('bronze');
-                    else if (itemId.includes('angel') || effects.frame_style === 'wings') frameEl.classList.add('angel');
-                    else if (itemId.includes('cross') || effects.frame_style === 'cross') frameEl.classList.add('cross');
-                    else if (itemId.includes('heart') || effects.frame_style === 'heart') frameEl.classList.add('heart');
-                    else if (itemId.includes('fire') || effects.frame_style === 'fire') frameEl.classList.add('fire');
-                    else if (itemId.includes('ice') || effects.frame_color === '#00CED1') frameEl.classList.add('ice');
-                    else if (itemId.includes('nature') || effects.frame_style === 'nature') frameEl.classList.add('nature');
-                    else if (itemId.includes('stars') || effects.frame_style === 'stars') frameEl.classList.add('stars');
-                    else if (itemId.includes('wood')) frameEl.classList.add('wood');
-                    else if (itemId.includes('stone')) frameEl.classList.add('stone');
-                    else if (itemId.includes('divine')) frameEl.classList.add('divine');
-                    else if (itemId.includes('cosmic')) frameEl.classList.add('cosmic');
-                    else if (itemId.includes('infinity')) frameEl.classList.add('infinity');
-                } else if (frameEl) {
-                    frameEl.className = 'profile-frame';
+                    const frameClass = resolveFrameClassFromItem(equippedFrame);
+                    if (frameClass) frameEl.classList.add(frameClass);
                 }
                 
                 // Apply name color - check both equipped_name_color and name_color
                 const nameEl = document.getElementById('profileUserName');
                 const equippedNameColor = data.equipped_name_color || data.name_color;
-                if (nameEl && equippedNameColor) {
-                    const effects = equippedNameColor.effects || {};
-                    const itemId = equippedNameColor.item_id || '';
+                if (nameEl) {
                     nameEl.className = 'user-name';
-                    
-                    if (effects.gradient || itemId.includes('rainbow')) nameEl.classList.add('rainbow');
-                    else if (itemId.includes('gold') || effects.color === '#FFD700') nameEl.classList.add('gold');
-                    else if (itemId.includes('neon') || effects.color === '#39FF14') nameEl.classList.add('neon');
-                    else if (itemId.includes('blue') || effects.color === '#0A84FF') nameEl.classList.add('blue');
-                    else if (itemId.includes('red') || effects.color === '#FF375F') nameEl.classList.add('red');
-                    else if (itemId.includes('purple') || effects.color === '#BF5AF2') nameEl.classList.add('purple');
-                    else if (itemId.includes('green') || effects.color === '#30D158') nameEl.classList.add('green');
-                    else if (itemId.includes('pink') || effects.color === '#FF69B4') nameEl.classList.add('pink');
-                    else if (effects.color) nameEl.style.color = effects.color;
+                    nameEl.style.color = '';
+                    if (equippedNameColor) {
+                        const effects = equippedNameColor.effects || {};
+                        const colorClass = getNameColorClass(equippedNameColor);
+                        if (colorClass) nameEl.classList.add(colorClass);
+                        else if (effects.color) nameEl.style.color = effects.color;
+                    }
                 }
                 
                 // Apply title - check both equipped_title and title
@@ -7692,10 +7790,7 @@
                 const badgesEl = document.getElementById('profileBadges');
                 const equippedBadges = data.equipped_badges || data.badges;
                 if (badgesEl && equippedBadges && equippedBadges.length > 0) {
-                    badgesEl.innerHTML = equippedBadges.map(b => {
-                        const effects = b.effects || {};
-                        return `<span class="profile-badge" style="background: ${effects.color || 'var(--primary)'}" title="${b.name}">${b.icon}</span>`;
-                    }).join('');
+                    badgesEl.innerHTML = equippedBadges.map(b => renderBadgeIconMarkup(b, true)).join('');
                 } else if (badgesEl) {
                     badgesEl.innerHTML = '';
                 }
@@ -7750,17 +7845,12 @@
             const nameEl = element.querySelector('.user-name, .comment-name, .message-name');
             if (nameEl && customization.name_color) {
                 const effects = customization.name_color.effects || {};
-                const itemId = customization.name_color.item_id || '';
+                const colorClass = getNameColorClass(customization.name_color);
                 nameEl.classList.add('user-name');
-                
-                if (effects.gradient || itemId.includes('rainbow')) nameEl.classList.add('rainbow');
-                else if (itemId.includes('gold') || effects.color === '#FFD700') nameEl.classList.add('gold');
-                else if (itemId.includes('neon') || effects.color === '#39FF14') nameEl.classList.add('neon');
-                else if (itemId.includes('blue') || effects.color === '#0A84FF') nameEl.classList.add('blue');
-                else if (itemId.includes('red') || effects.color === '#FF375F') nameEl.classList.add('red');
-                else if (itemId.includes('purple') || effects.color === '#BF5AF2') nameEl.classList.add('purple');
-                else if (itemId.includes('green') || effects.color === '#30D158') nameEl.classList.add('green');
-                else if (itemId.includes('pink') || effects.color === '#FF69B4') nameEl.classList.add('pink');
+                removeClassesByPrefix(nameEl, 'profile-name-');
+                nameEl.style.color = '';
+                if (colorClass) nameEl.classList.add(colorClass);
+                else if (effects.color) nameEl.style.color = effects.color;
             }
             
             // Apply title - only if not already present
@@ -7794,10 +7884,7 @@
                         const badgesSpan = document.createElement('span');
                         badgesSpan.className = 'user-badges';
                         badgesSpan.setAttribute('data-shop-effect', 'true');
-                        badgesSpan.innerHTML = validBadges.map(b => {
-                            const badgeIcon = b.icon || '🏅';
-                            return `<span class="user-badge-small" style="background: ${b.effects?.color || 'var(--primary)'}" title="${b.name}">${badgeIcon}</span>`;
-                        }).join('');
+                        badgesSpan.innerHTML = validBadges.map(b => renderBadgeIconMarkup(b)).join('');
                         nameEl.parentNode.insertBefore(badgesSpan, nameEl.nextSibling);
                     }
                 }
@@ -7805,38 +7892,33 @@
             
             // Apply avatar frame
             const avatarEl = element.querySelector('.comment-avatar, .message-avatar, .user-avatar');
-            if (avatarEl && customization.frame) {
-                const effects = customization.frame.effects || {};
-                const itemId = customization.frame.item_id || '';
-                let frameDiv = avatarEl.querySelector('.comment-avatar-frame');
+            const avatarWrap = avatarEl ? (avatarEl.closest('.avatar-wrap') || avatarEl.parentElement) : null;
+            let frameDiv = avatarWrap ? avatarWrap.querySelector('.comment-avatar-frame') : null;
+            if (avatarWrap && customization.frame) {
                 if (!frameDiv) {
-                    frameDiv = document.createElement('div');
+                    frameDiv = document.createElement('span');
                     frameDiv.className = 'comment-avatar-frame';
-                    avatarEl.appendChild(frameDiv);
+                    avatarWrap.insertBefore(frameDiv, avatarWrap.firstChild);
                 }
-                
-                if (itemId.includes('gold') || effects.frame_color === '#FFD700') frameDiv.classList.add('gold');
-                else if (itemId.includes('silver') || effects.frame_color === '#C0C0C0') frameDiv.classList.add('silver');
-                else if (itemId.includes('bronze') || effects.frame_color === '#CD7F32') frameDiv.classList.add('bronze');
-                else if (itemId.includes('angel') || effects.frame_style === 'wings') frameDiv.classList.add('angel');
-                else if (itemId.includes('cross') || effects.frame_style === 'cross') frameDiv.classList.add('cross');
-                else if (itemId.includes('heart') || effects.frame_style === 'heart') frameDiv.classList.add('heart');
-                else if (itemId.includes('fire') || effects.frame_style === 'fire') frameDiv.classList.add('fire');
-                else if (itemId.includes('ice') || effects.frame_color === '#00CED1') frameDiv.classList.add('ice');
-                else if (itemId.includes('nature') || effects.frame_style === 'nature') frameDiv.classList.add('nature');
-                else if (itemId.includes('stars') || effects.frame_style === 'stars') frameDiv.classList.add('stars');
+                frameDiv.className = 'comment-avatar-frame';
+                const frameClass = resolveFrameClassFromItem(customization.frame);
+                if (frameClass) frameDiv.classList.add(frameClass);
+            } else if (frameDiv) {
+                frameDiv.remove();
             }
             
             // Apply chat effect
             const messageEl = element.querySelector('.comment-text, .message-text');
             if (messageEl && customization.chat_effect) {
-                const effects = customization.chat_effect.effects || {};
                 const itemId = customization.chat_effect.item_id || '';
-                
-                if (itemId.includes('sparkle') || effects.effect === 'sparkle') messageEl.classList.add('sparkle');
-                else if (itemId.includes('rainbow') || effects.effect === 'rainbow') messageEl.classList.add('rainbow-text');
-                else if (itemId.includes('glow') || effects.effect === 'glow') messageEl.classList.add('glow');
-                else if (itemId.includes('fire') || effects.effect === 'fire') messageEl.classList.add('fire-text');
+                removeClassesByPrefix(messageEl, 'chat-effect-');
+                messageEl.classList.remove('sparkle', 'rainbow-text', 'glow', 'fire-text');
+                if (itemId) messageEl.classList.add(`chat-effect-${itemId}`);
+                const parentMessage = messageEl.closest('.comment-item, .message-item') || element;
+                if (parentMessage) {
+                    removeClassesByPrefix(parentMessage, 'chat-effect-');
+                    if (itemId) parentMessage.classList.add(`chat-effect-${itemId}`);
+                }
             }
         }
 
@@ -10801,6 +10883,33 @@ async function checkAchievement(type, value) {
                 showToast('❌ Purchase failed');
             }
         }
+
+        function playEquipAnimation(itemId) {
+            const safeItemId = String(itemId || '').replace(/"/g, '\\"');
+            const itemEl = document.querySelector(`#inventoryItems .shop-item[data-item-id="${safeItemId}"]`);
+            if (itemEl) {
+                itemEl.classList.remove('equip-pop');
+                void itemEl.offsetWidth;
+                itemEl.classList.add('equip-pop');
+                setTimeout(() => itemEl.classList.remove('equip-pop'), 650);
+            }
+
+            const avatarWrap = document.getElementById('profileAvatarWrap');
+            if (avatarWrap) {
+                avatarWrap.classList.remove('equip-pulse');
+                void avatarWrap.offsetWidth;
+                avatarWrap.classList.add('equip-pulse');
+                setTimeout(() => avatarWrap.classList.remove('equip-pulse'), 900);
+            }
+
+            const frameEl = document.getElementById('profileFrame');
+            if (frameEl) {
+                frameEl.classList.remove('equip-pulse');
+                void frameEl.offsetWidth;
+                frameEl.classList.add('equip-pulse');
+                setTimeout(() => frameEl.classList.remove('equip-pulse'), 900);
+            }
+        }
         
         async function toggleEquipItem(itemId, equip) {
             try {
@@ -10815,6 +10924,9 @@ async function checkAchievement(type, value) {
                 if (data.success) {
                     await loadInventory();
                     renderInventory();
+                    await loadProfileCustomization();
+                    applyShopEffectsToComments();
+                    if (equip) playEquipAnimation(itemId);
                     showToast(equip ? '✅ Item equipped!' : 'Item unequipped');
                 } else {
                     showToast('❌ ' + (data.error || 'Failed'));
