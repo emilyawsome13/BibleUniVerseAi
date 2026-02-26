@@ -936,6 +936,90 @@ def get_stats():
                 pass
         return jsonify({"error": str(e)}), 500
 
+@admin_bp.route('/api/verses')
+@admin_required
+def get_saved_verses():
+    conn = None
+    try:
+        conn, db_type = get_db()
+        from app import get_cursor as app_get_cursor
+        c = app_get_cursor(conn, db_type)
+
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = int(request.args.get('per_page', 50))
+        per_page = max(10, min(per_page, 200))
+        search = (request.args.get('q') or '').strip()
+
+        where = []
+        params = []
+        if search:
+            if db_type == 'postgres':
+                clause = "(COALESCE(v.reference, '') ILIKE %s OR COALESCE(v.text, '') ILIKE %s OR COALESCE(v.translation, '') ILIKE %s)"
+                token = f"%{search}%"
+                params.extend([token, token, token])
+            else:
+                clause = "(LOWER(COALESCE(v.reference, '')) LIKE ? OR LOWER(COALESCE(v.text, '')) LIKE ? OR LOWER(COALESCE(v.translation, '')) LIKE ?)"
+                token = f"%{search.lower()}%"
+                params.extend([token, token, token])
+            where.append(clause)
+
+        where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+        count_sql = f"SELECT COUNT(*) as count FROM verses v {where_sql}"
+        count_params = list(params)
+        c.execute(count_sql, tuple(count_params) if db_type == 'postgres' else count_params)
+        count_row = c.fetchone()
+        if isinstance(count_row, dict):
+            total = int(count_row.get('count', 0) or 0)
+        else:
+            total = int(count_row[0] or 0)
+
+        order_clause = "ORDER BY v.timestamp DESC NULLS LAST, v.id DESC" if db_type == 'postgres' else "ORDER BY v.timestamp DESC, v.id DESC"
+        placeholder = "%s" if db_type == 'postgres' else "?"
+        limit_clause = f"LIMIT {placeholder} OFFSET {placeholder}"
+        offset = (page - 1) * per_page
+        data_params = list(params)
+        data_params.extend([per_page, offset])
+        data_sql = f"""
+            SELECT v.id, v.reference, v.text, v.translation, v.source, v.book, v.timestamp,
+                   (SELECT COUNT(*) FROM saves s WHERE s.verse_id = v.id) AS save_count
+            FROM verses v
+            {where_sql}
+            {order_clause}
+            {limit_clause}
+        """
+        c.execute(data_sql, tuple(data_params) if db_type == 'postgres' else data_params)
+        rows = c.fetchall()
+
+        verses = []
+        for row in rows:
+            verses.append({
+                "id": row['id'] if isinstance(row, dict) else row[0],
+                "reference": row['reference'] if isinstance(row, dict) else row[1],
+                "text": row['text'] if isinstance(row, dict) else row[2],
+                "translation": row['translation'] if isinstance(row, dict) else row[3],
+                "source": row['source'] if isinstance(row, dict) else row[4],
+                "book": row['book'] if isinstance(row, dict) else row[5],
+                "timestamp": row['timestamp'] if isinstance(row, dict) else row[6],
+                "save_count": int(row['save_count'] if isinstance(row, dict) else row[7] or 0)
+            })
+
+        conn.close()
+        return jsonify({
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "verses": verses
+        })
+    except Exception as e:
+        print(f"[ERROR] Saved verses: {e}")
+        try:
+            if conn:
+                conn.close()
+        except Exception:
+            pass
+        return jsonify({"error": str(e)}), 500
+
 @admin_bp.route('/api/users')
 @admin_required
 def get_users():

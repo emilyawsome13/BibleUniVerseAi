@@ -923,6 +923,9 @@
         <div class="nav-item" onclick="showSection('restrictions'); toggleMenu();" data-section="restrictions">
             <span>&#128683;</span> Restrictions
         </div>
+        <div class="nav-item" onclick="showSection('verses'); toggleMenu();" data-section="verses">
+            <span>&#128214;</span> Saved Verses
+        </div>
         <div class="nav-item" onclick="showSection('bans'); toggleMenu();" data-section="bans">
             <span>&#128683;</span> Banned Users
         </div>
@@ -1160,6 +1163,24 @@
             </div>
         </div>
 
+        <!-- Verses Archive Section -->
+        <div id="verses-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">&#128218; Saved Verses Archive</div>
+                        <div class="stat-label" id="verseCountLabel">11,000+ verses archived</div>
+                    </div>
+                    <div class="header-actions" style="gap: 8px; flex-wrap: wrap;">
+                        <input type="text" class="search-box" id="verseSearchInput" placeholder="&#128269; Search reference, text, or translation..." oninput="handleVerseSearch(event)">
+                        <button class="btn btn-secondary" onclick="loadVerses(1)">Refresh</button>
+                    </div>
+                </div>
+                <div id="verseTableContainer" class="loading"><div class="spinner"></div>Loading saved verses...</div>
+                <div class="pagination" id="versePagination"></div>
+            </div>
+        </div>
+
         <!-- Bans Section -->
         <div id="bans-section" class="hidden">
             <div class="panel">
@@ -1374,6 +1395,11 @@
         let newRestrictHours = 24;
         let currentCommentTab = 'verse';
         let settingsCanEdit = false;
+        let versePage = 1;
+        let versePerPage = 50;
+        let verseTotalRecords = 0;
+        let verseSearchTerm = '';
+        let verseSearchTimer = null;
 
         // Format large numbers (1000 -> 1k, 1000000 -> 1m)
         function formatNumber(num) {
@@ -1388,6 +1414,13 @@
 
         function formatNumberFull(num) {
             return num.toLocaleString();
+        }
+
+        function truncateText(text, limit = 120) {
+            if (!text) return '';
+            const normalized = String(text);
+            if (normalized.length <= limit) return normalized;
+            return normalized.slice(0, limit).trim() + '...';
         }
 
         function toggleMenu() {
@@ -1448,6 +1481,7 @@
                 if (activeSection === 'bans') await loadBans();
                 if (activeSection === 'comments') await loadComments();
                 if (activeSection === 'audit') await loadAuditLogs();
+                if (activeSection === 'verses') await loadVerses(versePage);
                 if (activeSection === 'settings') await loadSettings();
             } catch (_) {
             } finally {
@@ -2337,6 +2371,129 @@
             return `${escapeHtml(area || 'Unknown')}${tz}${ip ? `<br><small style="color:#888">IP: ${escapeHtml(ip)}</small>` : ''}`;
         }
 
+        function updateVerseCountLabel() {
+            const label = document.getElementById('verseCountLabel');
+            if (!label) return;
+            if (!verseTotalRecords) {
+                label.textContent = verseSearchTerm
+                    ? `No verses match "${verseSearchTerm}"` 
+                    : 'No saved verses yet';
+                return;
+            }
+            const start = (versePage - 1) * versePerPage + 1;
+            const end = Math.min(verseTotalRecords, versePage * versePerPage);
+            label.textContent = `${verseTotalRecords.toLocaleString()} verses archived • Showing ${start}-${end}`;
+        }
+
+        function renderVerseTable(verses) {
+            const container = document.getElementById('verseTableContainer');
+            if (!container) return;
+            if (!Array.isArray(verses) || !verses.length) {
+                container.innerHTML = '<div class="empty-state">No verses match that query.</div>';
+                updateVerseCountLabel();
+                return;
+            }
+            const rows = verses.map(v => {
+                const reference = escapeHtml(v.reference || 'Unknown Reference');
+                const bookName = escapeHtml(v.book || 'Unknown Book');
+                const translation = escapeHtml(v.translation || 'Unknown');
+                const source = escapeHtml(v.source || 'local');
+                const snippet = escapeHtml(truncateText(v.text || '', 140));
+                const savedAt = formatLocalTime(v.timestamp);
+                const saves = Number(v.save_count || 0);
+                return `
+                    <tr>
+                        <td>
+                            <strong>${reference}</strong><br>
+                            <small>${bookName}</small>
+                        </td>
+                        <td>
+                            <div style="max-height:64px; overflow:hidden; line-height:1.35;">${snippet}</div>
+                        </td>
+                        <td><small>${translation}</small></td>
+                        <td><span class="status-badge status-active" style="background:rgba(72,187,120,0.15); color:#48bb78;">${saves} saves</span></td>
+                        <td>${source}</td>
+                        <td>${escapeHtml(savedAt)}</td>
+                    </tr>
+                `;
+            }).join('');
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Text</th>
+                            <th>Translation</th>
+                            <th>Saves</th>
+                            <th>Source</th>
+                            <th>Saved At</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+            updateVerseCountLabel();
+        }
+
+        function renderVersePagination() {
+            const pagination = document.getElementById('versePagination');
+            if (!pagination) return;
+            if (!verseTotalRecords) {
+                pagination.innerHTML = '<div style="font-size:0.85rem; color:#999;">No pages to show</div>';
+                return;
+            }
+            const totalPages = Math.max(1, Math.ceil(verseTotalRecords / versePerPage));
+            const prevDisabled = versePage <= 1 ? 'disabled' : '';
+            const nextDisabled = versePage >= totalPages ? 'disabled' : '';
+            pagination.innerHTML = `
+                <button class="btn btn-secondary" ${prevDisabled} onclick="loadVerses(${Math.max(1, versePage - 1)})">Prev</button>
+                <span style="line-height:32px; margin:0 8px;">Page ${versePage} of ${totalPages}</span>
+                <button class="btn btn-secondary" ${nextDisabled} onclick="loadVerses(${Math.min(totalPages, versePage + 1)})">Next</button>
+            `;
+        }
+
+        async function loadVerses(page = 1) {
+            versePage = Math.max(1, page);
+            const container = document.getElementById('verseTableContainer');
+            const pagination = document.getElementById('versePagination');
+            if (container) {
+                container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading saved verses...</div>';
+            }
+            if (pagination) {
+                pagination.innerHTML = '';
+            }
+            try {
+                const params = new URLSearchParams();
+                params.set('page', String(versePage));
+                params.set('per_page', String(versePerPage));
+                if (verseSearchTerm) {
+                    params.set('q', verseSearchTerm);
+                }
+                const res = await fetch(`/admin/api/verses?${params.toString()}`);
+                if (!res.ok) {
+                    throw new Error('Unable to load archived verses');
+                }
+                const data = await res.json();
+                verseTotalRecords = Number(data.total || 0);
+                const rows = Array.isArray(data.verses) ? data.verses : [];
+                renderVerseTable(rows);
+                renderVersePagination();
+            } catch (err) {
+                if (container) {
+                    container.innerHTML = `<div class="empty-state">Failed to load verses: ${escapeHtml(err.message)}</div>`;
+                }
+                if (pagination) {
+                    pagination.innerHTML = '';
+                }
+            }
+        }
+
+        function handleVerseSearch(event) {
+            verseSearchTerm = (event.target?.value || '').trim();
+            clearTimeout(verseSearchTimer);
+            verseSearchTimer = setTimeout(() => loadVerses(1), 400);
+        }
+
         function formatExtras(extras) {
             if (!extras || typeof extras !== 'object' || !Object.keys(extras).length) return '-';
             try {
@@ -2793,7 +2950,8 @@
             
             const titles = {
                 dashboard: 'Dashboard', users: 'Users', restrictions: 'Restrictions',
-                bans: 'Banned Users', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
+                verses: 'Saved Verses', bans: 'Banned Users', comments: 'Comments',
+                audit: 'Audit Logs', settings: 'Settings'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
             
@@ -2802,6 +2960,7 @@
             if (section === 'comments') loadComments();
             if (section === 'restrictions') loadRestrictions();
             if (section === 'bans') loadBans();
+            if (section === 'verses') loadVerses(versePage);
             if (section === 'users') loadUsers();
         }
 
@@ -2912,8 +3071,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
