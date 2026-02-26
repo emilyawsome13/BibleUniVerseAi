@@ -3937,6 +3937,11 @@
         .shop-item-btn.equip { background: var(--success); }
         .shop-item-btn.equip:hover { background: #2eb872; }
         .shop-item-btn.unequip { background: var(--warning); }
+        .shop-item-btn.use { background: var(--success); }
+        .shop-item-btn.use:hover:not(:disabled) { background: #2eb872; }
+        .shop-item-btn.add { background: var(--primary); }
+        .shop-item-actions { display: flex; gap: 8px; }
+        .shop-item-actions .shop-item-btn { width: auto; flex: 1; }
         
         .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
@@ -10574,6 +10579,7 @@ async function checkAchievement(type, value) {
         let userInventory = [];
         let userXP = { xp: 0, level: 1 };
         let activeBoost = null;
+        let boostUiTicker = null;
         let currentShopTab = 'shop';
         let currentCategory = 'all';
         
@@ -10616,6 +10622,7 @@ async function checkAchievement(type, value) {
                 const data = await res.json();
                 if (data.inventory) userInventory = data.inventory;
                 activeBoost = data.active_boost || null;
+                refreshBoostTicker();
             } catch (e) {
                 console.error('Error loading inventory:', e);
             }
@@ -10626,6 +10633,7 @@ async function checkAchievement(type, value) {
                 const res = await fetch('/api/shop/boost/status');
                 const data = await res.json();
                 activeBoost = data.active_boost || null;
+                refreshBoostTicker();
             } catch (e) {
                 console.error('Error loading boost status:', e);
             }
@@ -10636,6 +10644,10 @@ async function checkAchievement(type, value) {
             if (!inv) return 0;
             const qty = Number(inv.quantity);
             return Number.isFinite(qty) ? Math.max(0, qty) : 1;
+        }
+
+        function getShopItemById(itemId) {
+            return shopItems.find(item => item.item_id === itemId) || null;
         }
 
         function getItemEffectHint(item) {
@@ -10667,6 +10679,28 @@ async function checkAchievement(type, value) {
             if (m > 0) return `${m}m ${s}s`;
             return `${s}s`;
         }
+
+        function refreshBoostTicker() {
+            if (boostUiTicker) {
+                clearInterval(boostUiTicker);
+                boostUiTicker = null;
+            }
+            const hasActiveBoost = !!(activeBoost && getBoostRemainingSeconds(activeBoost) > 0);
+            if (!hasActiveBoost) return;
+            boostUiTicker = setInterval(async () => {
+                const remaining = getBoostRemainingSeconds(activeBoost);
+                if (remaining <= 0) {
+                    clearInterval(boostUiTicker);
+                    boostUiTicker = null;
+                    await loadBoostStatus();
+                    if (currentTab === 'inventory') renderInventory();
+                    if (currentTab === 'shop' && currentCategory === 'consumable') renderShopItems();
+                    return;
+                }
+                if (currentTab === 'inventory') renderInventory();
+                if (currentTab === 'shop' && currentCategory === 'consumable') renderShopItems();
+            }, 1000);
+        }
         
         function updateShopXPDisplay() {
             const xpEl = document.getElementById('shopXpAmount');
@@ -10697,54 +10731,62 @@ async function checkAchievement(type, value) {
             event.target.classList.add('active');
             renderShopItems();
         }
-        
         function renderShopItems() {
             const container = document.getElementById('shopItems');
             let items = shopItems;
-            
+
             if (currentCategory !== 'all') {
                 items = items.filter(item => item.category === currentCategory);
             }
-            
+
             if (items.length === 0) {
-                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">📭</div><p>No items found</p></div>';
+                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">Shop</div><p>No items found</p></div>';
                 return;
             }
-            
+
             container.innerHTML = items.map(item => {
                 const ownedCount = getItemOwnedCount(item.item_id);
                 const isConsumable = item.category === 'consumable';
                 const isOwned = ownedCount > 0;
                 const rarityClass = item.rarity || 'common';
+                const isActiveBoost = !!(isConsumable && activeBoost && activeBoost.item_id === item.item_id && getBoostRemainingSeconds(activeBoost) > 0);
+                const boostLeft = isActiveBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
                 const canBuy = isConsumable || !isOwned;
-                const priceText = isOwned ? (ownedCount + ' owned') : ('⚡ ' + formatNumber(item.price) + ' XP');
+                const priceText = isConsumable
+                    ? (isActiveBoost ? ('\u26A1 Active ' + boostLeft) : (isOwned ? (ownedCount + ' in bag') : ('\u26A1 ' + formatNumber(item.price) + ' XP')))
+                    : (isOwned ? 'Owned' : ('\u26A1 ' + formatNumber(item.price) + ' XP'));
                 const buyLabel = isConsumable ? 'Buy +1' : (isOwned ? 'Owned' : 'Buy');
-                
+                const actionHtml = isConsumable
+                    ? ('<div class="shop-item-actions">' +
+                        '<button class="shop-item-btn use" ' + (ownedCount > 0 ? '' : 'disabled') + ' onclick="useBoostItem(' + "'" + item.item_id + "'" + ')">Use</button>' +
+                        '<button class="shop-item-btn add" onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">Add+</button>' +
+                       '</div>')
+                    : ('<button class="shop-item-btn" ' + (canBuy ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buyLabel + '</button>');
+
                 return '<div class="shop-item ' + rarityClass + ' ' + (isOwned ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
-                    '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
+                    '<span class="shop-item-icon">' + (item.icon || '[Item]') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
                     '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price ' + (isOwned ? 'owned' : '') + '">' + priceText + '</div>' +
-                    '<button class="shop-item-btn" ' + (canBuy ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buyLabel + '</button>' +
+                    '<div class="shop-item-price ' + (isActiveBoost ? 'active' : (isOwned ? 'owned' : '')) + '">' + priceText + '</div>' +
+                    actionHtml +
                     '</div>';
             }).join('');
         }
-        
         function renderInventory() {
             const container = document.getElementById('inventoryItems');
-            
+
             let items = userInventory;
             if (currentInventoryCategory !== 'all') {
                 items = items.filter(item => item.category === currentInventoryCategory);
             }
-            
+
             if (items.length === 0) {
-                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">🎒</div><p>No items in this category</p></div>';
+                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">Items</div><p>No items in this category</p></div>';
                 return;
             }
-            
+
             container.innerHTML = items.map(item => {
                 const rarityClass = item.rarity || 'common';
                 const isEquipped = item.equipped;
@@ -10754,27 +10796,35 @@ async function checkAchievement(type, value) {
                 const boostLeft = isActiveBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
                 const cardStateClass = (isEquipped && !isConsumable) || isActiveBoost ? 'equipped' : '';
                 const statusText = isConsumable
-                    ? (isActiveBoost ? ('⚡ Active ' + boostLeft) : (quantity + ' in bag'))
-                    : (isEquipped ? '✓ Equipped' : (quantity + ' owned'));
+                    ? (isActiveBoost ? ('\u26A1 Active ' + boostLeft) : (quantity + ' in bag'))
+                    : (isEquipped ? '\u2713 Equipped' : 'Owned');
                 const btnClass = isConsumable ? 'equip' : (isEquipped ? 'unequip' : 'equip');
                 const btnLabel = isConsumable ? (isActiveBoost ? 'Use Again' : 'Use Boost') : (isEquipped ? 'Unequip' : 'Equip');
                 const btnDisabled = isConsumable ? (quantity <= 0 ? 'disabled' : '') : '';
                 const onClick = isConsumable
                     ? ("useBoostItem('" + item.item_id + "')")
                     : ("toggleEquipItem('" + item.item_id + "', " + (!isEquipped) + ")");
+                const boostShopItem = isConsumable ? getShopItemById(item.item_id) : null;
+                const addPrice = boostShopItem ? Number(boostShopItem.price || 0) : 0;
+                const actionHtml = isConsumable
+                    ? ('<div class="shop-item-actions">' +
+                        '<button class="shop-item-btn use" ' + btnDisabled + ' onclick="' + onClick + '">Use</button>' +
+                        '<button class="shop-item-btn add" ' + (addPrice > 0 ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + addPrice + ')">Add+</button>' +
+                       '</div>')
+                    : ('<button class="shop-item-btn ' + btnClass + '" ' + btnDisabled + ' onclick="' + onClick + '">' + btnLabel + '</button>');
 
                 return '<div class="shop-item ' + rarityClass + ' ' + cardStateClass + '" data-item-id="' + item.item_id + '">' +
-                    '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
+                    '<span class="shop-item-icon">' + (item.icon || '[Item]') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
                     '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
                     '<div class="shop-item-price ' + (isActiveBoost ? 'active' : 'owned') + '">' + statusText + '</div>' +
-                    '<button class="shop-item-btn ' + btnClass + '" ' + btnDisabled + ' onclick="' + onClick + '">' + btnLabel + '</button>' +
+                    actionHtml +
                     '</div>';
             }).join('');
         }
-        
+
         // XP Guide - Functional XP Actions
         const XP_ACTIONS = {
             like: { min: 120, max: 240, cooldown: 1000, dailyMax: 100 },
@@ -10966,8 +11016,10 @@ async function checkAchievement(type, value) {
                     await loadBoostStatus();
                     renderShopItems();
                     if (currentCategory === 'consumable' || currentInventoryCategory === 'consumable') renderInventory();
-                    const qtyText = Number.isFinite(Number(data.quantity)) ? ` (${data.quantity} owned)` : '';
-                    showToast('✅ Purchased ' + data.name + qtyText + '. Open My Items to equip/use.');
+                    const purchasedItem = getShopItemById(itemId);
+                    const isBoostPurchase = purchasedItem && purchasedItem.category === 'consumable';
+                    const qtyText = (isBoostPurchase && Number.isFinite(Number(data.quantity))) ? ` (${data.quantity} in bag)` : '';
+                    showToast('\u2705 Purchased ' + data.name + qtyText + '.');
                     trackStat('purchases');
                 } else {
                     showToast('❌ ' + (data.error || 'Purchase failed'));
