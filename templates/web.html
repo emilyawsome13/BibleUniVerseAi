@@ -1681,6 +1681,48 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
+        .fortune-section {
+            margin-bottom: 16px;
+        }
+        .fortune-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .fortune-item {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.08));
+            border: 1px solid rgba(37, 99, 235, 0.35);
+            padding: 14px;
+            border-radius: 14px;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+        }
+        .fortune-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.25), transparent 60%);
+            opacity: 0.6;
+        }
+        .fortune-item h4 {
+            font-size: 14px;
+            margin: 0;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .fortune-item p {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
         /* Library Tab - Simplified */
         .favorites-collection {
             background: linear-gradient(135deg, rgba(255, 59, 95, 0.1), rgba(255, 159, 10, 0.1));
@@ -4433,7 +4475,18 @@
                         <span>&#128276;</span>
                         <span>Generate Smart Recommendation</span>
                     </button>
-                    
+
+                    <div class="fortune-section">
+                        <button class="gen-btn fortune-btn" onclick="generateFortunes()">
+                            <span>&#127776;</span>
+                            <div style="display:flex;flex-direction:column;align-items:flex-start; line-height:1.2;">
+                                <strong>Your Fortune</strong>
+                                <small style="font-size:12px;opacity:0.8;">AI-crafted good news from your likes & dislikes</small>
+                            </div>
+                        </button>
+                        <div id="fortuneList" class="fortune-grid"></div>
+                    </div>
+
                     <div id="recList"></div>
                 </div>
 
@@ -6300,6 +6353,7 @@
             if (data.recommendations.length > 0) {
                 displayRecommendations(data.recommendations);
             }
+            generateFortunes();
         }
 
         async function generateRec(silent = false) {
@@ -6331,6 +6385,40 @@
                 addToRecHistory(recommendation);
                 if (!silent && settings.notifications) showToast('New recommendation!');
             }
+        }
+
+        const fortunePrompts = [
+            ctx => `AI whispers that your ${formatNumber(ctx.likes)} likes have warmed hearts, so a gentle surprise will arrive as a reminder of purpose.`,
+            ctx => `Because you turned ${formatNumber(ctx.dislikes)} mini setbacks into lessons, expect a blessing on a plan you recently revisited.`,
+            ctx => `The AI sees ${formatNumber(ctx.saves)} saved treasures and ${formatNumber(ctx.replies)} heart-filled replies—luck is aligning to bless a quiet moment of rest.`,
+            ctx => `Your steady rhythm of giving grace (level ${ctx.level}) means a grateful voice will celebrate you this week with unexpected good news.`
+        ];
+
+        function buildFortuneContext() {
+            const likes = Math.max(0, Number(userStats.liked || 0));
+            const saves = Math.max(0, Number(userStats.saved || 0));
+            const replies = Math.max(0, Number(userStats.replies || 0));
+            const comments = Math.max(0, Number(userStats.comments || 0));
+            const dislikes = Math.round(Math.max(0, comments * 0.18));
+            const level = Number(userXP?.level || 1);
+            return { likes: likes + saves, saves, replies, comments, dislikes, level };
+        }
+
+        function generateFortunes() {
+            const list = document.getElementById('fortuneList');
+            if (!list) return;
+            const context = buildFortuneContext();
+            const fortunes = fortunePrompts.map((fn, idx) => ({
+                id: idx,
+                text: fn(context)
+            }));
+            list.innerHTML = fortunes.map(f => `
+                <div class="fortune-item">
+                    <h4>Fortune ${f.id + 1}</h4>
+                    <p>${f.text}</p>
+                </div>
+            `).join('');
+            if (settings.notifications) showToast('Your Fortune is ready ✨');
         }
 
         function isDuplicateRec(rec) {
