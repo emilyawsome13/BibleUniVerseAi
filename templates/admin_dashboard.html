@@ -1369,13 +1369,20 @@
     <!-- Give XP Modal -->
     <div class="modal-overlay" id="giveXPModal">
         <div class="modal">
-            <h3>&#9889; Give XP to User</h3>
+            <h3>&#9889; Adjust XP for User</h3>
             <p style="color:#888;margin:10px 0;font-size:0.9rem;">Current XP: <span id="giveXPCurrent" style="color:#FFD700;font-weight:bold;">0</span> | Level: <span id="giveXPLevel">1</span></p>
-            <input type="number" class="modal-input" id="giveXPAmount" placeholder="Amount of XP to give..." min="1" max="1000000">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+                <span style="color:#888;font-size:0.85rem;">Action:</span>
+                <select id="giveXPOperation" class="modal-input" style="max-width:200px;">
+                    <option value="add">Give XP</option>
+                    <option value="remove">Remove XP</option>
+                </select>
+            </div>
+            <input type="number" class="modal-input" id="giveXPAmount" placeholder="Amount of XP to adjust..." min="1" max="1000000">
             <input type="text" class="modal-input" id="giveXPReason" placeholder="Reason (optional)..." value="Admin gift">
             <div style="display:flex;gap:10px;justify-content:flex-end;">
                 <button class="btn" onclick="closeGiveXPModal()" style="background:#333;color:#fff;">Cancel</button>
-                <button class="btn btn-success" onclick="confirmGiveXP()">Give XP</button>
+                <button class="btn btn-success" onclick="confirmGiveXP()">Apply Adjustment</button>
             </div>
         </div>
     </div>
@@ -2020,6 +2027,7 @@
             document.getElementById('giveXPLevel').textContent = currentLevel;
             document.getElementById('giveXPAmount').value = '';
             document.getElementById('giveXPReason').value = 'Admin gift';
+            document.getElementById('giveXPOperation').value = 'add';
             
             document.getElementById('giveXPModal').style.display = 'flex';
         }
@@ -2033,6 +2041,7 @@
             
             const amount = parseInt(document.getElementById('giveXPAmount').value);
             const reason = document.getElementById('giveXPReason').value || 'Admin gift';
+            const operation = document.getElementById('giveXPOperation').value || 'add';
             
             if (!amount || amount <= 0) {
                 showToast('Please enter a valid XP amount', 'error');
@@ -2048,29 +2057,31 @@
                 const res = await fetch(`/admin/api/users/${currentDetailUserId}/give-xp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, reason, notify: true })
+                    body: JSON.stringify({ amount, reason, notify: true, operation })
                 });
                 
                 const data = await res.json();
                 
                 if (data.success) {
-                    showToast(`Successfully gave ${formatNumberFull(amount)} XP to ${data.user_name}!`, 'success');
+                    const actionLabel = operation === 'remove' ? 'Removed' : 'Gave';
+                    const targetWord = operation === 'remove' ? 'from' : 'to';
+                    showToast(`${actionLabel} ${formatNumberFull(amount)} XP ${targetWord} ${data.user_name}!`, 'success');
                     
                     // Update display
                     document.getElementById('detailXP').textContent = formatNumber(data.new_total);
                     document.getElementById('detailLevel').textContent = data.new_level;
                     
-                    if (data.leveled_up) {
-                        showToast(`🎉 ${data.user_name} leveled up to level ${data.new_level}!`, 'success');
+                    if (data.leveled_up && operation === 'add') {
+                        showToast(`?? ${data.user_name} leveled up to level ${data.new_level}!`, 'success');
                     }
                     
                     closeGiveXPModal();
                 } else {
-                    showToast(data.error || 'Failed to give XP', 'error');
+                    showToast(data.error || 'Failed to adjust XP', 'error');
                 }
             } catch (err) {
                 console.error('Error giving XP:', err);
-                showToast('Error giving XP', 'error');
+                showToast('Error adjusting XP', 'error');
             }
         }
 
@@ -3104,3 +3115,4 @@
     </script>
 </body>
 </html>
+

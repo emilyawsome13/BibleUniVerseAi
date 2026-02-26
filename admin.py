@@ -3085,10 +3085,17 @@ def update_system_settings():
 def admin_give_xp(user_id):
     """Admin endpoint to give XP to a user"""
     admin = get_admin_session()
-    data = request.get_json()
-    amount = data.get('amount', 0)
+    data = request.get_json() or {}
+    raw_amount = data.get('amount', 0)
+    try:
+        amount = int(raw_amount)
+    except (TypeError, ValueError):
+        amount = 0
     reason = data.get('reason', 'Admin XP gift')
     send_notification = data.get('notify', True)
+    operation = (data.get('operation') or 'add').lower()
+    if operation not in ('add', 'remove'):
+        operation = 'add'
     
     if amount <= 0:
         return jsonify({"error": "Amount must be positive"}), 400
@@ -3115,9 +3122,9 @@ def admin_give_xp(user_id):
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = %s", (user_id,))
         else:
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = ?", (user_id,))
-        
+
         row = c.fetchone()
-        
+
         if row:
             current_xp = row[0] or 0
             total_earned = row[1] or 0
@@ -3126,13 +3133,18 @@ def admin_give_xp(user_id):
             current_xp = 0
             total_earned = 0
             current_level = 1
-        
+
         # Calculate new values
-        new_xp = current_xp + amount
-        new_total = total_earned + amount
-        new_level = (new_total // 1000) + 1
-        leveled_up = new_level > current_level
-        
+        if operation == 'remove':
+            xp_delta = -min(amount, total_earned)
+        else:
+            xp_delta = amount
+
+        new_total = max(0, total_earned + xp_delta)
+        new_xp = max(0, current_xp + xp_delta)
+        new_level = max(0, (new_total // 1000) + 1)
+        leveled_up = operation == 'add' and new_level > current_level
+
         # Update user XP
         if db_type == 'postgres':
             c.execute("""
@@ -3148,8 +3160,8 @@ def admin_give_xp(user_id):
             # Log transaction
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
-                VALUES (%s, %s, 'admin_gift', %s, CURRENT_TIMESTAMP)
-            """, (user_id, amount, f"Admin gift from {admin['role']}: {reason}"))
+                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+            """, (user_id, xp_delta, ('admin_gift' if operation == 'add' else 'admin_deduction'), f"Admin adjustment from {admin['role']}: {reason}"))
         else:
             c.execute("""
                 INSERT OR REPLACE INTO user_xp (user_id, xp, total_xp_earned, level, updated_at)
@@ -3158,18 +3170,20 @@ def admin_give_xp(user_id):
             
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
-                VALUES (?, ?, 'admin_gift', ?, datetime('now'))
-            """, (user_id, amount, f"Admin gift from {admin['role']}: {reason}"))
-        
+                VALUES (?, ?, ?, ?, datetime('now'))
+            """, (user_id, xp_delta, ('admin_gift' if operation == 'add' else 'admin_deduction'), f"Admin adjustment from {admin['role']}: {reason}"))
+
         conn.commit()
         
         # Log admin action
+        action_label = "Removed" if operation == 'remove' else "Gave"
+        preposition = "from" if operation == 'remove' else "to"
         log_action(
             "GIVE_XP",
-            f"Gave {amount} XP to {user_name} ({user_id})",
+            f"{action_label} {amount} XP {preposition} {user_name} ({user_id})",
             target_user_id=user_id,
             status="success",
-            extras={"amount": amount, "reason": reason, "module": "xp_management"},
+            extras={"amount": xp_delta, "reason": reason, "module": "xp_management", "operation": operation},
             target={"user_id": user_id, "name": user_name}
         )
         
@@ -3183,7 +3197,7 @@ def admin_give_xp(user_id):
             "new_total": new_xp,
             "new_level": new_level,
             "leveled_up": leveled_up,
-            "message": f"Successfully gave {amount} XP to {user_name}"
+            "message": f"Successfully {action_label.lower()} {amount} XP {preposition} {user_name}"
         })
     except Exception as e:
         print(f"[ERROR] Admin give XP: {e}")
