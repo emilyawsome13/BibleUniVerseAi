@@ -1831,8 +1831,8 @@ def pick_hourly_challenge(user_id, period_key):
             "action": "save",
             "goal": 3,
             "text": "Save 3 verses to your library",
-            "xp_min": 500,
-            "xp_max": 1500
+            "xp_min": 800,
+            "xp_max": 2200
         },
         {
             "id": "medium_like_8",
@@ -1840,8 +1840,8 @@ def pick_hourly_challenge(user_id, period_key):
             "action": "like",
             "goal": 8,
             "text": "Like 8 verses",
-            "xp_min": 2000,
-            "xp_max": 4000
+            "xp_min": 2500,
+            "xp_max": 5000
         },
         {
             "id": "hard_save_15",
@@ -1849,8 +1849,8 @@ def pick_hourly_challenge(user_id, period_key):
             "action": "save",
             "goal": 15,
             "text": "Save 15 verses",
-            "xp_min": 5000,
-            "xp_max": 10000
+            "xp_min": 6000,
+            "xp_max": 14000
         }
     ]
     seed = f"{user_id}:{period_key}"
