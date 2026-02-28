@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory, flash, render_template_string
+﻿from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory, flash, render_template_string
 import sqlite3
 import time
 import threading
@@ -1742,35 +1742,130 @@ migrate_db()
 
 def get_challenge_period_key():
     now = datetime.now().astimezone()
-    start = now.replace(minute=0, second=0, microsecond=0)
-    block_hour = (start.hour // 2) * 2
-    start = start.replace(hour=block_hour)
-    return start.strftime("%Y-%m-%d-%H")
+    return now.strftime("%Y-%m-%d")
 
 def get_hour_window():
     now = datetime.now().astimezone()
-    start = now.replace(minute=0, second=0, microsecond=0)
-    block_hour = (start.hour // 2) * 2
-    start = start.replace(hour=block_hour)
-    return start, start + timedelta(hours=2)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return start, start + timedelta(days=1)
 
-def get_hourly_xp_reward(user_id, period_key):
-    seed = f"{user_id}:{period_key}"
-    value = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16)
-    return 100 + (value % 401)
+def ensure_daily_challenge_tables(c, db_type):
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS daily_actions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                verse_id INTEGER,
+                event_date TEXT NOT NULL,
+                timestamp TEXT,
+                UNIQUE(user_id, action, verse_id, event_date)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS daily_challenge_claims (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                challenge_date TEXT NOT NULL,
+                challenge_id TEXT NOT NULL,
+                xp_awarded INTEGER NOT NULL DEFAULT 0,
+                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, challenge_date, challenge_id)
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS daily_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                verse_id INTEGER,
+                event_date TEXT NOT NULL,
+                timestamp TEXT,
+                UNIQUE(user_id, action, verse_id, event_date)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS daily_challenge_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                challenge_date TEXT NOT NULL,
+                challenge_id TEXT NOT NULL,
+                xp_awarded INTEGER NOT NULL DEFAULT 0,
+                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, challenge_date, challenge_id)
+            )
+        """)
+
+def ensure_achievement_tables(c, db_type):
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_achievements (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                achievement_id TEXT NOT NULL,
+                achievement_name TEXT,
+                xp_awarded INTEGER NOT NULL DEFAULT 0,
+                unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, achievement_id)
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                achievement_id TEXT NOT NULL,
+                achievement_name TEXT,
+                xp_awarded INTEGER NOT NULL DEFAULT 0,
+                unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, achievement_id)
+            )
+        """)
 
 def pick_hourly_challenge(user_id, period_key):
     challenges = [
-        {"id": "save2", "action": "save", "goal": 2, "text": "Save 2 verses to your library"},
-        {"id": "save3", "action": "save", "goal": 3, "text": "Save 3 verses to your library"},
-        {"id": "like3", "action": "like", "goal": 3, "text": "Like 3 verses"},
-        {"id": "like5", "action": "like", "goal": 5, "text": "Like 5 verses"},
-        {"id": "comment1", "action": "comment", "goal": 1, "text": "Post 1 comment"},
-        {"id": "comment2", "action": "comment", "goal": 2, "text": "Post 2 comments"}
+        {
+            "id": "easy_save_3",
+            "difficulty": "Easy",
+            "action": "save",
+            "goal": 3,
+            "text": "Save 3 verses to your library",
+            "xp_min": 500,
+            "xp_max": 1500
+        },
+        {
+            "id": "medium_like_8",
+            "difficulty": "Medium",
+            "action": "like",
+            "goal": 8,
+            "text": "Like 8 verses",
+            "xp_min": 2000,
+            "xp_max": 4000
+        },
+        {
+            "id": "hard_save_15",
+            "difficulty": "Hard",
+            "action": "save",
+            "goal": 15,
+            "text": "Save 15 verses",
+            "xp_min": 5000,
+            "xp_max": 10000
+        }
     ]
     seed = f"{user_id}:{period_key}"
     value = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16)
     return challenges[value % len(challenges)]
+
+def get_hourly_xp_reward(user_id, period_key, challenge=None):
+    challenge = challenge or pick_hourly_challenge(user_id, period_key)
+    low = max(500, int(challenge.get("xp_min", 500)))
+    high = min(10000, int(challenge.get("xp_max", 10000)))
+    if low > high:
+        low, high = high, low
+    seed = f"{user_id}:{period_key}:{challenge.get('id', 'daily')}"
+    value = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16)
+    return low + (value % (high - low + 1))
 
 def record_daily_action(user_id, action, verse_id=None):
     """Persist unique per-window user actions used by the challenge."""
@@ -1780,6 +1875,7 @@ def record_daily_action(user_id, action, verse_id=None):
     now = datetime.now().isoformat()
 
     try:
+        ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("""
                 INSERT INTO daily_actions (user_id, action, verse_id, event_date, timestamp)
@@ -3155,12 +3251,7 @@ def callback():
         conn.commit()
         conn.close()
         
-        # Check if banned
-        try:
-            user_id = user['id'] if isinstance(user, dict) else user[0]
-        except (TypeError, KeyError):
-            user_id = user[0]
-        
+        # Check ban status against the canonical user_id resolved above.
         is_banned, reason, _ = check_ban_status(user_id)
         if is_banned:
             return render_template_string("""
@@ -3189,6 +3280,7 @@ def callback():
             """, reason=reason), 403
         
         session['user_id'] = user_id
+        session['google_id'] = google_id
         session['user_name'] = user['name'] if isinstance(user, dict) else user[3]
         session['user_email'] = email
         try:
@@ -4127,155 +4219,155 @@ def verify_role_code():
 DEFAULT_SHOP_ITEMS = [
     # ==================== AVATAR FRAMES ====================
     # Common Frames (200-500 XP)
-    {"item_id": "frame_wood", "name": "Wooden Frame", "description": "A simple wooden frame", "category": "frame", "price": 200, "rarity": "common", "icon": "🪵", "effects": {"frame_color": "#8B4513", "glow": False}},
-    {"item_id": "frame_stone", "name": "Stone Ring", "description": "Solid as a rock", "category": "frame", "price": 350, "rarity": "common", "icon": "🪨", "effects": {"frame_color": "#808080", "glow": False}},
+    {"item_id": "frame_wood", "name": "Wooden Frame", "description": "A simple wooden frame", "category": "frame", "price": 200, "rarity": "common", "icon": "ðŸªµ", "effects": {"frame_color": "#8B4513", "glow": False}},
+    {"item_id": "frame_stone", "name": "Stone Ring", "description": "Solid as a rock", "category": "frame", "price": 350, "rarity": "common", "icon": "ðŸª¨", "effects": {"frame_color": "#808080", "glow": False}},
     
     # Rare Frames (1k-3k XP)
-    {"item_id": "frame_bronze", "name": "Bronze Ring", "description": "A warm bronze frame", "category": "frame", "price": 1000, "rarity": "rare", "icon": "🥉", "effects": {"frame_color": "#CD7F32", "glow": False}},
-    {"item_id": "frame_heart", "name": "Love Heart", "description": "A loving heart frame", "category": "frame", "price": 1500, "rarity": "rare", "icon": "💖", "effects": {"frame_style": "heart", "animation": "pulse"}},
-    {"item_id": "frame_cross", "name": "Holy Cross", "description": "A blessed cross frame", "category": "frame", "price": 2500, "rarity": "rare", "icon": "✝️", "effects": {"frame_style": "cross", "glow": True}},
+    {"item_id": "frame_bronze", "name": "Bronze Ring", "description": "A warm bronze frame", "category": "frame", "price": 1000, "rarity": "rare", "icon": "ðŸ¥‰", "effects": {"frame_color": "#CD7F32", "glow": False}},
+    {"item_id": "frame_heart", "name": "Love Heart", "description": "A loving heart frame", "category": "frame", "price": 1500, "rarity": "rare", "icon": "ðŸ’–", "effects": {"frame_style": "heart", "animation": "pulse"}},
+    {"item_id": "frame_cross", "name": "Holy Cross", "description": "A blessed cross frame", "category": "frame", "price": 2500, "rarity": "rare", "icon": "âœï¸", "effects": {"frame_style": "cross", "glow": True}},
     
     # Epic Frames (5k-8k XP)
-    {"item_id": "frame_silver", "name": "Silver Crown", "description": "An elegant silver frame", "category": "frame", "price": 5000, "rarity": "epic", "icon": "🥈", "effects": {"frame_color": "#C0C0C0", "glow": True}},
-    {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "🌿", "effects": {"frame_style": "nature", "animation": "sway"}},
-    {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "❄️", "effects": {"frame_color": "#00CED1", "glow": True}},
-    {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"frame_style": "fire", "animation": "flicker"}},
+    {"item_id": "frame_silver", "name": "Silver Crown", "description": "An elegant silver frame", "category": "frame", "price": 5000, "rarity": "epic", "icon": "ðŸ¥ˆ", "effects": {"frame_color": "#C0C0C0", "glow": True}},
+    {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "ðŸŒ¿", "effects": {"frame_style": "nature", "animation": "sway"}},
+    {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "â„ï¸", "effects": {"frame_color": "#00CED1", "glow": True}},
+    {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "ðŸ”¥", "effects": {"frame_style": "fire", "animation": "flicker"}},
     
     # Legendary Frames (12k-20k XP)
-    {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "👑", "effects": {"frame_color": "#FFD700", "glow": True}},
-    {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "✨", "effects": {"frame_style": "stars", "animation": "twinkle"}},
-    {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "🪽", "effects": {"frame_style": "wings", "animation": "float"}},
+    {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "ðŸ‘‘", "effects": {"frame_color": "#FFD700", "glow": True}},
+    {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "âœ¨", "effects": {"frame_style": "stars", "animation": "twinkle"}},
+    {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "ðŸª½", "effects": {"frame_style": "wings", "animation": "float"}},
     
     # Mythic Frames (50k-100k XP) - ULTRA RARE
-    {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "😇", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
-    {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "🌌", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
-    {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
+    {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "ðŸ˜‡", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
+    {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "ðŸŒŒ", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
+    {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "â™¾ï¸", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
     
     # ==================== NAME COLORS ====================
     # Common Colors (100-500 XP)
-    {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔵", "effects": {"color": "#0A84FF", "glow": False}},
-    {"item_id": "color_red", "name": "Ruby Red", "description": "Passionate red name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔴", "effects": {"color": "#FF375F", "glow": False}},
-    {"item_id": "color_pink", "name": "Pretty Pink", "description": "Sweet pink name", "category": "name_color", "price": 250, "rarity": "common", "icon": "🩷", "effects": {"color": "#FF69B4", "glow": False}},
-    {"item_id": "color_orange", "name": "Sunset Orange", "description": "Warm like the sunset", "category": "name_color", "price": 400, "rarity": "common", "icon": "🟠", "effects": {"color": "#FF9500", "glow": False}},
-    {"item_id": "color_teal", "name": "Tropical Teal", "description": "Refreshing tropical color", "category": "name_color", "price": 500, "rarity": "common", "icon": "🩵", "effects": {"color": "#00CED1", "glow": False}},
+    {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "ðŸ”µ", "effects": {"color": "#0A84FF", "glow": False}},
+    {"item_id": "color_red", "name": "Ruby Red", "description": "Passionate red name", "category": "name_color", "price": 100, "rarity": "common", "icon": "ðŸ”´", "effects": {"color": "#FF375F", "glow": False}},
+    {"item_id": "color_pink", "name": "Pretty Pink", "description": "Sweet pink name", "category": "name_color", "price": 250, "rarity": "common", "icon": "ðŸ©·", "effects": {"color": "#FF69B4", "glow": False}},
+    {"item_id": "color_orange", "name": "Sunset Orange", "description": "Warm like the sunset", "category": "name_color", "price": 400, "rarity": "common", "icon": "ðŸŸ ", "effects": {"color": "#FF9500", "glow": False}},
+    {"item_id": "color_teal", "name": "Tropical Teal", "description": "Refreshing tropical color", "category": "name_color", "price": 500, "rarity": "common", "icon": "ðŸ©µ", "effects": {"color": "#00CED1", "glow": False}},
     
     # Rare Colors (1.5k-3k XP)
-    {"item_id": "color_purple", "name": "Royal Purple", "description": "Majestic purple name", "category": "name_color", "price": 1500, "rarity": "rare", "icon": "🟣", "effects": {"color": "#BF5AF2", "glow": True}},
-    {"item_id": "color_green", "name": "Emerald Green", "description": "Rich emerald name", "category": "name_color", "price": 2000, "rarity": "rare", "icon": "🟢", "effects": {"color": "#30D158", "glow": True}},
-    {"item_id": "color_cyan", "name": "Cyber Cyan", "description": "Digital world cyan", "category": "name_color", "price": 2800, "rarity": "rare", "icon": "💎", "effects": {"color": "#00FFFF", "glow": True}},
+    {"item_id": "color_purple", "name": "Royal Purple", "description": "Majestic purple name", "category": "name_color", "price": 1500, "rarity": "rare", "icon": "ðŸŸ£", "effects": {"color": "#BF5AF2", "glow": True}},
+    {"item_id": "color_green", "name": "Emerald Green", "description": "Rich emerald name", "category": "name_color", "price": 2000, "rarity": "rare", "icon": "ðŸŸ¢", "effects": {"color": "#30D158", "glow": True}},
+    {"item_id": "color_cyan", "name": "Cyber Cyan", "description": "Digital world cyan", "category": "name_color", "price": 2800, "rarity": "rare", "icon": "ðŸ’Ž", "effects": {"color": "#00FFFF", "glow": True}},
     
     # Epic Colors (5k-8k XP)
-    {"item_id": "color_neon", "name": "Neon Glow", "description": "Electric neon effect", "category": "name_color", "price": 5000, "rarity": "epic", "icon": "⚡", "effects": {"color": "#39FF14", "glow": True, "animation": "pulse"}},
-    {"item_id": "color_plasma", "name": "Plasma Pink", "description": "Glowing plasma energy", "category": "name_color", "price": 6500, "rarity": "epic", "icon": "🌸", "effects": {"color": "#FF00FF", "glow": True, "animation": "pulse"}},
-    {"item_id": "color_gold", "name": "Golden Name", "description": "Shine with golden text", "category": "name_color", "price": 8000, "rarity": "epic", "icon": "🌟", "effects": {"color": "#FFD700", "glow": True}},
+    {"item_id": "color_neon", "name": "Neon Glow", "description": "Electric neon effect", "category": "name_color", "price": 5000, "rarity": "epic", "icon": "âš¡", "effects": {"color": "#39FF14", "glow": True, "animation": "pulse"}},
+    {"item_id": "color_plasma", "name": "Plasma Pink", "description": "Glowing plasma energy", "category": "name_color", "price": 6500, "rarity": "epic", "icon": "ðŸŒ¸", "effects": {"color": "#FF00FF", "glow": True, "animation": "pulse"}},
+    {"item_id": "color_gold", "name": "Golden Name", "description": "Shine with golden text", "category": "name_color", "price": 8000, "rarity": "epic", "icon": "ðŸŒŸ", "effects": {"color": "#FFD700", "glow": True}},
     
     # Legendary Colors (12k-20k XP)
-    {"item_id": "color_rainbow", "name": "Rainbow Name", "description": "Cycle through all colors", "category": "name_color", "price": 15000, "rarity": "legendary", "icon": "🌈", "effects": {"gradient": True, "colors": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]}},
-    {"item_id": "color_aurora", "name": "Aurora Borealis", "description": "Dancing northern lights", "category": "name_color", "price": 18000, "rarity": "legendary", "icon": "🎆", "effects": {"gradient": True, "colors": ["#00FF87", "#60EFFF", "#0061FF"], "animation": "shimmer"}},
+    {"item_id": "color_rainbow", "name": "Rainbow Name", "description": "Cycle through all colors", "category": "name_color", "price": 15000, "rarity": "legendary", "icon": "ðŸŒˆ", "effects": {"gradient": True, "colors": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]}},
+    {"item_id": "color_aurora", "name": "Aurora Borealis", "description": "Dancing northern lights", "category": "name_color", "price": 18000, "rarity": "legendary", "icon": "ðŸŽ†", "effects": {"gradient": True, "colors": ["#00FF87", "#60EFFF", "#0061FF"], "animation": "shimmer"}},
     
     # Mythic Colors (50k-100k XP) - ULTRA RARE
-    {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "🔥", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
-    {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "🌑", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
-    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 100000, "rarity": "mythic", "icon": "👑", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
+    {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "ðŸ”¥", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
+    {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "ðŸŒ‘", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
+    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 100000, "rarity": "mythic", "icon": "ðŸ‘‘", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
     
     # ==================== TITLES ====================
     # Common Titles (500-1k XP)
-    {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "🔍", "effects": {"title": "Seeker", "prefix": True}},
-    {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "✉️", "effects": {"title": "Messenger", "prefix": True}},
-    {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "🙏", "effects": {"title": "Disciple", "prefix": True}},
+    {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "ðŸ”", "effects": {"title": "Seeker", "prefix": True}},
+    {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "âœ‰ï¸", "effects": {"title": "Messenger", "prefix": True}},
+    {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "ðŸ™", "effects": {"title": "Disciple", "prefix": True}},
     
     # Rare Titles (2k-4k XP)
-    {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "🎵", "effects": {"title": "Worshiper", "prefix": True}},
-    {"item_id": "title_scholar", "name": "Bible Scholar", "description": "Show your dedication to study", "category": "title", "price": 3000, "rarity": "rare", "icon": "📖", "effects": {"title": "Bible Scholar", "prefix": True}},
-    {"item_id": "title_warrior", "name": "Prayer Warrior", "description": "A warrior in prayer", "category": "title", "price": 4000, "rarity": "rare", "icon": "⚔️", "effects": {"title": "Prayer Warrior", "prefix": True}},
+    {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "ðŸŽµ", "effects": {"title": "Worshiper", "prefix": True}},
+    {"item_id": "title_scholar", "name": "Bible Scholar", "description": "Show your dedication to study", "category": "title", "price": 3000, "rarity": "rare", "icon": "ðŸ“–", "effects": {"title": "Bible Scholar", "prefix": True}},
+    {"item_id": "title_warrior", "name": "Prayer Warrior", "description": "A warrior in prayer", "category": "title", "price": 4000, "rarity": "rare", "icon": "âš”ï¸", "effects": {"title": "Prayer Warrior", "prefix": True}},
     
     # Epic Titles (8k-15k XP)
-    {"item_id": "title_pastor", "name": "Pastor", "description": "Shepherd of the flock", "category": "title", "price": 8000, "rarity": "epic", "icon": "🐑", "effects": {"title": "Pastor", "prefix": True}},
-    {"item_id": "title_evangelist", "name": "Evangelist", "description": "Bearer of good news", "category": "title", "price": 12000, "rarity": "epic", "icon": "📢", "effects": {"title": "Evangelist", "prefix": True}},
-    {"item_id": "title_reverend", "name": "Reverend", "description": "Worthy of respect", "category": "title", "price": 15000, "rarity": "epic", "icon": "⛪", "effects": {"title": "Reverend", "prefix": True}},
+    {"item_id": "title_pastor", "name": "Pastor", "description": "Shepherd of the flock", "category": "title", "price": 8000, "rarity": "epic", "icon": "ðŸ‘", "effects": {"title": "Pastor", "prefix": True}},
+    {"item_id": "title_evangelist", "name": "Evangelist", "description": "Bearer of good news", "category": "title", "price": 12000, "rarity": "epic", "icon": "ðŸ“¢", "effects": {"title": "Evangelist", "prefix": True}},
+    {"item_id": "title_reverend", "name": "Reverend", "description": "Worthy of respect", "category": "title", "price": 15000, "rarity": "epic", "icon": "â›ª", "effects": {"title": "Reverend", "prefix": True}},
     
     # Legendary Titles (20k-35k XP)
-    {"item_id": "title_prophet", "name": "Prophet", "description": "Speaker of truth", "category": "title", "price": 20000, "rarity": "legendary", "icon": "🔮", "effects": {"title": "Prophet", "prefix": True}},
-    {"item_id": "title_apostle", "name": "Apostle", "description": "One who is sent forth", "category": "title", "price": 28000, "rarity": "legendary", "icon": "📜", "effects": {"title": "Apostle", "prefix": True}},
-    {"item_id": "title_saint", "name": "Saint", "description": "Recognized for righteousness", "category": "title", "price": 35000, "rarity": "legendary", "icon": "😇", "effects": {"title": "Saint", "prefix": True, "glow": True}},
+    {"item_id": "title_prophet", "name": "Prophet", "description": "Speaker of truth", "category": "title", "price": 20000, "rarity": "legendary", "icon": "ðŸ”®", "effects": {"title": "Prophet", "prefix": True}},
+    {"item_id": "title_apostle", "name": "Apostle", "description": "One who is sent forth", "category": "title", "price": 28000, "rarity": "legendary", "icon": "ðŸ“œ", "effects": {"title": "Apostle", "prefix": True}},
+    {"item_id": "title_saint", "name": "Saint", "description": "Recognized for righteousness", "category": "title", "price": 35000, "rarity": "legendary", "icon": "ðŸ˜‡", "effects": {"title": "Saint", "prefix": True, "glow": True}},
     
     # Mythic Titles (60k-150k XP) - ULTRA RARE
-    {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "🗡️", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
-    {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "✨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
-    {"item_id": "title_god", "name": "Creator", "description": "Supreme being", "category": "title", "price": 150000, "rarity": "mythic", "icon": "👑", "effects": {"title": "Creator", "prefix": True, "glow": True}},
+    {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "ðŸ—¡ï¸", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
+    {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "âœ¨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
+    {"item_id": "title_god", "name": "Creator", "description": "Supreme being", "category": "title", "price": 150000, "rarity": "mythic", "icon": "ðŸ‘‘", "effects": {"title": "Creator", "prefix": True, "glow": True}},
     
     # ==================== BADGES ====================
     # Common Badges (200-800 XP)
-    {"item_id": "badge_seed", "name": "Seed Planter", "description": "Just starting to grow", "category": "badge", "price": 200, "rarity": "common", "icon": "🌱", "effects": {"badge": "seed", "color": "#90EE90"}},
-    {"item_id": "badge_cross", "name": "Faithful", "description": "Steadfast in faith", "category": "badge", "price": 500, "rarity": "common", "icon": "✝️", "effects": {"badge": "cross", "color": "#8B4513"}},
-    {"item_id": "badge_verified", "name": "Verified", "description": "A verified member", "category": "badge", "price": 800, "rarity": "common", "icon": "✓", "effects": {"badge": "verified", "color": "#0A84FF"}},
+    {"item_id": "badge_seed", "name": "Seed Planter", "description": "Just starting to grow", "category": "badge", "price": 200, "rarity": "common", "icon": "ðŸŒ±", "effects": {"badge": "seed", "color": "#90EE90"}},
+    {"item_id": "badge_cross", "name": "Faithful", "description": "Steadfast in faith", "category": "badge", "price": 500, "rarity": "common", "icon": "âœï¸", "effects": {"badge": "cross", "color": "#8B4513"}},
+    {"item_id": "badge_verified", "name": "Verified", "description": "A verified member", "category": "badge", "price": 800, "rarity": "common", "icon": "âœ“", "effects": {"badge": "verified", "color": "#0A84FF"}},
     
     # Rare Badges (2k-4k XP)
-    {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "💝", "effects": {"badge": "heart", "color": "#FF375F"}},
-    {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "⭐", "effects": {"badge": "star", "color": "#FFD700"}},
-    {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "🙏", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
+    {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "ðŸ’", "effects": {"badge": "heart", "color": "#FF375F"}},
+    {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "â­", "effects": {"badge": "star", "color": "#FFD700"}},
+    {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "ðŸ™", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
     
     # Epic Badges (6k-10k XP)
-    {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "🕊️", "effects": {"badge": "dove", "color": "#FFFFFF"}},
-    {"item_id": "badge_bible", "name": "Scripture Master", "description": "Knows the Word", "category": "badge", "price": 8500, "rarity": "epic", "icon": "📖", "effects": {"badge": "bible", "color": "#30D158"}},
-    {"item_id": "badge_guardian", "name": "Guardian", "description": "Protector of the faith", "category": "badge", "price": 10000, "rarity": "epic", "icon": "🛡️", "effects": {"badge": "guardian", "color": "#4169E1"}},
+    {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "ðŸ•Šï¸", "effects": {"badge": "dove", "color": "#FFFFFF"}},
+    {"item_id": "badge_bible", "name": "Scripture Master", "description": "Knows the Word", "category": "badge", "price": 8500, "rarity": "epic", "icon": "ðŸ“–", "effects": {"badge": "bible", "color": "#30D158"}},
+    {"item_id": "badge_guardian", "name": "Guardian", "description": "Protector of the faith", "category": "badge", "price": 10000, "rarity": "epic", "icon": "ðŸ›¡ï¸", "effects": {"badge": "guardian", "color": "#4169E1"}},
     
     # Legendary Badges (15k-25k XP)
-    {"item_id": "badge_crown", "name": "Crowned", "description": "Royal recognition", "category": "badge", "price": 15000, "rarity": "legendary", "icon": "👑", "effects": {"badge": "crown", "color": "#FFD700"}},
-    {"item_id": "badge_lion", "name": "Lion of Judah", "description": "Strong and courageous", "category": "badge", "price": 22000, "rarity": "legendary", "icon": "🦁", "effects": {"badge": "lion", "color": "#FF8C00"}},
-    {"item_id": "badge_trinity", "name": "Holy Trinity", "description": "Father, Son, and Holy Spirit", "category": "badge", "price": 25000, "rarity": "legendary", "icon": "☘️", "effects": {"badge": "trinity", "color": "#00FF7F"}},
+    {"item_id": "badge_crown", "name": "Crowned", "description": "Royal recognition", "category": "badge", "price": 15000, "rarity": "legendary", "icon": "ðŸ‘‘", "effects": {"badge": "crown", "color": "#FFD700"}},
+    {"item_id": "badge_lion", "name": "Lion of Judah", "description": "Strong and courageous", "category": "badge", "price": 22000, "rarity": "legendary", "icon": "ðŸ¦", "effects": {"badge": "lion", "color": "#FF8C00"}},
+    {"item_id": "badge_trinity", "name": "Holy Trinity", "description": "Father, Son, and Holy Spirit", "category": "badge", "price": 25000, "rarity": "legendary", "icon": "â˜˜ï¸", "effects": {"badge": "trinity", "color": "#00FF7F"}},
     
     # Mythic Badges (40k-80k XP) - ULTRA RARE
-    {"item_id": "badge_immortal", "name": "Immortal", "description": "Timeless in faith", "category": "badge", "price": 40000, "rarity": "mythic", "icon": "🔮", "effects": {"badge": "immortal", "color": "#9400D3"}},
-    {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "👁️", "effects": {"badge": "omniscient", "color": "#FF1493"}},
-    {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "✨", "effects": {"badge": "divine", "color": "#FFD700"}},
+    {"item_id": "badge_immortal", "name": "Immortal", "description": "Timeless in faith", "category": "badge", "price": 40000, "rarity": "mythic", "icon": "ðŸ”®", "effects": {"badge": "immortal", "color": "#9400D3"}},
+    {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "ðŸ‘ï¸", "effects": {"badge": "omniscient", "color": "#FF1493"}},
+    {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "âœ¨", "effects": {"badge": "divine", "color": "#FFD700"}},
     
     # ==================== CHAT EFFECTS ====================
     # Rare Chat Effects (3k-5k XP)
-    {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "💫", "effects": {"effect": "glow", "color": "#FFD700"}},
-    {"item_id": "chat_shadow", "name": "Shadow Text", "description": "Dark mysterious messages", "category": "chat_effect", "price": 4500, "rarity": "rare", "icon": "🌑", "effects": {"effect": "shadow", "color": "#333333"}},
+    {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "ðŸ’«", "effects": {"effect": "glow", "color": "#FFD700"}},
+    {"item_id": "chat_shadow", "name": "Shadow Text", "description": "Dark mysterious messages", "category": "chat_effect", "price": 4500, "rarity": "rare", "icon": "ðŸŒ‘", "effects": {"effect": "shadow", "color": "#333333"}},
     
     # Epic Chat Effects (8k-12k XP)
-    {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"effect": "fire", "animation": "flicker"}},
-    {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "✨", "effects": {"effect": "sparkle", "animation": "twinkle"}},
-    {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "❄️", "effects": {"effect": "ice", "animation": "freeze"}},
+    {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "ðŸ”¥", "effects": {"effect": "fire", "animation": "flicker"}},
+    {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "âœ¨", "effects": {"effect": "sparkle", "animation": "twinkle"}},
+    {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "â„ï¸", "effects": {"effect": "ice", "animation": "freeze"}},
     
     # Legendary Chat Effects (15k-25k XP)
-    {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "🌈", "effects": {"effect": "rainbow", "gradient": True}},
-    {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "📜", "effects": {"effect": "gold", "animation": "shimmer"}},
+    {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "ðŸŒˆ", "effects": {"effect": "rainbow", "gradient": True}},
+    {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "ðŸ“œ", "effects": {"effect": "gold", "animation": "shimmer"}},
     
     # Mythic Chat Effects (50k-100k XP) - ULTRA RARE
-    {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "🌌", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
-    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 100000, "rarity": "mythic", "icon": "⚡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
+    {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "ðŸŒŒ", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
+    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 100000, "rarity": "mythic", "icon": "âš¡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
     
     # ==================== PROFILE BACKGROUNDS ====================
     # Rare Backgrounds (3k-5k XP)
-    {"item_id": "bg_golden", "name": "Golden Hour", "description": "Warm golden background", "category": "profile_bg", "price": 3000, "rarity": "rare", "icon": "🌅", "effects": {"bg_style": "gradient", "colors": ["#FFD700", "#FFA500"]}},
-    {"item_id": "bg_ocean", "name": "Ocean Waves", "description": "Calming ocean vibes", "category": "profile_bg", "price": 4500, "rarity": "rare", "icon": "🌊", "effects": {"bg_style": "waves", "animation": "flow"}},
-    {"item_id": "bg_nature", "name": "Garden of Eden", "description": "Lush paradise", "category": "profile_bg", "price": 5000, "rarity": "rare", "icon": "🌳", "effects": {"bg_style": "nature", "colors": ["#228B22", "#90EE90"]}},
+    {"item_id": "bg_golden", "name": "Golden Hour", "description": "Warm golden background", "category": "profile_bg", "price": 3000, "rarity": "rare", "icon": "ðŸŒ…", "effects": {"bg_style": "gradient", "colors": ["#FFD700", "#FFA500"]}},
+    {"item_id": "bg_ocean", "name": "Ocean Waves", "description": "Calming ocean vibes", "category": "profile_bg", "price": 4500, "rarity": "rare", "icon": "ðŸŒŠ", "effects": {"bg_style": "waves", "animation": "flow"}},
+    {"item_id": "bg_nature", "name": "Garden of Eden", "description": "Lush paradise", "category": "profile_bg", "price": 5000, "rarity": "rare", "icon": "ðŸŒ³", "effects": {"bg_style": "nature", "colors": ["#228B22", "#90EE90"]}},
     
     # Epic Backgrounds (8k-12k XP)
-    {"item_id": "bg_clouds", "name": "Heavenly Clouds", "description": "Walk on clouds", "category": "profile_bg", "price": 8000, "rarity": "epic", "icon": "☁️", "effects": {"bg_style": "clouds", "animation": "float"}},
-    {"item_id": "bg_night", "name": "Starry Night", "description": "Beautiful night sky", "category": "profile_bg", "price": 10000, "rarity": "epic", "icon": "🌌", "effects": {"bg_style": "stars", "animation": "twinkle"}},
-    {"item_id": "bg_fire", "name": "Holy Fire", "description": "Divine flames", "category": "profile_bg", "price": 12000, "rarity": "epic", "icon": "🔥", "effects": {"bg_style": "fire", "animation": "flicker"}},
+    {"item_id": "bg_clouds", "name": "Heavenly Clouds", "description": "Walk on clouds", "category": "profile_bg", "price": 8000, "rarity": "epic", "icon": "â˜ï¸", "effects": {"bg_style": "clouds", "animation": "float"}},
+    {"item_id": "bg_night", "name": "Starry Night", "description": "Beautiful night sky", "category": "profile_bg", "price": 10000, "rarity": "epic", "icon": "ðŸŒŒ", "effects": {"bg_style": "stars", "animation": "twinkle"}},
+    {"item_id": "bg_fire", "name": "Holy Fire", "description": "Divine flames", "category": "profile_bg", "price": 12000, "rarity": "epic", "icon": "ðŸ”¥", "effects": {"bg_style": "fire", "animation": "flicker"}},
     
     # Legendary Backgrounds (18k-30k XP)
-    {"item_id": "bg_paradise", "name": "Paradise Lost", "description": "Eden before the fall", "category": "profile_bg", "price": 18000, "rarity": "legendary", "icon": "🏞️", "effects": {"bg_style": "paradise", "colors": ["#00FF87", "#60EFFF"]}},
-    {"item_id": "bg_celestial", "name": "Celestial Realm", "description": "Heaven on Earth", "category": "profile_bg", "price": 25000, "rarity": "legendary", "icon": "🏛️", "effects": {"bg_style": "celestial", "animation": "holy_light"}},
-    {"item_id": "bg_eternity", "name": "Eternal Void", "description": "Beyond time and space", "category": "profile_bg", "price": 30000, "rarity": "legendary", "icon": "🕳️", "effects": {"bg_style": "void", "animation": "dark_matter"}},
+    {"item_id": "bg_paradise", "name": "Paradise Lost", "description": "Eden before the fall", "category": "profile_bg", "price": 18000, "rarity": "legendary", "icon": "ðŸžï¸", "effects": {"bg_style": "paradise", "colors": ["#00FF87", "#60EFFF"]}},
+    {"item_id": "bg_celestial", "name": "Celestial Realm", "description": "Heaven on Earth", "category": "profile_bg", "price": 25000, "rarity": "legendary", "icon": "ðŸ›ï¸", "effects": {"bg_style": "celestial", "animation": "holy_light"}},
+    {"item_id": "bg_eternity", "name": "Eternal Void", "description": "Beyond time and space", "category": "profile_bg", "price": 30000, "rarity": "legendary", "icon": "ðŸ•³ï¸", "effects": {"bg_style": "void", "animation": "dark_matter"}},
     
     # Mythic Backgrounds (60k-120k XP) - ULTRA RARE
-    {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "🪑", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
-    {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
-    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 120000, "rarity": "mythic", "icon": "👑", "effects": {"bg_style": "godly", "animation": "omnipotence"}},
+    {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "ðŸª‘", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
+    {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "â™¾ï¸", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
+    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 120000, "rarity": "mythic", "icon": "ðŸ‘‘", "effects": {"bg_style": "godly", "animation": "omnipotence"}},
     
     # ==================== BOOSTS / CONSUMABLES ====================
     # Epic Boosts
-    {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "⚡", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
-    {"item_id": "ability_triple_xp", "name": "Triple XP Boost", "description": "3x XP for 6 hours", "category": "consumable", "price": 8000, "rarity": "legendary", "icon": "🚀", "effects": {"boost": "triple_xp", "duration": "6h", "multiplier": 3}},
+    {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "âš¡", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
+    {"item_id": "ability_triple_xp", "name": "Triple XP Boost", "description": "3x XP for 6 hours", "category": "consumable", "price": 8000, "rarity": "legendary", "icon": "ðŸš€", "effects": {"boost": "triple_xp", "duration": "6h", "multiplier": 3}},
     
     # Mythic Boosts
-    {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "💫", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
+    {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "ðŸ’«", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
 ]
 
 def init_shop_items():
@@ -4771,7 +4863,7 @@ def track_verse_read():
             "current_streak": current_streak,
             "longest_streak": longest_streak,
             "total_verses_read": total_read,
-            "message": f"📖 +{total_xp} XP! {current_streak} day streak!"
+            "message": f"ðŸ“– +{total_xp} XP! {current_streak} day streak!"
         })
     except Exception as e:
         logger.error(f"Error tracking verse read: {e}")
@@ -4834,7 +4926,7 @@ def memorize_verse():
             "success": True,
             "xp_earned": 100,
             "total_memorized": total_memorized,
-            "message": f"🧠 +100 XP! Verse memorized! ({total_memorized} total)"
+            "message": f"ðŸ§  +100 XP! Verse memorized! ({total_memorized} total)"
         })
     except Exception as e:
         logger.error(f"Error memorizing verse: {e}")
@@ -4884,7 +4976,7 @@ def add_study_note():
         return jsonify({
             "success": True,
             "xp_earned": xp,
-            "message": f"📝 +{xp} XP! Study note added!"
+            "message": f"ðŸ“ +{xp} XP! Study note added!"
         })
     except Exception as e:
         logger.error(f"Error adding study note: {e}")
@@ -4931,7 +5023,7 @@ def add_prayer_journal():
         return jsonify({
             "success": True,
             "xp_earned": 75,
-            "message": "🙏 +75 XP! Prayer recorded!"
+            "message": "ðŸ™ +75 XP! Prayer recorded!"
         })
     except Exception as e:
         logger.error(f"Error adding prayer: {e}")
@@ -5011,7 +5103,7 @@ def reading_progress():
                 "success": True,
                 "books_completed": len(books_completed),
                 "total_chapters": total_chapters,
-                "message": f"📚 Progress updated! {len(books_completed)} books completed!"
+                "message": f"ðŸ“š Progress updated! {len(books_completed)} books completed!"
             })
         
         else:  # GET
@@ -5101,9 +5193,9 @@ def submit_trivia_answer():
             streak_bonus = min(current_streak * 3, 30)
             total_xp = base_xp + streak_bonus
             award_xp_to_user(user_id, total_xp, f"Trivia correct (streak: {current_streak})")
-            message = f"✅ +{total_xp} XP! Correct! Streak: {current_streak}"
+            message = f"âœ… +{total_xp} XP! Correct! Streak: {current_streak}"
         else:
-            message = "❌ Not quite! Try again!"
+            message = "âŒ Not quite! Try again!"
             total_xp = 0
         
         conn.commit()
@@ -5260,7 +5352,7 @@ def track_topic_study():
             "total_verses_studied": total_verses,
             "total_study_time": total_time,
             "topic_completed": is_completed,
-            "message": f"📚 +{xp} XP! Studied {topic}!"
+            "message": f"ðŸ“š +{xp} XP! Studied {topic}!"
         })
     except Exception as e:
         logger.error(f"Error tracking topic study: {e}")
@@ -5556,6 +5648,7 @@ def get_stats():
             total = safe_count("SELECT COUNT(*) FROM verses")
             liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = %s", (session['user_id'],))
             saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = %s", (session['user_id'],))
+            local_generated = safe_count("SELECT COALESCE(total_verses_read, 0) FROM verse_read_streak WHERE user_id = %s", (session['user_id'],))
             # Count all comments by this user
             comments = safe_count("SELECT COUNT(*) FROM comments WHERE user_id = %s AND COALESCE(is_deleted, 0) = 0", (session['user_id'],))
             # Also count community messages
@@ -5578,6 +5671,7 @@ def get_stats():
             total = safe_count("SELECT COUNT(*) FROM verses")
             liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = ?", (session['user_id'],))
             saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = ?", (session['user_id'],))
+            local_generated = safe_count("SELECT COALESCE(total_verses_read, 0) FROM verse_read_streak WHERE user_id = ?", (session['user_id'],))
             comments = safe_count("SELECT COUNT(*) FROM comments WHERE user_id = ? AND COALESCE(is_deleted, 0) = 0", (session['user_id'],))
             community = safe_count("SELECT COUNT(*) FROM community_messages WHERE user_id = ?", (session['user_id'],))
             replies = safe_count("""
@@ -5600,12 +5694,260 @@ def get_stats():
         # Return total comments (verse + community). Replies are separate.
         total_comments = comments + community
         
-        return jsonify({"total_verses": total, "liked": liked, "saved": saved, "comments": total_comments, "replies": replies})
+        return jsonify({
+            "total_verses": total,
+            "database_verses": total,
+            "local_generated_verses": local_generated,
+            "liked": liked,
+            "saved": saved,
+            "comments": total_comments,
+            "replies": replies
+        })
     except Exception as e:
         logger.error(f"Stats error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({"total_verses": 0, "liked": 0, "saved": 0, "comments": 0})
+        return jsonify({
+            "total_verses": 0,
+            "database_verses": 0,
+            "local_generated_verses": 0,
+            "liked": 0,
+            "saved": 0,
+            "comments": 0,
+            "replies": 0
+        })
+    finally:
+        conn.close()
+
+@app.route('/api/profile_stats')
+def get_profile_stats():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    is_banned, _, _ = check_ban_status(session['user_id'])
+    if is_banned:
+        return jsonify({"error": "banned"}), 403
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+
+    try:
+        def safe_count(query, params=None):
+            try:
+                if params:
+                    c.execute(query, params)
+                else:
+                    c.execute(query)
+                row = c.fetchone()
+                if not row:
+                    return 0
+                if isinstance(row, dict) or hasattr(row, 'keys'):
+                    values = list(row.values())
+                    return int(values[0]) if values else 0
+                return int(row[0])
+            except Exception:
+                return 0
+
+        uid = session['user_id']
+        if db_type == 'postgres':
+            liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = %s", (uid,))
+            saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = %s", (uid,))
+            comments = safe_count("SELECT COUNT(*) FROM comments WHERE user_id = %s AND COALESCE(is_deleted, 0) = 0", (uid,))
+            community = safe_count("SELECT COUNT(*) FROM community_messages WHERE user_id = %s", (uid,))
+            replies = safe_count("""
+                SELECT COUNT(*)
+                FROM comment_replies r
+                LEFT JOIN comments c ON r.parent_type = 'comment' AND r.parent_id = c.id
+                LEFT JOIN community_messages m ON r.parent_type = 'community' AND r.parent_id = m.id
+                WHERE r.user_id = %s
+                  AND COALESCE(r.is_deleted, 0) = 0
+                  AND (
+                      (r.parent_type = 'comment' AND COALESCE(c.is_deleted, 0) = 0)
+                      OR (r.parent_type = 'community' AND m.id IS NOT NULL)
+                  )
+            """, (uid,))
+            purchases = safe_count("SELECT COUNT(*) FROM user_inventory WHERE user_id = %s", (uid,))
+            viewed = safe_count("SELECT COALESCE(total_verses_read, 0) FROM verse_read_streak WHERE user_id = %s", (uid,))
+            liked_comments = safe_count("""
+                SELECT COUNT(*)
+                FROM comment_reactions r
+                JOIN comments c ON r.item_type = 'comment' AND r.item_id = c.id
+                WHERE c.user_id = %s AND LOWER(COALESCE(r.reaction, '')) = 'like' AND r.user_id <> c.user_id
+            """, (uid,)) + safe_count("""
+                SELECT COUNT(*)
+                FROM comment_reactions r
+                JOIN community_messages m ON r.item_type = 'community' AND r.item_id = m.id
+                WHERE m.user_id = %s AND LOWER(COALESCE(r.reaction, '')) = 'like' AND r.user_id <> m.user_id
+            """, (uid,))
+        else:
+            liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = ?", (uid,))
+            saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = ?", (uid,))
+            comments = safe_count("SELECT COUNT(*) FROM comments WHERE user_id = ? AND COALESCE(is_deleted, 0) = 0", (uid,))
+            community = safe_count("SELECT COUNT(*) FROM community_messages WHERE user_id = ?", (uid,))
+            replies = safe_count("""
+                SELECT COUNT(*)
+                FROM comment_replies r
+                LEFT JOIN comments c ON r.parent_type = 'comment' AND r.parent_id = c.id
+                LEFT JOIN community_messages m ON r.parent_type = 'community' AND r.parent_id = m.id
+                WHERE r.user_id = ?
+                  AND COALESCE(r.is_deleted, 0) = 0
+                  AND (
+                      (r.parent_type = 'comment' AND COALESCE(c.is_deleted, 0) = 0)
+                      OR (r.parent_type = 'community' AND m.id IS NOT NULL)
+                  )
+            """, (uid,))
+            purchases = safe_count("SELECT COUNT(*) FROM user_inventory WHERE user_id = ?", (uid,))
+            viewed = safe_count("SELECT COALESCE(total_verses_read, 0) FROM verse_read_streak WHERE user_id = ?", (uid,))
+            liked_comments = safe_count("""
+                SELECT COUNT(*)
+                FROM comment_reactions r
+                JOIN comments c ON r.item_type = 'comment' AND r.item_id = c.id
+                WHERE c.user_id = ? AND LOWER(COALESCE(r.reaction, '')) = 'like' AND r.user_id <> c.user_id
+            """, (uid,)) + safe_count("""
+                SELECT COUNT(*)
+                FROM comment_reactions r
+                JOIN community_messages m ON r.item_type = 'community' AND r.item_id = m.id
+                WHERE m.user_id = ? AND LOWER(COALESCE(r.reaction, '')) = 'like' AND r.user_id <> m.user_id
+            """, (uid,))
+
+        return jsonify({
+            "liked": liked,
+            "saved": saved,
+            "comments": comments + community,
+            "replies": replies,
+            "total_verses": viewed,
+            "purchases": purchases,
+            "liked_comments": liked_comments
+        })
+    except Exception as e:
+        logger.error(f"Profile stats error: {e}")
+        return jsonify({
+            "liked": 0,
+            "saved": 0,
+            "comments": 0,
+            "replies": 0,
+            "total_verses": 0,
+            "purchases": 0,
+            "liked_comments": 0
+        })
+    finally:
+        conn.close()
+
+@app.route('/api/achievements')
+def get_achievements():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_achievement_tables(c, db_type)
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT achievement_id, xp_awarded, unlocked_at
+                FROM user_achievements
+                WHERE user_id = %s
+                ORDER BY unlocked_at ASC
+            """, (session['user_id'],))
+        else:
+            c.execute("""
+                SELECT achievement_id, xp_awarded, unlocked_at
+                FROM user_achievements
+                WHERE user_id = ?
+                ORDER BY unlocked_at ASC
+            """, (session['user_id'],))
+
+        rows = c.fetchall()
+        conn.commit()
+
+        unlocked = []
+        total_xp = 0
+        for row in rows:
+            if isinstance(row, dict) or hasattr(row, 'keys'):
+                aid = row['achievement_id']
+                xp = int(row['xp_awarded'] or 0)
+            else:
+                aid = row[0]
+                xp = int(row[1] or 0)
+            unlocked.append(aid)
+            total_xp += xp
+
+        return jsonify({"unlocked": unlocked, "total_xp": total_xp})
+    except Exception as e:
+        logger.error(f"Get achievements error: {e}")
+        return jsonify({"unlocked": [], "total_xp": 0})
+    finally:
+        conn.close()
+
+@app.route('/api/achievements/unlock', methods=['POST'])
+def unlock_achievement():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json() or {}
+    achievement_id = str(data.get("achievement_id") or "").strip()
+    achievement_name = str(data.get("achievement_name") or achievement_id).strip()
+    xp_amount = int(data.get("xp") or 0)
+    if not achievement_id:
+        return jsonify({"success": False, "error": "achievement_id required"}), 400
+    xp_amount = max(0, min(20000, xp_amount))
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_achievement_tables(c, db_type)
+        inserted = False
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO user_achievements (user_id, achievement_id, achievement_name, xp_awarded)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, achievement_id) DO NOTHING
+                RETURNING id
+            """, (session['user_id'], achievement_id, achievement_name, xp_amount))
+            inserted = bool(c.fetchone())
+        else:
+            c.execute("""
+                INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, achievement_name, xp_awarded)
+                VALUES (?, ?, ?, ?)
+            """, (session['user_id'], achievement_id, achievement_name, xp_amount))
+            inserted = bool(c.rowcount and c.rowcount > 0)
+        conn.commit()
+
+        if not inserted:
+            return jsonify({"success": True, "awarded": False, "achievement_id": achievement_id, "xp_awarded": 0})
+
+        award_result = {"success": True, "new_total": None, "level": None, "leveled_up": False}
+        if xp_amount > 0:
+            award_result = award_xp_to_user(session['user_id'], xp_amount, f"Achievement unlocked: {achievement_name}")
+            if not award_result.get("success"):
+                try:
+                    if db_type == 'postgres':
+                        c.execute("""
+                            DELETE FROM user_achievements
+                            WHERE user_id = %s AND achievement_id = %s
+                        """, (session['user_id'], achievement_id))
+                    else:
+                        c.execute("""
+                            DELETE FROM user_achievements
+                            WHERE user_id = ? AND achievement_id = ?
+                        """, (session['user_id'], achievement_id))
+                    conn.commit()
+                except Exception as cleanup_error:
+                    logger.error(f"Achievement rollback failed: {cleanup_error}")
+                return jsonify({"success": False, "error": award_result.get("error", "Failed to award XP")}), 500
+
+        return jsonify({
+            "success": True,
+            "awarded": True,
+            "achievement_id": achievement_id,
+            "xp_awarded": xp_amount,
+            "new_total": award_result.get("new_total"),
+            "level": award_result.get("level"),
+            "leveled_up": award_result.get("leveled_up", False)
+        })
+    except Exception as e:
+        logger.error(f"Unlock achievement error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
     finally:
         conn.close()
 
@@ -5622,24 +5964,95 @@ def get_daily_challenge():
     c = get_cursor(conn, db_type)
     period_key = get_challenge_period_key()
     period_start, period_end = get_hour_window()
-    hide_at = period_start + timedelta(hours=2)
+    hide_at = period_end
     challenge = pick_hourly_challenge(session['user_id'], period_key)
     goal = challenge.get('goal', 2)
     action = challenge.get('action', 'save')
 
     try:
+        ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("""
-                CREATE TABLE IF NOT EXISTS daily_actions (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL,
-                    action TEXT NOT NULL,
-                    verse_id INTEGER,
-                    event_date TEXT NOT NULL,
-                    timestamp TEXT,
-                    UNIQUE(user_id, action, verse_id, event_date)
-                )
-            """)
+                SELECT COUNT(*) AS count
+                FROM daily_actions
+                WHERE user_id = %s AND action = %s AND event_date = %s
+            """, (session['user_id'], action, period_key))
+            row = c.fetchone()
+            progress = int(row['count'] if row and isinstance(row, dict) else (row[0] if row else 0))
+
+            c.execute("""
+                SELECT 1
+                FROM daily_challenge_claims
+                WHERE user_id = %s AND challenge_date = %s AND challenge_id = %s
+                LIMIT 1
+            """, (session['user_id'], period_key, challenge.get('id', 'daily')))
+            claimed = bool(c.fetchone())
+        else:
+            c.execute("""
+                SELECT COUNT(*)
+                FROM daily_actions
+                WHERE user_id = ? AND action = ? AND event_date = ?
+            """, (session['user_id'], action, period_key))
+            row = c.fetchone()
+            progress = int(row[0] if row else 0)
+
+            c.execute("""
+                SELECT 1
+                FROM daily_challenge_claims
+                WHERE user_id = ? AND challenge_date = ? AND challenge_id = ?
+                LIMIT 1
+            """, (session['user_id'], period_key, challenge.get('id', 'daily')))
+            claimed = bool(c.fetchone())
+
+        conn.commit()
+        progress = min(progress, goal)
+        xp_reward = get_hourly_xp_reward(session['user_id'], period_key, challenge)
+        now_ts = datetime.now().astimezone()
+        hidden = bool(hide_at and now_ts >= hide_at)
+        return jsonify({
+            "id": challenge.get('id', 'save2'),
+            "text": challenge.get('text', 'Save 2 verses to your library'),
+            "goal": goal,
+            "type": action,
+            "difficulty": challenge.get('difficulty', 'Easy'),
+            "date": period_key,
+            "challenge_id": challenge.get('id', 'daily'),
+            "expires_at": period_end.isoformat(),
+            "hide_at": hide_at.isoformat(),
+            "hidden": hidden,
+            "xp_reward": xp_reward,
+            "progress": progress,
+            "completed": progress >= goal,
+            "claimed": claimed
+        })
+    except Exception as e:
+        logger.error(f"Daily challenge error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/daily_challenge/claim', methods=['POST'])
+def claim_daily_challenge():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    is_banned, _, _ = check_ban_status(session['user_id'])
+    if is_banned:
+        return jsonify({"error": "banned"}), 403
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    period_key = get_challenge_period_key()
+    challenge = pick_hourly_challenge(session['user_id'], period_key)
+    action = challenge.get('action', 'save')
+    goal = int(challenge.get('goal', 1))
+    challenge_id = challenge.get('id', 'daily')
+    xp_reward = get_hourly_xp_reward(session['user_id'], period_key, challenge)
+
+    try:
+        ensure_daily_challenge_tables(c, db_type)
+
+        if db_type == 'postgres':
             c.execute("""
                 SELECT COUNT(*) AS count
                 FROM daily_actions
@@ -5649,17 +6062,6 @@ def get_daily_challenge():
             progress = int(row['count'] if row and isinstance(row, dict) else (row[0] if row else 0))
         else:
             c.execute("""
-                CREATE TABLE IF NOT EXISTS daily_actions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    action TEXT NOT NULL,
-                    verse_id INTEGER,
-                    event_date TEXT NOT NULL,
-                    timestamp TEXT,
-                    UNIQUE(user_id, action, verse_id, event_date)
-                )
-            """)
-            c.execute("""
                 SELECT COUNT(*)
                 FROM daily_actions
                 WHERE user_id = ? AND action = ? AND event_date = ?
@@ -5667,28 +6069,69 @@ def get_daily_challenge():
             row = c.fetchone()
             progress = int(row[0] if row else 0)
 
+        if progress < goal:
+            return jsonify({
+                "success": False,
+                "error": "Challenge not complete",
+                "progress": progress,
+                "goal": goal
+            }), 400
+
+        inserted = False
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO daily_challenge_claims (user_id, challenge_date, challenge_id, xp_awarded)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, challenge_date, challenge_id) DO NOTHING
+                RETURNING id
+            """, (session['user_id'], period_key, challenge_id, xp_reward))
+            inserted = bool(c.fetchone())
+        else:
+            c.execute("""
+                INSERT OR IGNORE INTO daily_challenge_claims (user_id, challenge_date, challenge_id, xp_awarded)
+                VALUES (?, ?, ?, ?)
+            """, (session['user_id'], period_key, challenge_id, xp_reward))
+            inserted = bool(c.rowcount and c.rowcount > 0)
+
         conn.commit()
-        progress = min(progress, goal)
-        xp_reward = get_hourly_xp_reward(session['user_id'], period_key)
-        now_ts = datetime.now().astimezone()
-        hidden = bool(hide_at and now_ts >= hide_at)
+
+        if not inserted:
+            return jsonify({
+                "success": True,
+                "awarded": False,
+                "message": "Already claimed",
+                "xp_reward": xp_reward
+            })
+
+        awarded = award_xp_to_user(session['user_id'], xp_reward, f"Daily challenge ({challenge_id})")
+        if not awarded.get("success"):
+            try:
+                if db_type == 'postgres':
+                    c.execute("""
+                        DELETE FROM daily_challenge_claims
+                        WHERE user_id = %s AND challenge_date = %s AND challenge_id = %s
+                    """, (session['user_id'], period_key, challenge_id))
+                else:
+                    c.execute("""
+                        DELETE FROM daily_challenge_claims
+                        WHERE user_id = ? AND challenge_date = ? AND challenge_id = ?
+                    """, (session['user_id'], period_key, challenge_id))
+                conn.commit()
+            except Exception as cleanup_error:
+                logger.error(f"Daily challenge rollback failed: {cleanup_error}")
+            return jsonify({"success": False, "error": awarded.get("error", "XP award failed")}), 500
+
         return jsonify({
-            "id": challenge.get('id', 'save2'),
-            "text": challenge.get('text', 'Save 2 verses to your library'),
-            "goal": goal,
-            "type": action,
-            "date": period_key,
-            "challenge_id": period_key,
-            "expires_at": period_end.isoformat(),
-            "hide_at": hide_at.isoformat(),
-            "hidden": hidden,
+            "success": True,
+            "awarded": True,
             "xp_reward": xp_reward,
-            "progress": progress,
-            "completed": progress >= goal
+            "new_total": awarded.get("new_total"),
+            "level": awarded.get("level"),
+            "leveled_up": awarded.get("leveled_up", False)
         })
     except Exception as e:
-        logger.error(f"Daily challenge error: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Daily challenge claim error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
     finally:
         conn.close()
 
@@ -5830,6 +6273,7 @@ def save_verse():
         verse_id = ensure_verse_id(c, db_type, verse_id, verse_payload)
         now = datetime.now().isoformat()
         period_key = get_challenge_period_key()
+        ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("SELECT id FROM saves WHERE user_id = %s AND verse_id = %s", (session['user_id'], verse_id))
             if c.fetchone():
@@ -9559,3 +10003,4 @@ def get_user_data_summary():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+
