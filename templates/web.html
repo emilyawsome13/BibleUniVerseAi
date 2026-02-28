@@ -3827,6 +3827,10 @@
         .shop-item-btn.equip { background: var(--success); }
         .shop-item-btn.equip:hover { background: #2eb872; }
         .shop-item-btn.unequip { background: var(--warning); }
+        .shop-item-actions { display: flex; gap: 8px; }
+        .shop-item-btn.tiny { width: auto; min-width: 62px; padding: 7px 8px; font-size: 12px; line-height: 1.1; border: 1px solid var(--glass-border); }
+        .shop-item-btn.use { background: var(--success); }
+        .shop-item-btn.use:hover:not(:disabled) { background: #2eb872; }
         
         .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
@@ -11880,6 +11884,7 @@ async function checkAchievement(type, value) {
                 const ownedQty = Number((owned && owned.quantity) || 0);
                 const isConsumable = item.category === 'consumable';
                 const isOwned = !!owned && ownedQty > 0;
+                const boostActive = isConsumable && activeBoostState && activeBoostState.item_id === item.item_id && getRemainingBoostSeconds() > 0;
                 const rarityClass = item.rarity || 'common';
                 const priceLabel = isConsumable
                     ? '⚡ ' + formatNumber(item.price) + ' XP'
@@ -11890,6 +11895,13 @@ async function checkAchievement(type, value) {
                 const canBuy = userXP.xp >= Number(item.price || 0);
                 const buttonDisabled = (!isConsumable && isOwned) || !canBuy;
                 const buttonText = (!isConsumable && isOwned) ? 'Owned' : 'Buy';
+                const useDisabled = !isConsumable || ownedQty <= 0;
+                const useText = boostActive ? 'Active' : 'Use';
+                const buyBtn = '<button class="shop-item-btn" ' + (buttonDisabled ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buttonText + '</button>';
+                const useBtn = '<button class="shop-item-btn tiny use" ' + (useDisabled ? 'disabled' : '') + ' onclick="useBooster(' + "'" + item.item_id + "'" + ')">' + useText + '</button>';
+                const actionButtons = isConsumable
+                    ? ('<div class="shop-item-actions">' + buyBtn + useBtn + '</div>')
+                    : buyBtn;
                 
                 return '<div class="shop-item ' + rarityClass + ' ' + (isOwned && !isConsumable ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
@@ -11898,7 +11910,7 @@ async function checkAchievement(type, value) {
                     ownedLabel +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
                     '<div class="shop-item-price ' + (isOwned && !isConsumable ? 'owned' : '') + '">' + priceLabel + '</div>' +
-                    '<button class="shop-item-btn" ' + (buttonDisabled ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buttonText + '</button>' +
+                    actionButtons +
                     '</div>';
             }).join('');
         }
@@ -12164,6 +12176,7 @@ async function checkAchievement(type, value) {
                 startBoostTicker();
                 await loadInventory();
                 renderInventory();
+                renderShopItems();
                 refreshAllXPDisplays();
                 showToast(`⚡ Booster active (${(activeBoostState && activeBoostState.multiplier) || 1}x XP)!`);
             } catch (e) {

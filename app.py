@@ -743,6 +743,36 @@ def parse_duration_to_seconds(duration_value, default_seconds=3600):
     seconds = value * factor
     return seconds if seconds > 0 else int(default_seconds)
 
+def ensure_active_boosts_schema(c, db_type):
+    """Backfill missing columns for legacy user_active_boosts schemas."""
+    try:
+        if db_type == 'postgres':
+            c.execute("ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS item_id TEXT")
+            c.execute("ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS multiplier INTEGER NOT NULL DEFAULT 1")
+            c.execute("ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            c.execute("ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP")
+            try:
+                c.execute("UPDATE user_active_boosts SET multiplier = 1 WHERE multiplier IS NULL OR multiplier < 1")
+            except Exception:
+                pass
+        else:
+            c.execute("PRAGMA table_info(user_active_boosts)")
+            cols = {str(r[1]).lower() for r in c.fetchall()}
+            if 'item_id' not in cols:
+                c.execute("ALTER TABLE user_active_boosts ADD COLUMN item_id TEXT")
+            if 'multiplier' not in cols:
+                c.execute("ALTER TABLE user_active_boosts ADD COLUMN multiplier INTEGER NOT NULL DEFAULT 1")
+            if 'started_at' not in cols:
+                c.execute("ALTER TABLE user_active_boosts ADD COLUMN started_at TEXT")
+            if 'expires_at' not in cols:
+                c.execute("ALTER TABLE user_active_boosts ADD COLUMN expires_at TEXT")
+            try:
+                c.execute("UPDATE user_active_boosts SET multiplier = 1 WHERE multiplier IS NULL OR multiplier < 1")
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning(f"Could not migrate user_active_boosts schema: {e}")
+
 def _coerce_datetime(value):
     if value is None:
         return None
@@ -769,6 +799,7 @@ def get_active_boost(c, db_type, user_id, cleanup_expired=True):
     if not user_id:
         return None
     try:
+        ensure_active_boosts_schema(c, db_type)
         if db_type == 'postgres':
             c.execute("""
                 SELECT item_id, multiplier, started_at, expires_at
@@ -1858,6 +1889,10 @@ def migrate_db():
                 ''')
             except Exception as e:
                 logger.warning(f"Could not ensure user_active_boosts (sqlite): {e}")
+        try:
+            ensure_active_boosts_schema(c, db_type)
+        except Exception as e:
+            logger.warning(f"Could not finalize user_active_boosts schema migration: {e}")
         
         conn.commit()
         logger.info("Database migrations completed")
@@ -4945,6 +4980,7 @@ def use_consumable():
     c = get_cursor(conn, db_type)
 
     try:
+        ensure_active_boosts_schema(c, db_type)
         # Validate item and ensure it is consumable.
         if db_type == 'postgres':
             c.execute("""
