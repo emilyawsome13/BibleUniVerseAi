@@ -3834,6 +3834,183 @@
         
         .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+
+        /* Rarity Visual Upgrade */
+        .shop-item {
+            isolation: isolate;
+            border-color: rgba(255, 255, 255, 0.1);
+            background:
+                radial-gradient(140% 120% at 0% 0%, rgba(255,255,255,0.06), transparent 55%),
+                linear-gradient(165deg, rgba(8, 12, 24, 0.92), rgba(10, 15, 26, 0.72));
+        }
+        .shop-item::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            pointer-events: none;
+            background: linear-gradient(140deg, var(--rarity-a, rgba(255,255,255,0.12)), transparent 42%, var(--rarity-b, rgba(255,255,255,0.08)));
+            opacity: 0.32;
+            z-index: -1;
+        }
+        .shop-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            background: linear-gradient(115deg, transparent 18%, rgba(255,255,255,0.12) 40%, transparent 62%);
+            transform: translateX(-120%);
+            transition: transform 0.65s ease;
+            opacity: 0.55;
+        }
+        .shop-item:hover::after {
+            transform: translateX(130%);
+        }
+        .shop-item.owned {
+            opacity: 1;
+        }
+        .shop-item.common {
+            --rarity-a: rgba(152, 160, 180, 0.22);
+            --rarity-b: rgba(110, 118, 138, 0.2);
+            box-shadow: inset 0 0 0 1px rgba(150, 160, 185, 0.22);
+        }
+        .shop-item.rare {
+            --rarity-a: rgba(70, 170, 255, 0.48);
+            --rarity-b: rgba(16, 112, 255, 0.35);
+            box-shadow: 0 10px 26px rgba(10, 132, 255, 0.24), inset 0 0 0 1px rgba(64, 165, 255, 0.38);
+            animation: rarityPulseSoft 3.4s ease-in-out infinite;
+        }
+        .shop-item.epic {
+            --rarity-a: rgba(193, 95, 255, 0.5);
+            --rarity-b: rgba(120, 45, 215, 0.42);
+            box-shadow: 0 12px 30px rgba(163, 80, 250, 0.26), inset 0 0 0 1px rgba(188, 95, 255, 0.44);
+            animation: rarityPulseSoft 2.8s ease-in-out infinite;
+        }
+        .shop-item.legendary {
+            --rarity-a: rgba(255, 225, 110, 0.58);
+            --rarity-b: rgba(255, 158, 35, 0.44);
+            box-shadow: 0 14px 36px rgba(255, 190, 40, 0.3), inset 0 0 0 1px rgba(255, 216, 128, 0.52);
+            animation: rarityPulseSoft 2.4s ease-in-out infinite;
+        }
+        .shop-item.mythic {
+            --rarity-a: rgba(255, 65, 185, 0.65);
+            --rarity-b: rgba(72, 220, 255, 0.48);
+            background:
+                radial-gradient(130% 120% at 0% 0%, rgba(255, 80, 170, 0.2), transparent 55%),
+                radial-gradient(130% 100% at 100% 100%, rgba(80, 220, 255, 0.16), transparent 58%),
+                linear-gradient(155deg, rgba(24, 14, 34, 0.95), rgba(10, 12, 24, 0.9));
+            box-shadow: 0 16px 38px rgba(255, 45, 155, 0.34), 0 0 34px rgba(88, 210, 255, 0.22), inset 0 0 0 1px rgba(255, 120, 210, 0.5);
+            animation: mythicCardPulse 1.9s ease-in-out infinite, mythicSheenDrift 4.2s linear infinite;
+        }
+        .shop-item-rarity {
+            border: 1px solid rgba(255,255,255,0.15);
+            font-weight: 700;
+            letter-spacing: 0.85px;
+            backdrop-filter: blur(6px);
+        }
+        .shop-item-rarity.common {
+            background: rgba(148, 155, 175, 0.2);
+            color: #c6ccdc;
+        }
+        .shop-item-rarity.rare {
+            background: rgba(45, 142, 255, 0.22);
+            color: #6cc5ff;
+            box-shadow: 0 0 14px rgba(40, 145, 255, 0.22);
+        }
+        .shop-item-rarity.epic {
+            background: rgba(165, 85, 245, 0.26);
+            color: #dc9fff;
+            box-shadow: 0 0 16px rgba(185, 100, 255, 0.24);
+        }
+        .shop-item-rarity.legendary {
+            background: rgba(255, 185, 48, 0.24);
+            color: #ffd978;
+            box-shadow: 0 0 16px rgba(255, 195, 60, 0.24);
+        }
+        .shop-item-rarity.mythic {
+            background: linear-gradient(135deg, rgba(255, 65, 185, 0.28), rgba(88, 210, 255, 0.2));
+            color: #ffc9f0;
+            box-shadow: 0 0 18px rgba(255, 75, 180, 0.3);
+            animation: rarityPulseSoft 1.6s ease-in-out infinite;
+        }
+
+        /* Badge Polish */
+        .profile-badge,
+        .user-badge-icon,
+        .user-badge-small {
+            --badge-color: var(--primary);
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.65), transparent 38%),
+                linear-gradient(160deg, var(--badge-color), rgba(7, 10, 16, 0.82));
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.08));
+        }
+        .profile-badge {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            font-size: 13px;
+            margin-right: 6px;
+            margin-bottom: 4px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+        }
+        .user-badge-icon,
+        .user-badge-small {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            font-size: 11px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+        }
+        .user-badges {
+            gap: 6px;
+            margin-left: 6px;
+        }
+        .profile-badge.rarity-rare,
+        .user-badge-icon.rarity-rare,
+        .user-badge-small.rarity-rare {
+            box-shadow: 0 0 14px rgba(64, 170, 255, 0.45);
+        }
+        .profile-badge.rarity-epic,
+        .user-badge-icon.rarity-epic,
+        .user-badge-small.rarity-epic {
+            box-shadow: 0 0 16px rgba(177, 92, 255, 0.5);
+        }
+        .profile-badge.rarity-legendary,
+        .user-badge-icon.rarity-legendary,
+        .user-badge-small.rarity-legendary {
+            box-shadow: 0 0 18px rgba(255, 196, 70, 0.52);
+        }
+        .profile-badge.rarity-mythic,
+        .user-badge-icon.rarity-mythic,
+        .user-badge-small.rarity-mythic {
+            box-shadow: 0 0 22px rgba(255, 72, 186, 0.55), 0 0 14px rgba(102, 214, 255, 0.45);
+            animation: badgeMythicPulse 1.6s ease-in-out infinite;
+        }
+
+        /* Rarity title pop */
+        .user-title.legendary,
+        .user-title-legendary {
+            box-shadow: 0 0 14px rgba(255, 206, 90, 0.4);
+        }
+        .user-title.epic,
+        .user-title-epic {
+            box-shadow: 0 0 14px rgba(185, 95, 255, 0.36);
+        }
+        .user-title.mythic,
+        .user-title-mythic {
+            box-shadow: 0 0 22px rgba(255, 70, 182, 0.55);
+            animation: mythicSheenDrift 4s linear infinite;
+            background-size: 220% 220%;
+        }
         
         /* Inventory specific */
         .inventory-categories { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; overflow-x: auto; padding-bottom: 8px; }
@@ -3989,7 +4166,7 @@
         
         /* Badges */
         .user-badges { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle; }
-        .user-badge-small { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .user-badge-small { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
         
         /* Chat Effects */
         .chat-message.sparkle { position: relative; }
@@ -4037,6 +4214,23 @@
         @keyframes fireText { 0% { text-shadow: 0 0 10px #FF4500; } 100% { text-shadow: 0 0 20px #FF4500, 0 0 30px #FF4500; } }
         @keyframes mythicPulse { 0%, 100% { box-shadow: 0 0 10px rgba(255,20,147,0.4); } 50% { box-shadow: 0 0 25px rgba(255,20,147,0.7); } }
         @keyframes mythicShine { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes rarityPulseSoft {
+            0%, 100% { transform: translateY(0); filter: saturate(1); }
+            50% { transform: translateY(-2px); filter: saturate(1.12); }
+        }
+        @keyframes mythicCardPulse {
+            0%, 100% { box-shadow: 0 16px 38px rgba(255, 45, 155, 0.34), 0 0 34px rgba(88, 210, 255, 0.22), inset 0 0 0 1px rgba(255, 120, 210, 0.5); }
+            50% { box-shadow: 0 20px 44px rgba(255, 45, 155, 0.46), 0 0 46px rgba(88, 210, 255, 0.32), inset 0 0 0 1px rgba(255, 150, 220, 0.65); }
+        }
+        @keyframes mythicSheenDrift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes badgeMythicPulse {
+            0%, 100% { transform: scale(1); filter: saturate(1); }
+            50% { transform: scale(1.08); filter: saturate(1.2); }
+        }
         
         /* Shop Item Effects - Profile Frames */
         .profile-frame { position: relative; }
@@ -4093,7 +4287,7 @@
         .user-title-mythic { background: linear-gradient(135deg, #FF1493, #9400D3, #00CED1); color: #fff; box-shadow: 0 0 20px rgba(255,20,147,0.5); animation: mythicShine 3s linear infinite; }
         
         /* Shop Item Effects - Badges */
-        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 14px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 18px; min-height: 18px; }
+        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 11px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 20px; min-height: 20px; border-radius: 999px; }
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
@@ -8082,13 +8276,15 @@
             let titleHtml = '';
             if (c.equipped_title && c.equipped_title.name) {
                 const titleIcon = c.equipped_title.icon || '';
-                titleHtml = `<span class="user-title user-title-${c.equipped_title.rarity}">${titleIcon} ${c.equipped_title.name}</span>`;
+                titleHtml = `<span class="user-title user-title-${safeRarity(c.equipped_title.rarity)}">${titleIcon} ${c.equipped_title.name}</span>`;
             }
             
             // Build badges HTML with fallback
             const badgesHtml = (c.equipped_badges || []).filter(b => b && b.name).map(b => {
                 const badgeIcon = b.icon || '🏅';
-                return `<span class="user-badge-icon" title="${b.name}">${badgeIcon}</span>`;
+                const rarity = safeRarity(b.rarity);
+                const badgeColor = (b.effects && b.effects.color) ? b.effects.color : 'var(--primary)';
+                return `<span class="user-badge-icon rarity-${rarity}" style="--badge-color:${badgeColor};" title="${b.name}">${badgeIcon}</span>`;
             }).join('');
             
             const chatEffectClass = c.equipped_chat_effect ? `chat-effect-${c.equipped_chat_effect.item_id}` : '';
@@ -8174,13 +8370,15 @@
                 let titleHtml = '';
                 if (r.equipped_title && r.equipped_title.name) {
                     const titleIcon = r.equipped_title.icon || '';
-                    titleHtml = `<span class="user-title user-title-${r.equipped_title.rarity}">${titleIcon} ${r.equipped_title.name}</span>`;
+                    titleHtml = `<span class="user-title user-title-${safeRarity(r.equipped_title.rarity)}">${titleIcon} ${r.equipped_title.name}</span>`;
                 }
                 
                 // Build badges HTML with fallback
                 const badgesHtml = (r.equipped_badges || []).filter(b => b && b.name).map(b => {
                     const badgeIcon = b.icon || '🏅';
-                    return `<span class="user-badge-icon" title="${b.name}">${badgeIcon}</span>`;
+                    const rarity = safeRarity(b.rarity);
+                    const badgeColor = (b.effects && b.effects.color) ? b.effects.color : 'var(--primary)';
+                    return `<span class="user-badge-icon rarity-${rarity}" style="--badge-color:${badgeColor};" title="${b.name}">${badgeIcon}</span>`;
                 }).join('');
                 
                 const chatEffectClass = r.equipped_chat_effect ? `chat-effect-${r.equipped_chat_effect.item_id}` : '';
@@ -8508,7 +8706,7 @@
                 const equippedTitle = data.equipped_title || data.title;
                 if (titleEl && equippedTitle) {
                     const effects = equippedTitle.effects || {};
-                    const rarity = equippedTitle.rarity || 'common';
+                    const rarity = safeRarity(equippedTitle.rarity);
                     titleEl.innerHTML = `<span class="user-title ${rarity}">${effects.title || equippedTitle.name || ''}</span>`;
                 } else if (titleEl) {
                     titleEl.textContent = '';
@@ -8520,7 +8718,10 @@
                 if (badgesEl && equippedBadges && equippedBadges.length > 0) {
                     badgesEl.innerHTML = equippedBadges.map(b => {
                         const effects = b.effects || {};
-                        return `<span class="profile-badge" style="background: ${effects.color || 'var(--primary)'}" title="${b.name}">${b.icon}</span>`;
+                        const rarity = safeRarity(b.rarity);
+                        const badgeColor = effects.color || 'var(--primary)';
+                        const badgeIcon = b.icon || '🏅';
+                        return `<span class="profile-badge rarity-${rarity}" style="--badge-color:${badgeColor};" title="${b.name}">${badgeIcon}</span>`;
                     }).join('');
                 } else if (badgesEl) {
                     badgesEl.innerHTML = '';
@@ -8598,7 +8799,7 @@
                 if (!existingAnyTitle && !existingDynamicTitle) {
                     const titleName = customization.title.name || customization.title.effects?.title;
                     if (titleName) {
-                        const rarity = customization.title.rarity || 'common';
+                        const rarity = safeRarity(customization.title.rarity);
                         const titleIcon = customization.title.icon || '';
                         const titleSpan = document.createElement('span');
                         titleSpan.className = `user-title ${rarity}`;
@@ -8622,7 +8823,8 @@
                         badgesSpan.setAttribute('data-shop-effect', 'true');
                         badgesSpan.innerHTML = validBadges.map(b => {
                             const badgeIcon = b.icon || '🏅';
-                            return `<span class="user-badge-small" style="background: ${b.effects?.color || 'var(--primary)'}" title="${b.name}">${badgeIcon}</span>`;
+                            const rarity = safeRarity(b.rarity);
+                            return `<span class="user-badge-small rarity-${rarity}" style="--badge-color:${b.effects?.color || 'var(--primary)'}" title="${b.name}">${badgeIcon}</span>`;
                         }).join('');
                         nameEl.parentNode.insertBefore(badgesSpan, nameEl.nextSibling);
                     }
@@ -11720,6 +11922,14 @@ async function checkAchievement(type, value) {
             return num.toString();
         }
 
+        function safeRarity(value) {
+            const raw = String(value || 'common').trim().toLowerCase();
+            if (raw === 'mythic' || raw === 'legendary' || raw === 'epic' || raw === 'rare' || raw === 'common') {
+                return raw;
+            }
+            return 'common';
+        }
+
         function normalizeXPState(xpData) {
             const baseXp = Number(userXP.xp || 0);
             const fallbackLevel = Math.floor(baseXp / 1000) + 1;
@@ -11885,7 +12095,8 @@ async function checkAchievement(type, value) {
                 const isConsumable = item.category === 'consumable';
                 const isOwned = !!owned && ownedQty > 0;
                 const boostActive = isConsumable && activeBoostState && activeBoostState.item_id === item.item_id && getRemainingBoostSeconds() > 0;
-                const rarityClass = item.rarity || 'common';
+                const rarityClass = safeRarity(item.rarity);
+                const rarityLabel = String(item.rarity || rarityClass).toUpperCase();
                 const priceLabel = isConsumable
                     ? '⚡ ' + formatNumber(item.price) + ' XP'
                     : (isOwned ? '✓ Owned' : '⚡ ' + formatNumber(item.price) + ' XP');
@@ -11908,7 +12119,7 @@ async function checkAchievement(type, value) {
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
                     ownedLabel +
-                    '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
+                    '<span class="shop-item-rarity ' + rarityClass + '">' + rarityLabel + '</span>' +
                     '<div class="shop-item-price ' + (isOwned && !isConsumable ? 'owned' : '') + '">' + priceLabel + '</div>' +
                     actionButtons +
                     '</div>';
@@ -11929,7 +12140,8 @@ async function checkAchievement(type, value) {
             }
             
             container.innerHTML = items.map(item => {
-                const rarityClass = item.rarity || 'common';
+                const rarityClass = safeRarity(item.rarity);
+                const rarityLabel = String(item.rarity || rarityClass).toUpperCase();
                 const isEquipped = item.equipped;
                 const quantity = Math.max(0, Number(item.quantity || 0));
                 const isConsumable = item.category === 'consumable';
@@ -11949,7 +12161,7 @@ async function checkAchievement(type, value) {
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
-                    '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
+                    '<span class="shop-item-rarity ' + rarityClass + '">' + rarityLabel + '</span>' +
                     '<div class="shop-item-price owned">' + statusLabel + '</div>' +
                     '<button class="shop-item-btn ' + btnClass + '" ' + (btnDisabled ? 'disabled' : '') + ' onclick="' + btnOnClick + '">' + btnLabel + '</button>' +
                     '</div>';
