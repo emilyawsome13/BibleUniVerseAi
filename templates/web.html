@@ -5702,10 +5702,18 @@
         function updateTimeOnSite() {
             const now = Date.now();
             const elapsed = Math.floor((now - sessionStartTime) / 1000); // in seconds
-            
-            const startDate = new Date(sessionStartTime);
-            const pad = (value) => String(value).padStart(2, '0');
-            const timeText = `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())} ${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`;
+
+            const days = Math.floor(elapsed / 86400);
+            const hours = Math.floor((elapsed % 86400) / 3600);
+            const mins = Math.floor((elapsed % 3600) / 60);
+            const secs = elapsed % 60;
+
+            const segments = [];
+            if (days) segments.push(`${days}d`);
+            if (hours) segments.push(`${hours}h`);
+            if (mins) segments.push(`${mins}m`);
+            if (!segments.length) segments.push(`${secs}s`);
+            const timeText = segments.join(' ');
             
             const el = document.getElementById('timeOnSite');
             if (el) el.textContent = timeText;
@@ -11929,7 +11937,7 @@ async function checkAchievement(type, value) {
                         { icon: '💾', action: 'Save a verse', type: 'save', xp: '25-50', bonus: '' },
                         { icon: '💬', action: 'Post a comment', type: 'comment', xp: '100', bonus: '' },
                         { icon: '📖', action: 'Read verse (streak)', type: 'view', xp: '5-10', bonus: 'Per verse viewed' },
-                        { icon: '🎯', action: 'Complete daily challenge', type: 'daily_challenge', xp: '50-500', bonus: 'Auto-awarded' }
+                        { icon: '🎯', action: 'Complete daily challenge', type: 'daily_challenge', xp: '800-14000', bonus: 'Auto-awarded' }
                     ]
                 },
                 social: {
