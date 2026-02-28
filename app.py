@@ -5481,6 +5481,14 @@ def award_xp_to_user(user_id, amount, description):
     c = get_cursor(conn, db_type)
     
     try:
+        # Normalize amount early and no-op invalid/zero awards.
+        try:
+            amount = int(amount)
+        except Exception:
+            amount = 0
+        if amount <= 0:
+            return {"success": True, "new_total": None, "level": None, "leveled_up": False}
+
         # Get current XP
         if db_type == 'postgres':
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = %s", (user_id,))
@@ -5489,9 +5497,9 @@ def award_xp_to_user(user_id, amount, description):
         
         row = c.fetchone()
         if row:
-            current_xp = row[0] or 0
-            total_earned = row[1] or 0
-            current_level = row[2] or 1
+            current_xp = int(row_pick(row, 'xp', 0, 0) or 0)
+            total_earned = int(row_pick(row, 'total_xp_earned', 1, 0) or 0)
+            current_level = int(row_pick(row, 'level', 2, 1) or 1)
         else:
             current_xp = 0
             total_earned = 0
