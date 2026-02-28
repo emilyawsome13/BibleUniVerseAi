@@ -38,28 +38,6 @@
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --font-size: 1.05rem;
             --animation-speed: 1;
-            --equip-halo-inset: -24px;
-            --equip-halo-start-scale: 0.72;
-            --equip-halo-mid-scale: 1.12;
-            --equip-halo-end-scale: 1.32;
-            --equip-halo-start-opacity: 0.75;
-            --equip-halo-mid-opacity: 0.44;
-            --equip-item-pop-scale-peak: 1.12;
-            --equip-item-pop-rise-peak: -8px;
-            --equip-item-pop-tilt-peak: -1.4deg;
-            --equip-item-pop-scale-settle: 1.04;
-            --equip-item-pop-rise-settle: -2px;
-            --equip-item-pop-tilt-settle: 0.9deg;
-            --equip-ring-start-scale: 0.72;
-            --equip-ring-mid-scale: 1.22;
-            --equip-ring-end-scale: 1.45;
-            --equip-avatar-pop-scale: 1.12;
-            --equip-avatar-pop-tilt: -2deg;
-            --equip-avatar-settle-scale: 1.04;
-            --equip-avatar-settle-tilt: 1.3deg;
-            --equip-screen-saturate: 1.16;
-            --equip-screen-bright: 1.1;
-            --equip-impact-duration: calc(0.56s * var(--animation-speed));
         }
 
         [data-theme="dark"] {
@@ -122,182 +100,6 @@
         body {
             display: flex;
             flex-direction: column;
-        }
-        body.equip-fx-subtle {
-            --equip-halo-inset: -18px;
-            --equip-halo-mid-scale: 1.05;
-            --equip-halo-end-scale: 1.18;
-            --equip-halo-start-opacity: 0.55;
-            --equip-halo-mid-opacity: 0.25;
-            --equip-item-pop-scale-peak: 1.07;
-            --equip-item-pop-rise-peak: -4px;
-            --equip-item-pop-tilt-peak: -0.7deg;
-            --equip-item-pop-scale-settle: 1.02;
-            --equip-item-pop-rise-settle: -1px;
-            --equip-item-pop-tilt-settle: 0.4deg;
-            --equip-ring-mid-scale: 1.1;
-            --equip-ring-end-scale: 1.22;
-            --equip-avatar-pop-scale: 1.06;
-            --equip-avatar-pop-tilt: -0.8deg;
-            --equip-avatar-settle-scale: 1.015;
-            --equip-avatar-settle-tilt: 0.4deg;
-            --equip-screen-saturate: 1.08;
-            --equip-screen-bright: 1.04;
-            --equip-impact-duration: calc(0.42s * var(--animation-speed));
-        }
-        body.equip-fx-extreme {
-            --equip-halo-inset: -34px;
-            --equip-halo-mid-scale: 1.2;
-            --equip-halo-end-scale: 1.45;
-            --equip-halo-start-opacity: 0.88;
-            --equip-halo-mid-opacity: 0.58;
-            --equip-item-pop-scale-peak: 1.17;
-            --equip-item-pop-rise-peak: -12px;
-            --equip-item-pop-tilt-peak: -2.4deg;
-            --equip-item-pop-scale-settle: 1.06;
-            --equip-item-pop-rise-settle: -3px;
-            --equip-item-pop-tilt-settle: 1.5deg;
-            --equip-ring-mid-scale: 1.32;
-            --equip-ring-end-scale: 1.62;
-            --equip-avatar-pop-scale: 1.16;
-            --equip-avatar-pop-tilt: -2.6deg;
-            --equip-avatar-settle-scale: 1.06;
-            --equip-avatar-settle-tilt: 1.8deg;
-            --equip-screen-saturate: 1.22;
-            --equip-screen-bright: 1.14;
-            --equip-impact-duration: calc(0.72s * var(--animation-speed));
-        }
-        body.equip-fx-mobile {
-            --equip-halo-inset: -20px;
-            --equip-halo-mid-scale: 1.09;
-            --equip-halo-end-scale: 1.24;
-            --equip-halo-start-opacity: 0.68;
-            --equip-halo-mid-opacity: 0.36;
-            --equip-item-pop-scale-peak: 1.09;
-            --equip-item-pop-rise-peak: -6px;
-            --equip-item-pop-tilt-peak: -1.1deg;
-            --equip-item-pop-scale-settle: 1.03;
-            --equip-item-pop-rise-settle: -1px;
-            --equip-item-pop-tilt-settle: 0.6deg;
-            --equip-ring-mid-scale: 1.16;
-            --equip-ring-end-scale: 1.32;
-            --equip-avatar-pop-scale: 1.09;
-            --equip-avatar-pop-tilt: -1.4deg;
-            --equip-avatar-settle-scale: 1.03;
-            --equip-avatar-settle-tilt: 0.8deg;
-            --equip-screen-saturate: 1.12;
-            --equip-screen-bright: 1.06;
-            --equip-impact-duration: calc(0.5s * var(--animation-speed));
-        }
-        body.equip-fx-mobile.equip-fx-subtle {
-            --equip-halo-inset: -14px;
-            --equip-halo-mid-scale: 1.03;
-            --equip-halo-end-scale: 1.12;
-            --equip-halo-start-opacity: 0.48;
-            --equip-halo-mid-opacity: 0.2;
-            --equip-item-pop-scale-peak: 1.045;
-            --equip-item-pop-rise-peak: -3px;
-            --equip-item-pop-tilt-peak: -0.5deg;
-            --equip-item-pop-scale-settle: 1.01;
-            --equip-item-pop-rise-settle: -1px;
-            --equip-item-pop-tilt-settle: 0.3deg;
-            --equip-ring-mid-scale: 1.05;
-            --equip-ring-end-scale: 1.16;
-            --equip-avatar-pop-scale: 1.04;
-            --equip-avatar-pop-tilt: -0.6deg;
-            --equip-avatar-settle-scale: 1.01;
-            --equip-avatar-settle-tilt: 0.25deg;
-            --equip-screen-saturate: 1.06;
-            --equip-screen-bright: 1.03;
-            --equip-impact-duration: calc(0.36s * var(--animation-speed));
-        }
-        body.equip-fx-mobile.equip-fx-extreme {
-            --equip-halo-inset: -28px;
-            --equip-halo-mid-scale: 1.16;
-            --equip-halo-end-scale: 1.34;
-            --equip-halo-start-opacity: 0.8;
-            --equip-halo-mid-opacity: 0.48;
-            --equip-item-pop-scale-peak: 1.13;
-            --equip-item-pop-rise-peak: -8px;
-            --equip-item-pop-tilt-peak: -1.7deg;
-            --equip-item-pop-scale-settle: 1.045;
-            --equip-item-pop-rise-settle: -2px;
-            --equip-item-pop-tilt-settle: 1.1deg;
-            --equip-ring-mid-scale: 1.24;
-            --equip-ring-end-scale: 1.48;
-            --equip-avatar-pop-scale: 1.13;
-            --equip-avatar-pop-tilt: -1.9deg;
-            --equip-avatar-settle-scale: 1.045;
-            --equip-avatar-settle-tilt: 1.25deg;
-            --equip-screen-saturate: 1.18;
-            --equip-screen-bright: 1.1;
-            --equip-impact-duration: calc(0.64s * var(--animation-speed));
-        }
-        body.equip-fx-desktop {
-            --equip-halo-inset: -28px;
-            --equip-halo-mid-scale: 1.16;
-            --equip-halo-end-scale: 1.38;
-            --equip-halo-start-opacity: 0.8;
-            --equip-halo-mid-opacity: 0.48;
-            --equip-item-pop-scale-peak: 1.14;
-            --equip-item-pop-rise-peak: -10px;
-            --equip-item-pop-tilt-peak: -1.8deg;
-            --equip-item-pop-scale-settle: 1.05;
-            --equip-item-pop-rise-settle: -2px;
-            --equip-item-pop-tilt-settle: 1.1deg;
-            --equip-ring-mid-scale: 1.26;
-            --equip-ring-end-scale: 1.5;
-            --equip-avatar-pop-scale: 1.13;
-            --equip-avatar-pop-tilt: -2.2deg;
-            --equip-avatar-settle-scale: 1.05;
-            --equip-avatar-settle-tilt: 1.45deg;
-            --equip-screen-saturate: 1.18;
-            --equip-screen-bright: 1.11;
-            --equip-impact-duration: calc(0.6s * var(--animation-speed));
-        }
-        body.equip-fx-desktop.equip-fx-subtle {
-            --equip-halo-inset: -20px;
-            --equip-halo-mid-scale: 1.08;
-            --equip-halo-end-scale: 1.24;
-            --equip-halo-start-opacity: 0.6;
-            --equip-halo-mid-opacity: 0.3;
-            --equip-item-pop-scale-peak: 1.08;
-            --equip-item-pop-rise-peak: -5px;
-            --equip-item-pop-tilt-peak: -0.9deg;
-            --equip-item-pop-scale-settle: 1.025;
-            --equip-item-pop-rise-settle: -1px;
-            --equip-item-pop-tilt-settle: 0.55deg;
-            --equip-ring-mid-scale: 1.12;
-            --equip-ring-end-scale: 1.26;
-            --equip-avatar-pop-scale: 1.07;
-            --equip-avatar-pop-tilt: -1deg;
-            --equip-avatar-settle-scale: 1.02;
-            --equip-avatar-settle-tilt: 0.55deg;
-            --equip-screen-saturate: 1.1;
-            --equip-screen-bright: 1.05;
-            --equip-impact-duration: calc(0.46s * var(--animation-speed));
-        }
-        body.equip-fx-desktop.equip-fx-extreme {
-            --equip-halo-inset: -40px;
-            --equip-halo-mid-scale: 1.24;
-            --equip-halo-end-scale: 1.52;
-            --equip-halo-start-opacity: 0.92;
-            --equip-halo-mid-opacity: 0.62;
-            --equip-item-pop-scale-peak: 1.2;
-            --equip-item-pop-rise-peak: -14px;
-            --equip-item-pop-tilt-peak: -2.8deg;
-            --equip-item-pop-scale-settle: 1.07;
-            --equip-item-pop-rise-settle: -3px;
-            --equip-item-pop-tilt-settle: 1.7deg;
-            --equip-ring-mid-scale: 1.38;
-            --equip-ring-end-scale: 1.72;
-            --equip-avatar-pop-scale: 1.18;
-            --equip-avatar-pop-tilt: -3deg;
-            --equip-avatar-settle-scale: 1.07;
-            --equip-avatar-settle-tilt: 2deg;
-            --equip-screen-saturate: 1.26;
-            --equip-screen-bright: 1.16;
-            --equip-impact-duration: calc(0.78s * var(--animation-speed));
         }
 
         html[data-theme="dark"] body {
@@ -426,135 +228,6 @@
             5% { opacity: 0.4; }
             95% { opacity: 0.4; }
             100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* XP Reward FX Layer */
-        .fx-layer {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 10000;
-        }
-        .fx-xp-float {
-            position: absolute;
-            left: 50%;
-            top: 62%;
-            transform: translate(-50%, 0) scale(0.9);
-            opacity: 0;
-            padding: 10px 16px;
-            border-radius: 999px;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.35);
-            background: linear-gradient(135deg, rgba(10,132,255,0.95), rgba(191,90,242,0.95));
-            box-shadow: 0 14px 34px rgba(10,132,255,0.4);
-            backdrop-filter: blur(8px);
-            white-space: nowrap;
-        }
-        .fx-xp-float.show {
-            animation: xpFloatRiseFx calc(1.2s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) forwards;
-        }
-        .fx-xp-spark {
-            --dx: 0px;
-            --dy: -60px;
-            position: absolute;
-            left: 50%;
-            top: 62%;
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0.35) 65%, transparent 100%);
-            box-shadow: 0 0 12px rgba(255,255,255,0.7);
-            transform: translate(-50%, -50%);
-            opacity: 0;
-        }
-        .fx-xp-spark.show {
-            animation: xpSparkBurstFx calc(0.92s * var(--animation-speed)) ease-out forwards;
-        }
-        .fx-equip-flash {
-            --equip-core: rgba(10,132,255,0.95);
-            --equip-mid: rgba(94,177,255,0.45);
-            position: fixed;
-            width: 22px;
-            height: 22px;
-            border-radius: 999px;
-            pointer-events: none;
-            z-index: 10001;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.25);
-            background: radial-gradient(circle, var(--equip-core) 0%, var(--equip-mid) 42%, rgba(255,255,255,0.08) 62%, transparent 76%);
-            filter: blur(0.8px);
-            mix-blend-mode: screen;
-        }
-        .fx-equip-flash.show {
-            animation: equipFlashBlastFx calc(0.9s * var(--animation-speed)) cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
-        }
-        .fx-equip-spark {
-            --dx: 0px;
-            --dy: -60px;
-            --equip-spark: rgba(255,255,255,0.95);
-            position: fixed;
-            width: 9px;
-            height: 9px;
-            border-radius: 999px;
-            pointer-events: none;
-            z-index: 10001;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(1);
-            background: radial-gradient(circle, var(--equip-spark) 0%, rgba(255,255,255,0.16) 68%, transparent 100%);
-            box-shadow: 0 0 18px var(--equip-spark);
-        }
-        .fx-equip-spark.show {
-            animation: equipSparkBurstFx calc(0.86s * var(--animation-speed)) ease-out forwards;
-        }
-        body.equip-impact .content {
-            animation: equipScreenSurgeFx var(--equip-impact-duration, calc(0.56s * var(--animation-speed))) ease-out;
-        }
-        body.xp-fever .ambient-orb {
-            opacity: 0.54;
-            filter: saturate(1.35) brightness(1.08);
-            animation-duration: 12s;
-        }
-        body.xp-fever .verse-container,
-        body.xp-fever .achievement-item.completed,
-        body.xp-fever .shop-item.equipped {
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.24), 0 16px 40px var(--primary-glow);
-        }
-        @keyframes xpFloatRiseFx {
-            0% { opacity: 0; transform: translate(-50%, 10px) scale(0.88); }
-            18% { opacity: 1; transform: translate(-50%, -4px) scale(1.06); }
-            100% { opacity: 0; transform: translate(-50%, -92px) scale(0.94); }
-        }
-        @keyframes xpSparkBurstFx {
-            0% { opacity: 0.95; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.18); }
-        }
-        @keyframes equipFlashBlastFx {
-            0% { opacity: 0.96; transform: translate(-50%, -50%) scale(0.35); }
-            46% { opacity: 0.66; transform: translate(-50%, -50%) scale(8.5); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(11.5); }
-        }
-        @keyframes equipSparkBurstFx {
-            0% { opacity: 0.98; transform: translate(-50%, -50%) scale(1.05); }
-            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2); }
-        }
-        @keyframes equipScreenSurgeFx {
-            0% { filter: saturate(1) brightness(1); }
-            38% { filter: saturate(var(--equip-screen-saturate, 1.16)) brightness(var(--equip-screen-bright, 1.1)); }
-            100% { filter: saturate(1) brightness(1); }
-        }
-        @keyframes equipHaloBurstFx {
-            0% { opacity: var(--equip-halo-start-opacity, 0.75); transform: scale(var(--equip-halo-start-scale, 0.72)); }
-            45% { opacity: var(--equip-halo-mid-opacity, 0.44); transform: scale(var(--equip-halo-mid-scale, 1.12)); }
-            100% { opacity: 0; transform: scale(var(--equip-halo-end-scale, 1.32)); }
-        }
-        @keyframes equipAvatarHeroFx {
-            0% { transform: scale(1) rotate(0deg); }
-            32% { transform: scale(var(--equip-avatar-pop-scale, 1.12)) rotate(var(--equip-avatar-pop-tilt, -2deg)); }
-            62% { transform: scale(var(--equip-avatar-settle-scale, 1.04)) rotate(var(--equip-avatar-settle-tilt, 1.3deg)); }
-            100% { transform: scale(1) rotate(0deg); }
         }
 
         /* ===== HIGH CONTRAST ===== */
@@ -1181,15 +854,6 @@
             .nav-icon {
                 font-size: 20px;
             }
-
-            .nav-item.active .nav-icon {
-                animation: navIconDriftFx calc(2.4s * var(--animation-speed)) ease-in-out infinite;
-            }
-        }
-
-        @keyframes navIconDriftFx {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-2px) scale(1.06); }
         }
 
         .header-actions {
@@ -1271,12 +935,6 @@
             display: block;
             animation: tabEnter calc(0.34s * var(--animation-speed)) cubic-bezier(0.2, 0.7, 0.2, 1);
         }
-        body:not(.no-animations) .tab-view.active .glass-card {
-            animation: cardRiseFx calc(0.52s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) both;
-        }
-        body:not(.no-animations) .nav-item.active {
-            animation: navPulseFx calc(0.64s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1);
-        }
 
         body.tab-discover .ambient-bg { filter: hue-rotate(0deg) saturate(1.02); }
         body.tab-recommendations .ambient-bg { filter: hue-rotate(26deg) saturate(1.08); }
@@ -1289,15 +947,6 @@
         @keyframes tabEnter {
             0% { opacity: 0; transform: translateY(10px) scale(0.995); filter: blur(3px); }
             100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-        @keyframes cardRiseFx {
-            0% { opacity: 0.68; transform: translateY(10px) scale(0.985); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes navPulseFx {
-            0% { transform: scale(0.96); }
-            55% { transform: scale(1.04); }
-            100% { transform: scale(1); }
         }
 
         .about-hero {
@@ -1685,19 +1334,6 @@
         .verse-container {
             cursor: pointer;
             transition: transform 0.25s;
-            position: relative;
-            isolation: isolate;
-        }
-
-        .verse-container::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            pointer-events: none;
-            background: linear-gradient(118deg, transparent 0%, rgba(255, 255, 255, 0.0) 40%, rgba(255, 255, 255, 0.32) 50%, rgba(255, 255, 255, 0.0) 60%, transparent 100%);
-            transform: translateX(-130%);
-            opacity: 0;
         }
 
         .verse-container:hover {
@@ -1708,30 +1344,10 @@
             animation: verseReveal calc(0.7s * var(--animation-speed)) cubic-bezier(0.16, 0.84, 0.3, 1);
         }
 
-        .verse-container.verse-reveal::after {
-            animation: verseSweepFx calc(0.85s * var(--animation-speed)) ease-out;
-        }
-
-        .verse-container.verse-reveal .verse-text {
-            animation: verseTextPopFx calc(0.72s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1);
-        }
-
         @keyframes verseReveal {
             0% { opacity: 0.22; transform: translateY(14px) scale(0.985); filter: blur(6px); }
             60% { opacity: 1; transform: translateY(0) scale(1.003); filter: blur(0); }
             100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-
-        @keyframes verseSweepFx {
-            0% { opacity: 0; transform: translateX(-130%); }
-            30% { opacity: 0.68; }
-            100% { opacity: 0; transform: translateX(130%); }
-        }
-
-        @keyframes verseTextPopFx {
-            0% { transform: translateY(8px); letter-spacing: 0.02em; opacity: 0.35; }
-            55% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(0); letter-spacing: -0.01em; opacity: 1; }
         }
 
         .verse-text {
@@ -1845,7 +1461,72 @@
         }
 
         .action-icon {
-            font-size: 22px;
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: currentColor;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .action-icon.like,
+        .action-icon.save {
+            font-size: 0;
+        }
+
+        .action-icon.like::before,
+        .action-icon.save::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            display: block;
+            background-color: currentColor;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            -webkit-mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            mask-size: contain;
+        }
+
+        .action-icon.like::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21zm0-2.41c1.708-1.2 5.408-4.015 7.49-6.866.99-1.357.862-3.016-.358-3.874-1.205-.848-2.82-.548-3.73.656l-2.951 3.106a.62.62 0 0 1-.901 0L8.6 8.506c-.91-1.204-2.525-1.504-3.73-.656-1.22.858-1.349 2.517-.358 3.874 2.082 2.85 5.782 5.665 7.49 6.866z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21zm0-2.41c1.708-1.2 5.408-4.015 7.49-6.866.99-1.357.862-3.016-.358-3.874-1.205-.848-2.82-.548-3.73.656l-2.951 3.106a.62.62 0 0 1-.901 0L8.6 8.506c-.91-1.204-2.525-1.504-3.73-.656-1.22.858-1.349 2.517-.358 3.874 2.082 2.85 5.782 5.665 7.49 6.866z'/%3E%3C/svg%3E");
+        }
+
+        .action-icon.like.active::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-6.716-4.35-9.428-8.066C.861 10.565 1.245 7.5 3.52 5.9c2.018-1.42 4.603-.98 6.117.803L12 9.19l2.363-2.487c1.514-1.783 4.1-2.222 6.117-.803 2.275 1.6 2.659 4.665.948 7.034C18.716 16.65 12 21 12 21z'/%3E%3C/svg%3E");
+        }
+
+        .action-icon.save::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1zm1.2 1.2v15.718l4.288-3.573a.8.8 0 0 1 1.024 0L16.8 19.918V4.2H7.2z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1zm1.2 1.2v15.718l4.288-3.573a.8.8 0 0 1 1.024 0L16.8 19.918V4.2H7.2z'/%3E%3C/svg%3E");
+        }
+
+        .action-icon.save.active::before {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M6 3h12a1 1 0 0 1 1 1v17.2a.8.8 0 0 1-1.302.617L12 17.067l-5.698 4.75A.8.8 0 0 1 5 21.2V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+        }
+
+        .verse-container::before,
+        .verse-container::after,
+        .verse-text::before,
+        .verse-text::after {
+            content: none !important;
+            display: none !important;
+        }
+
+        .verse-text {
+            background: transparent !important;
+            clip-path: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
         }
 
         .action-icon.spark {
@@ -1943,48 +1624,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        .fortune-section {
-            margin-bottom: 16px;
-        }
-        .fortune-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-            gap: 12px;
-            margin-top: 12px;
-        }
-        .fortune-item {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.08));
-            border: 1px solid rgba(37, 99, 235, 0.35);
-            padding: 14px;
-            border-radius: 14px;
-            min-height: 110px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
-        }
-        .fortune-item::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.25), transparent 60%);
-            opacity: 0.6;
-        }
-        .fortune-item h4 {
-            font-size: 14px;
-            margin: 0;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-        .fortune-item p {
-            margin: 0;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-
         /* Library Tab - Simplified */
         .favorites-collection {
             background: linear-gradient(135deg, rgba(255, 59, 95, 0.1), rgba(255, 159, 10, 0.1));
@@ -2072,7 +1711,7 @@
             pointer-events: none;
         }
 
-.verse-card-status {
+        .verse-card-status {
             display: flex;
             gap: 6px;
             margin-top: 8px;
@@ -2583,36 +2222,6 @@
         .avatar-wrap.avatar-large {
             width: 90px;
             height: 90px;
-        }
-        #profileAvatarWrap::after {
-            content: '';
-            position: absolute;
-            inset: -10px;
-            border-radius: 50%;
-            border: 2px solid rgba(10, 132, 255, 0.28);
-            opacity: 0;
-            transform: scale(0.9);
-            pointer-events: none;
-        }
-        #profileAvatarWrap.equip-pulse::after {
-            animation: equipRingPulse 1.12s cubic-bezier(0.16, 0.84, 0.24, 1);
-        }
-        #profileAvatarWrap::before {
-            content: '';
-            position: absolute;
-            inset: var(--equip-halo-inset, -24px);
-            border-radius: 50%;
-            pointer-events: none;
-            opacity: 0;
-            transform: scale(var(--equip-halo-start-scale, 0.72));
-            background: radial-gradient(circle, rgba(10,132,255,0.3) 0%, rgba(94,177,255,0.16) 38%, transparent 72%);
-            z-index: 0;
-        }
-        #profileAvatarWrap.equip-hero::before {
-            animation: equipHaloBurstFx 1.14s cubic-bezier(0.16, 0.84, 0.24, 1);
-        }
-        #profileAvatarWrap.equip-hero img:not(.avatar-decor) {
-            animation: equipAvatarHeroFx 0.92s cubic-bezier(0.18, 0.84, 0.2, 1);
         }
         .avatar-shop-grid {
             display: grid;
@@ -3192,46 +2801,11 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             text-align: center;
             max-width: 90%;
-            overflow: hidden;
         }
 
         .toast.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
-        }
-
-        .toast.burst {
-            animation: toastBurstFx calc(0.42s * var(--animation-speed)) cubic-bezier(0.16, 0.84, 0.3, 1);
-        }
-
-        .toast::after {
-            content: '';
-            position: absolute;
-            left: 10px;
-            right: 10px;
-            bottom: 6px;
-            height: 2px;
-            border-radius: 999px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            transform-origin: left center;
-            transform: scaleX(0);
-            opacity: 0.8;
-        }
-
-        .toast.show::after {
-            transform: scaleX(1);
-            animation: toastTimerFx var(--toast-duration, 2800ms) linear forwards;
-        }
-
-        @keyframes toastTimerFx {
-            from { transform: scaleX(1); opacity: 0.9; }
-            to { transform: scaleX(0); opacity: 0.25; }
-        }
-
-        @keyframes toastBurstFx {
-            0% { filter: saturate(1.4); }
-            60% { filter: saturate(1); }
-            100% { filter: saturate(1); }
         }
 
         /* Profile Stats Grid */
@@ -3272,26 +2846,6 @@
             text-transform: uppercase;
             letter-spacing: 0.8px;
             opacity: 0.7;
-        }
-
-        .stat-card.stat-pop {
-            animation: statPulseFx calc(0.44s * var(--animation-speed)) ease-out;
-        }
-
-        .stat-card.stat-pop .stat-value {
-            animation: statValueFx calc(0.44s * var(--animation-speed)) ease-out;
-        }
-
-        @keyframes statPulseFx {
-            0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(10,132,255,0); }
-            45% { transform: translateY(-3px) scale(1.03); box-shadow: 0 12px 26px var(--primary-glow); }
-            100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(10,132,255,0); }
-        }
-
-        @keyframes statValueFx {
-            0% { letter-spacing: 0; opacity: 0.82; }
-            45% { letter-spacing: 0.04em; opacity: 1; }
-            100% { letter-spacing: 0; opacity: 1; }
         }
 
         /* Profile Info Cards */
@@ -3947,7 +3501,7 @@
             outline: none;
             border-color: var(--primary);
         }
-.library-search-row {
+        .library-search-row {
             display: flex;
             gap: 8px;
             align-items: stretch;
@@ -4225,53 +3779,18 @@
         .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
         @media (min-width: 768px) { .shop-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
         
-        .shop-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: all 0.32s cubic-bezier(0.2, 0.84, 0.2, 1); cursor: pointer; position: relative; overflow: hidden; transform-style: preserve-3d; }
-        .shop-item.animated-in { animation: shopCardInFx calc(0.58s * var(--animation-speed)) cubic-bezier(0.2, 0.84, 0.2, 1) both; animation-delay: var(--item-delay, 0ms); }
-        .shop-item:hover { transform: translateY(-10px) scale(1.015); box-shadow: 0 20px 46px rgba(0,0,0,0.34), 0 0 32px rgba(10,132,255,0.25); border-color: var(--primary); }
-        .shop-item::before {
-            content: '';
-            position: absolute;
-            inset: -35%;
-            background: radial-gradient(circle at 50% 45%, rgba(10,132,255,0.2), rgba(10,132,255,0.05) 35%, transparent 62%);
-            opacity: 0;
-            transform: scale(0.72);
-            transition: opacity 0.34s ease, transform 0.34s ease;
-            pointer-events: none;
-        }
-        .shop-item:hover::before {
-            opacity: 1;
-            transform: scale(1);
-        }
-        .shop-item::after {
-            content: '';
-            position: absolute;
-            inset: -120% auto auto -120%;
-            width: 80%;
-            height: 260%;
-            background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.34) 48%, transparent 100%);
-            transform: rotate(14deg);
-            opacity: 0;
-            pointer-events: none;
-        }
-        .shop-item:hover::after {
-            opacity: 0.9;
-            animation: shineSweepFx calc(0.78s * var(--animation-speed)) ease-out;
-        }
+        .shop-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: all 0.2s; cursor: pointer; position: relative; overflow: hidden; }
+        .shop-item:hover { transform: translateY(-4px); box-shadow: 0 12px 32px var(--shadow); border-color: var(--primary); }
         .shop-item.owned { border-color: var(--success); opacity: 0.7; }
-        .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 26px var(--primary-glow), 0 14px 36px rgba(10,132,255,0.24); animation: equippedCardAura 2.3s ease-in-out infinite; }
-        .shop-item.equip-pop {
-            animation: equipItemPop 0.58s cubic-bezier(0.2, 0.84, 0.2, 1);
-        }
+        .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
         .shop-item.legendary { border-color: #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.1), var(--surface)); }
         .shop-item.epic { border-color: #BF5AF2; background: linear-gradient(135deg, rgba(191,90,242,0.1), var(--surface)); }
         .shop-item.rare { border-color: #0A84FF; background: linear-gradient(135deg, rgba(10,132,255,0.1), var(--surface)); }
         .shop-item.mythic { border-color: #FF1493; background: linear-gradient(135deg, rgba(255,20,147,0.15), var(--surface)); box-shadow: 0 0 30px rgba(255,20,147,0.2); }
         
-        .shop-item-icon { font-size: 48px; margin-bottom: 12px; display: block; transition: transform 0.26s ease, filter 0.26s ease; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.28)); }
-        .shop-item:hover .shop-item-icon { transform: translateY(-4px) scale(1.12) rotate(-4deg); filter: drop-shadow(0 8px 16px rgba(10,132,255,0.42)); animation: iconPulseHero 0.95s ease-in-out infinite alternate; }
+        .shop-item-icon { font-size: 48px; margin-bottom: 12px; display: block; }
         .shop-item-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--text-primary); }
         .shop-item-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
-        .shop-item-help { font-size: 10px; color: var(--text-tertiary); margin: -6px 0 10px; min-height: 26px; line-height: 1.35; }
         .shop-item-rarity { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 10px; display: inline-block; margin-bottom: 10px; }
         .shop-item-rarity.legendary { background: rgba(255,215,0,0.2); color: #FFD700; }
         .shop-item-rarity.epic { background: rgba(191,90,242,0.2); color: #BF5AF2; }
@@ -4281,19 +3800,13 @@
         
         .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
         .shop-item-price.owned { color: var(--success); }
-        .shop-item-price.active { color: #34C759; text-shadow: 0 0 12px rgba(52,199,89,0.4); animation: boostTimerPulse 1.25s ease-in-out infinite; }
         
         .shop-item-btn { width: 100%; padding: 10px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .shop-item-btn:hover:not(:disabled) { background: var(--secondary); transform: translateY(-1px) scale(1.05); box-shadow: 0 8px 18px rgba(10,132,255,0.35); }
+        .shop-item-btn:hover:not(:disabled) { background: var(--secondary); transform: scale(1.02); }
         .shop-item-btn:disabled { background: var(--surface); color: var(--text-secondary); cursor: not-allowed; }
         .shop-item-btn.equip { background: var(--success); }
         .shop-item-btn.equip:hover { background: #2eb872; }
         .shop-item-btn.unequip { background: var(--warning); }
-        .shop-item-btn.use { background: var(--success); }
-        .shop-item-btn.use:hover:not(:disabled) { background: #2eb872; }
-        .shop-item-btn.add { background: var(--primary); }
-        .shop-item-actions { display: flex; gap: 8px; }
-        .shop-item-actions .shop-item-btn { width: auto; flex: 1; }
         
         .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
@@ -4312,28 +3825,9 @@
             .achievement-categories { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         }
         .achievement-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: flex-start; gap: 16px; transition: all 0.2s; cursor: pointer; position: relative; }
-        .achievement-item.animated-in { animation: achievementInFx calc(0.46s * var(--animation-speed)) cubic-bezier(0.2, 0.82, 0.2, 1) both; animation-delay: var(--ach-delay, 0ms); }
         .achievement-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-        .achievement-item::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            border: 1px solid transparent;
-            background: linear-gradient(120deg, rgba(10,132,255,0.45), rgba(52,198,255,0.2), rgba(191,90,242,0.42)) border-box;
-            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            opacity: 0;
-            pointer-events: none;
-        }
-        .achievement-item:hover::before {
-            opacity: 1;
-            animation: achievementBorderPulseFx calc(1.2s * var(--animation-speed)) ease-out;
-        }
         .achievement-item.completed { background: linear-gradient(135deg, rgba(48,209,88,0.1), var(--surface)); border-color: var(--success); }
         .achievement-item.completed:hover { border-color: var(--success); box-shadow: 0 8px 24px rgba(48,209,88,0.2); }
-        .achievement-item.just-unlocked { animation: achievementUnlockFx calc(0.96s * var(--animation-speed)) ease-out; }
         .achievement-icon { font-size: 40px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--glass); border-radius: 12px; flex-shrink: 0; }
         .achievement-item.completed .achievement-icon { background: rgba(48,209,88,0.2); }
         .achievement-content { flex: 1; min-width: 0; }
@@ -4346,24 +3840,6 @@
         .achievement-progress-text { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
         .achievement-item.completed .achievement-progress-fill { background: var(--success); }
         .achievement-category-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--glass); color: var(--text-secondary); font-weight: 500; }
-        @keyframes achievementInFx {
-            0% { opacity: 0; transform: translateY(10px) scale(0.985); filter: blur(2px); }
-            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-        @keyframes achievementUnlockFx {
-            0% { box-shadow: 0 0 0 rgba(48,209,88,0); }
-            35% { box-shadow: 0 0 0 2px rgba(48,209,88,0.4), 0 14px 34px rgba(48,209,88,0.35); }
-            100% { box-shadow: 0 0 0 rgba(48,209,88,0); }
-        }
-        @keyframes shineSweepFx {
-            0% { transform: translateX(0) rotate(14deg); }
-            100% { transform: translateX(360%) rotate(14deg); }
-        }
-        @keyframes achievementBorderPulseFx {
-            0% { opacity: 0; }
-            30% { opacity: 1; }
-            100% { opacity: 0; }
-        }
         /* Mobile click-to-expand progress */
         .achievement-detail-panel { 
             position: absolute; 
@@ -4436,8 +3912,7 @@
         .xp-guide-special { background: linear-gradient(135deg, rgba(191,90,242,0.1), var(--surface)); border-color: rgba(191,90,242,0.3); }
         
         /* Profile customization display */
-        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; z-index: 2; }
-        .profile-frame.equip-pulse { animation: equipFrameFlash 1.05s cubic-bezier(0.18, 0.9, 0.25, 1) !important; }
+        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; }
         .profile-frame.gold { border: 3px solid #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.5); animation: goldPulse 2s ease-in-out infinite; }
         .profile-frame.silver { border: 3px solid #C0C0C0; box-shadow: 0 0 15px rgba(192,192,192,0.4); }
         .profile-frame.bronze { border: 3px solid #CD7F32; box-shadow: 0 0 12px rgba(205,127,50,0.4); }
@@ -4447,15 +3922,12 @@
         .profile-frame.cross { border: 3px solid #8B4513; box-shadow: 0 0 15px rgba(139,69,19,0.4); }
         .profile-frame.cross::before { content: '✝️'; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 20px; filter: drop-shadow(0 0 5px rgba(255,215,0,0.8)); }
         .profile-frame.heart { border: 3px solid #FF69B4; box-shadow: 0 0 15px rgba(255,105,180,0.5); animation: heartBeat 1.5s ease-in-out infinite; }
-        .profile-frame.fire { border: 3px solid transparent; background: linear-gradient(135deg, #FF4500, #FFD700) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fireFlicker 1.35s ease-in-out infinite alternate; }
+        .profile-frame.fire { border: 3px solid transparent; background: linear-gradient(135deg, #FF4500, #FFD700) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fireFlicker 0.5s ease-in-out infinite alternate; }
         .profile-frame.ice { border: 3px solid #00CED1; box-shadow: 0 0 15px rgba(0,206,209,0.5), inset 0 0 10px rgba(0,206,209,0.2); animation: iceGlow 2s ease-in-out infinite alternate; }
         .profile-frame.nature { border: 3px solid #228B22; box-shadow: 0 0 15px rgba(34,139,34,0.4); }
         .profile-frame.nature::before { content: '🌿'; position: absolute; top: -10px; left: -10px; font-size: 18px; animation: leafSway 2s ease-in-out infinite; }
         .profile-frame.nature::after { content: '🌿'; position: absolute; bottom: -10px; right: -10px; font-size: 18px; animation: leafSway 2s ease-in-out infinite 1s; }
-        .profile-frame.stars { border: 3px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: starTwinkle 2.2s ease-in-out infinite; }
-        .profile-frame.royal { border: 3px solid #6a3ee0; box-shadow: 0 0 18px rgba(106,62,224,0.5), inset 0 0 8px rgba(255,215,0,0.24); animation: goldPulse 2.6s ease-in-out infinite; }
-        .profile-frame.royal::after { content: '👑'; position: absolute; top: -12px; right: -8px; font-size: 16px; filter: drop-shadow(0 0 5px rgba(255,215,0,0.75)); }
-        .profile-frame.aurora { border: 3px solid transparent; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 4.2s linear infinite; }
+        .profile-frame.stars { border: 3px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: starTwinkle 1s ease-in-out infinite; }
         
         /* Name Colors */
         .user-name.gold { color: #FFD700 !important; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
@@ -4483,7 +3955,7 @@
         .chat-message.sparkle::before { content: '✨'; position: absolute; left: -20px; animation: sparkle 1s ease-in-out infinite; }
         .chat-message.rainbow-text { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: rainbow 3s linear infinite; }
         .chat-message.glow { text-shadow: 0 0 10px #FFD700, 0 0 20px #FFD700; }
-        .chat-message.fire-text { color: #FF4500; text-shadow: 0 0 10px #FF4500; animation: fireText 1.25s ease-in-out infinite alternate; }
+        .chat-message.fire-text { color: #FF4500; text-shadow: 0 0 10px #FF4500; animation: fireText 0.5s ease-in-out infinite alternate; }
         
         /* Profile Backgrounds */
         .profile-bg-golden { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,165,0,0.2)) !important; }
@@ -4496,7 +3968,7 @@
         .profile-bg-fire { background: linear-gradient(135deg, rgba(255,69,0,0.3), rgba(255,215,0,0.2)) !important; }
         
         /* Comment Avatar Frames */
-        .comment-avatar-frame { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; z-index: 2; }
+        .comment-avatar-frame { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; }
         .comment-avatar-frame.gold { border: 2px solid #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
         .comment-avatar-frame.silver { border: 2px solid #C0C0C0; box-shadow: 0 0 8px rgba(192,192,192,0.3); }
         .comment-avatar-frame.bronze { border: 2px solid #CD7F32; box-shadow: 0 0 6px rgba(205,127,50,0.3); }
@@ -4507,17 +3979,6 @@
         .comment-avatar-frame.ice { border: 2px solid #00CED1; box-shadow: 0 0 8px rgba(0,206,209,0.4); }
         .comment-avatar-frame.nature { border: 2px solid #228B22; box-shadow: 0 0 8px rgba(34,139,34,0.3); }
         .comment-avatar-frame.stars { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
-        .comment-avatar-frame.royal { border: 2px solid #6a3ee0; box-shadow: 0 0 10px rgba(106,62,224,0.5); }
-        .comment-avatar-frame.royal::after { content: '👑'; position: absolute; top: -8px; right: -6px; font-size: 12px; }
-        .comment-avatar-frame.aurora { border: 2px solid transparent; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 3.6s linear infinite; }
-        .comment-avatar-frame.wood { border: 2px solid #8B4513; box-shadow: 0 0 6px rgba(139,69,19,0.35); }
-        .comment-avatar-frame.stone { border: 2px solid #808080; box-shadow: inset 0 0 8px rgba(128,128,128,0.34); }
-        .comment-avatar-frame.divine { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF1493, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: mythicPulse 1.8s infinite; }
-        .comment-avatar-frame.divine::after { content: '😇'; position: absolute; top: -8px; right: -6px; font-size: 12px; }
-        .comment-avatar-frame.cosmic { border: 2px solid #9400D3; box-shadow: 0 0 16px rgba(148,0,211,0.55), inset 0 0 9px rgba(148,0,211,0.35); animation: mythicPulse 1.3s infinite; }
-        .comment-avatar-frame.cosmic::after { content: '🌌'; position: absolute; top: -8px; left: -6px; font-size: 12px; animation: starTwinkle 1s infinite; }
-        .comment-avatar-frame.infinity { border: 2px solid transparent; background: linear-gradient(135deg, #FF1493, #00FF87, #00CED1) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 3s linear infinite; }
-        .comment-avatar-frame.infinity::after { content: '♾️'; position: absolute; bottom: -8px; right: -6px; font-size: 12px; }
         
         /* Animations */
         @keyframes rainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
@@ -4535,47 +3996,9 @@
         @keyframes fireText { 0% { text-shadow: 0 0 10px #FF4500; } 100% { text-shadow: 0 0 20px #FF4500, 0 0 30px #FF4500; } }
         @keyframes mythicPulse { 0%, 100% { box-shadow: 0 0 10px rgba(255,20,147,0.4); } 50% { box-shadow: 0 0 25px rgba(255,20,147,0.7); } }
         @keyframes mythicShine { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        @keyframes waveText {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
-        }
-        @keyframes shopCardInFx {
-            0% { opacity: 0; transform: translateY(18px) scale(0.93); filter: blur(6px); }
-            56% { opacity: 1; transform: translateY(-4px) scale(1.03); filter: blur(0); }
-            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-        @keyframes equipFrameFlash {
-            0% { filter: brightness(1) saturate(1); transform: scale(1); }
-            45% { filter: brightness(1.46) saturate(1.26); transform: scale(1.08); }
-            75% { filter: brightness(1.18) saturate(1.08); transform: scale(1.03); }
-            100% { filter: brightness(1) saturate(1); transform: scale(1); }
-        }
-        @keyframes equipItemPop {
-            0% { transform: scale(1) translateY(0); }
-            26% { transform: scale(var(--equip-item-pop-scale-peak, 1.12)) translateY(var(--equip-item-pop-rise-peak, -8px)) rotate(var(--equip-item-pop-tilt-peak, -1.4deg)); box-shadow: 0 0 0 2px rgba(255,255,255,0.32), 0 22px 46px rgba(10,132,255,0.48); }
-            58% { transform: scale(var(--equip-item-pop-scale-settle, 1.04)) translateY(var(--equip-item-pop-rise-settle, -2px)) rotate(var(--equip-item-pop-tilt-settle, 0.9deg)); }
-            100% { transform: scale(1) translateY(0) rotate(0deg); }
-        }
-        @keyframes equipRingPulse {
-            0% { opacity: 0.82; transform: scale(var(--equip-ring-start-scale, 0.72)); }
-            55% { opacity: 0.48; transform: scale(var(--equip-ring-mid-scale, 1.22)); }
-            100% { opacity: 0; transform: scale(var(--equip-ring-end-scale, 1.45)); }
-        }
-        @keyframes equippedCardAura {
-            0%, 100% { box-shadow: 0 0 24px rgba(10,132,255,0.34), 0 12px 30px rgba(0,0,0,0.25); }
-            50% { box-shadow: 0 0 42px rgba(10,132,255,0.58), 0 18px 44px rgba(10,132,255,0.26); }
-        }
-        @keyframes iconPulseHero {
-            0% { transform: translateY(-4px) scale(1.1) rotate(-4deg); }
-            100% { transform: translateY(-7px) scale(1.16) rotate(3deg); }
-        }
-        @keyframes boostTimerPulse {
-            0%, 100% { text-shadow: 0 0 12px rgba(52,199,89,0.45); transform: scale(1); }
-            50% { text-shadow: 0 0 24px rgba(52,199,89,0.85), 0 0 36px rgba(105,255,149,0.38); transform: scale(1.06); }
-        }
         
         /* Shop Item Effects - Profile Frames */
-        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; z-index: 2; }
+        .profile-frame { position: relative; }
         .profile-frame-frame_gold { border: 3px solid #FFD700 !important; box-shadow: 0 0 20px rgba(255,215,0,0.5), inset 0 0 10px rgba(255,215,0,0.2) !important; animation: goldPulse 2s infinite; }
         .profile-frame-frame_silver { border: 3px solid #C0C0C0 !important; box-shadow: 0 0 15px rgba(192,192,192,0.4) !important; }
         .profile-frame-frame_bronze { border: 3px solid #CD7F32 !important; box-shadow: 0 0 12px rgba(205,127,50,0.4) !important; }
@@ -4592,8 +4015,6 @@
         .profile-frame-frame_stars { border: 2px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box !important; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: starTwinkle 2s infinite; }
         .profile-frame-frame_wood { border: 3px solid #8B4513 !important; }
         .profile-frame-frame_stone { border: 3px solid #808080 !important; box-shadow: inset 0 0 10px rgba(128,128,128,0.3) !important; }
-        .profile-frame-frame_royal { border: 3px solid #6a3ee0 !important; box-shadow: 0 0 16px rgba(106,62,224,0.5) !important; }
-        .profile-frame-frame_aurora { border: 2px solid transparent !important; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box !important; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rainbow 4s linear infinite; }
         /* Mythic Frames */
         .profile-frame-frame_divine { border: 3px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF1493, #00CED1) border-box !important; animation: mythicPulse 2s infinite; }
         .profile-frame-frame_divine::after { content: '😇'; position: absolute; top: -10px; right: -10px; font-size: 22px; animation: angelFloat 2s ease-in-out infinite; }
@@ -4631,40 +4052,7 @@
         .user-title-mythic { background: linear-gradient(135deg, #FF1493, #9400D3, #00CED1); color: #fff; box-shadow: 0 0 20px rgba(255,20,147,0.5); animation: mythicShine 3s linear infinite; }
         
         /* Shop Item Effects - Badges */
-        .profile-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px;
-            height: 26px;
-            border-radius: 999px;
-            margin: 0 3px;
-            font-size: 14px;
-            border: 1px solid rgba(255,255,255,0.28);
-            box-shadow: 0 5px 14px rgba(0,0,0,0.22);
-            background: var(--badge-color, var(--primary));
-        }
-        .profile-badge.badge-mythic { animation: mythicPulse 1.6s infinite; }
-        .user-badge-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 4px;
-            font-size: 12px;
-            cursor: help;
-            vertical-align: middle;
-            flex-shrink: 0;
-            min-width: 20px;
-            min-height: 20px;
-            width: 20px;
-            height: 20px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.26);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.24);
-            background: var(--badge-color, rgba(255,255,255,0.14));
-            line-height: 1;
-        }
-        .user-badge-icon.badge-mythic { animation: mythicPulse 1.4s infinite; }
+        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 14px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 18px; min-height: 18px; }
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
@@ -4672,15 +4060,13 @@
         .chat-effect-chat_sparkle::before { content: '✨'; position: absolute; left: -20px; animation: sparkle 1.5s infinite; }
         .chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; }
         .chat-effect-chat_glow { box-shadow: 0 0 20px rgba(255,215,0,0.3); border-radius: 8px; padding: 8px; background: rgba(255,215,0,0.05); }
-        .chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 1.35s infinite alternate; }
+        .chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 0.8s infinite alternate; }
         .chat-effect-chat_shadow { color: #666 !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important; }
-        .chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1.8s infinite alternate; }
+        .chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1s infinite alternate; }
         .chat-effect-chat_gold { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; animation: goldPulse 2s infinite; }
-        .chat-effect-chat_wave { display: inline-block; color: #7fd6ff !important; text-shadow: 0 0 12px rgba(127,214,255,0.45); animation: waveText 1.7s ease-in-out infinite; }
-        .chat-effect-chat_starlight { background: linear-gradient(90deg, #b7e3ff, #9b8bff, #ff9de1) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; text-shadow: 0 0 18px rgba(159,128,255,0.35); animation: rainbow 4s linear infinite; }
         /* Mythic Chat Effects */
         .chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
-        .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1.6s infinite; font-weight: 700 !important; }
+        .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
     </style>
 </head>
 <body>
@@ -4691,7 +4077,6 @@
     </div>
     
     <div class="particles"></div>
-    <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
 
     <div class="app">
         <header class="header">
@@ -4870,12 +4255,12 @@
 
                 <div class="glass-card">
                     <div class="action-grid">
-                        <button class="action-btn" onclick="toggleLike()">
-                            <span class="action-icon" id="likeIcon">&#9825;</span>
+                        <button class="action-btn" id="likeBtn" onclick="toggleLike()">
+                            <span class="action-icon like" id="likeIcon" aria-hidden="true"></span>
                             <span>Like</span>
                         </button>
-                        <button class="action-btn" onclick="toggleSave()">
-                            <span class="action-icon" id="saveIcon">&#128278;</span>
+                        <button class="action-btn" id="saveBtn" onclick="toggleSave()">
+                            <span class="action-icon save" id="saveIcon" aria-hidden="true"></span>
                             <span>Save</span>
                         </button>
                         <button class="action-btn" onclick="copyVerse()">
@@ -4940,18 +4325,7 @@
                         <span>&#128276;</span>
                         <span>Generate Smart Recommendation</span>
                     </button>
-
-                    <div class="fortune-section">
-                        <button class="gen-btn fortune-btn" onclick="generateFortunes()">
-                            <span>&#127776;</span>
-                            <div style="display:flex;flex-direction:column;align-items:flex-start; line-height:1.2;">
-                                <strong>Your Fortune</strong>
-                                <small style="font-size:12px;opacity:0.8;">AI-crafted good news from your likes & dislikes</small>
-                            </div>
-                        </button>
-                        <div id="fortuneList" class="fortune-grid"></div>
-                    </div>
-
+                    
                     <div id="recList"></div>
                 </div>
 
@@ -4982,6 +4356,77 @@
                     <button class="library-search-btn" type="button" onclick="clearBibleLibrarySearch()">Clear</button>
                 </div>
                 <div class="library-search-meta" id="librarySearchMeta" style="display: none;"></div>
+
+                <div class="glass-card" id="researchToolsPanel" style="display:none; margin-bottom: 12px;">
+                    <div style="font-size:14px; font-weight:700; margin-bottom:10px;">Research Tools</div>
+                    <div class="library-search-row">
+                        <input class="library-search" style="margin-bottom:0;" id="researchFilterBook" placeholder="Book (optional)">
+                        <input class="library-search" style="margin-bottom:0;" id="researchFilterChapter" placeholder="Chapter">
+                        <select class="library-search" style="margin-bottom:0;" id="researchFilterStatus">
+                            <option value="">Status: Any</option>
+                            <option value="active">Active</option>
+                            <option value="stored">Stored</option>
+                        </select>
+                        <input class="library-search" style="margin-bottom:0;" id="researchFilterTranslation" placeholder="Translation (e.g. KJV)">
+                    </div>
+                    <div class="library-search-row">
+                        <select class="library-search" style="margin-bottom:0;" id="researchSort">
+                            <option value="canonical">Sort: Canonical</option>
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="az">A-Z</option>
+                            <option value="book">Book Order</option>
+                        </select>
+                        <button class="library-search-btn" type="button" onclick="applyResearchFilters()">Apply Filters</button>
+                        <button class="library-search-btn" type="button" onclick="clearResearchFilters()">Reset</button>
+                    </div>
+                    <div class="library-search-row">
+                        <input class="library-search" style="margin-bottom:0;" id="researchTopicInput" placeholder="Topic search (e.g. hope, holiness)">
+                        <button class="library-search-btn" type="button" onclick="runTopicSearch()">Topic Search</button>
+                    </div>
+                    <div class="library-search-row">
+                        <input class="library-search" style="margin-bottom:0;" id="compareReferenceInput" placeholder="Compare reference (e.g. John 3:16)">
+                        <input class="library-search" style="margin-bottom:0;" id="compareTranslationsInput" value="web,kjv" placeholder="Translations csv">
+                        <button class="library-search-btn" type="button" onclick="runTranslationCompare()">Compare</button>
+                    </div>
+                    <div id="compareResults" style="font-size:12px; color:var(--text-secondary); max-height:160px; overflow:auto; white-space:pre-wrap;"></div>
+                    <div class="library-search-row" style="margin-top:8px;">
+                        <input class="library-search" style="margin-bottom:0;" id="readingPlanDays" type="number" min="1" max="365" value="7" placeholder="Days">
+                        <button class="library-search-btn" type="button" onclick="createReadingPlan()">Create Plan</button>
+                        <button class="library-search-btn" type="button" onclick="loadReadingPlan()">Load Plan</button>
+                    </div>
+                    <div id="readingPlanResult" style="font-size:12px; color:var(--text-secondary);"></div>
+                    <div class="library-search-row" style="margin-top:8px;">
+                        <button class="library-search-btn" type="button" onclick="loadMemorizationTrainer()">Memorization Prompt</button>
+                        <textarea class="library-search" style="margin-bottom:0; min-height:60px;" id="memorizationAnswerInput" placeholder="Type memorized verse text..."></textarea>
+                        <button class="library-search-btn" type="button" onclick="checkMemorizationAnswer()">Check</button>
+                    </div>
+                    <div id="memorizationPrompt" style="font-size:12px; color:var(--text-secondary);"></div>
+                    <div class="library-search-row" style="margin-top:8px;">
+                        <input class="library-search" style="margin-bottom:0;" id="highlightColorInput" value="#FFD54F" placeholder="Highlight color (#hex)">
+                        <input class="library-search" style="margin-bottom:0;" id="highlightNoteInput" placeholder="Highlight note">
+                        <button class="library-search-btn" type="button" onclick="saveResearchHighlight()">Save Highlight</button>
+                        <button class="library-search-btn" type="button" onclick="loadResearchHighlights()">Load Highlights</button>
+                    </div>
+                    <div id="highlightResult" style="font-size:12px; color:var(--text-secondary); max-height:140px; overflow:auto;"></div>
+                    <div class="library-search-row" style="margin-top:8px;">
+                        <button class="library-search-btn" type="button" onclick="exportStudyPack()">Export Study Pack</button>
+                        <button class="library-search-btn" type="button" onclick="checkDataHealth()">Data Health</button>
+                        <button class="library-search-btn" type="button" onclick="repairDataHealth()">Repair Duplicates</button>
+                    </div>
+                    <div id="dataHealthResult" style="font-size:12px; color:var(--text-secondary);"></div>
+                    <div class="library-search-row" style="margin-top:8px;">
+                        <select class="library-search" style="margin-bottom:0;" id="communityRoomSelect" onchange="changeCommunityRoom()">
+                            <option value="general">general</option>
+                        </select>
+                        <button class="library-search-btn" type="button" onclick="loadRoomMessages()">Load Room</button>
+                    </div>
+                    <div class="library-search-row">
+                        <input class="library-search" style="margin-bottom:0;" id="roomMessageInput" placeholder="Send message to selected room">
+                        <button class="library-search-btn" type="button" onclick="sendRoomMessage()">Send</button>
+                    </div>
+                    <div id="roomMessagesResult" style="font-size:12px; color:var(--text-secondary); max-height:160px; overflow:auto;"></div>
+                </div>
 
                 <!-- Collections View -->
                 <div id="collectionsView" style="display: none;">
@@ -5596,19 +5041,6 @@
 
             <div class="setting-item">
                 <div>
-                    <div class="setting-label">Equip FX Intensity</div>
-                    <div class="setting-desc">Controls equip burst and glow strength</div>
-                </div>
-                <div class="segment-control" id="equipFxSegment">
-                    <button class="segment-btn active" onclick="setEquipFxIntensity('auto', this)">Auto</button>
-                    <button class="segment-btn" onclick="setEquipFxIntensity('subtle', this)">Subtle</button>
-                    <button class="segment-btn" onclick="setEquipFxIntensity('balanced', this)">Balanced</button>
-                    <button class="segment-btn" onclick="setEquipFxIntensity('extreme', this)">Extreme</button>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div>
                     <div class="setting-label">Sound Effects</div>
                     <div class="setting-desc">Professional interface sounds</div>
                 </div>
@@ -5830,12 +5262,15 @@
         let libraryViewMode = 'personal';
         let bibleLibrarySearchTimer = null;
         let librarySearchAbortController = null;
-        let librarySearchToken = 0;
+        let librarySearchRequestSeq = 0;
+        let librarySearchAppliedSeq = 0;
+        let selectedResearchVerseId = null;
+        let currentMemorizationVerseId = null;
+        let currentCommunityRoom = 'general';
         let settings = {
             darkMode: false,
             fontSize: 'medium',
             animations: true,
-            equipFxIntensity: 'auto',
             sound: true,
             autoRec: true,
             compact: false,
@@ -5849,48 +5284,9 @@
             ttsEnabled: false,
             ttsSpeed: 1
         };
-        const profileDataEl = document.getElementById('profile');
-        const activeUserId = String(profileDataEl?.dataset?.userId || '0');
-        const ACHIEVEMENTS_STORAGE_VERSION = 'v2';
-        const userScopedKey = (base) => `${base}:u${activeUserId}`;
-        const versionedUserScopedKey = (base) => `${base}:${ACHIEVEMENTS_STORAGE_VERSION}:u${activeUserId}`;
-        const UNLOCKED_ACHIEVEMENTS_KEY = versionedUserScopedKey('unlockedAchievements');
-        const USER_ACHIEVEMENTS_KEY = versionedUserScopedKey('userAchievements');
-        const VERSE_HISTORY_KEY = userScopedKey('verseHistory');
-        const SHARED_VERSES_KEY = userScopedKey('sharedVerses');
-        const VERSE_STREAK_KEY = userScopedKey('verseStreak');
-        const XP_STORAGE_KEY = versionedUserScopedKey('bibleXpState');
-        const DAILY_CHALLENGE_TOAST_KEY = userScopedKey('dailyChallengeCompleteDate');
-        const DAILY_CHALLENGE_COMPLETED_AT_PREFIX = `${userScopedKey('dailyChallengeCompletedAt')}:`;
-        const XP_DAILY_COUNTS_KEY = userScopedKey('xpDailyCounts');
-        const XP_DAILY_RESET_KEY = userScopedKey('xpDailyReset');
-        let userAchievements = [];
-        let userStats = {
-            total_verses: 0,
-            liked: 0,
-            saved: 0,
-            comments: 0,
-            replies: 0,
-            shares: 0,
-            purchases: 0,
-            liked_comments: 0
-        };
-        try {
-            const savedAchievementState = JSON.parse(localStorage.getItem(USER_ACHIEVEMENTS_KEY) || '{}');
-            if (Array.isArray(savedAchievementState.completed)) {
-                userAchievements = savedAchievementState.completed;
-            }
-            if (savedAchievementState.stats && typeof savedAchievementState.stats === 'object') {
-                userStats = { ...userStats, ...savedAchievementState.stats };
-            }
-        } catch (_) {}
         let commentRestriction = { restricted: false, reason: '', expires_at: null };
         let notificationsCache = [];
         let themeAuto = false;
-        let equipFxDeviceMode = 'desktop';
-        let equipFxConfigCacheKey = '';
-        let equipFxConfigCache = null;
-        let equipFxBurstCooldownUntil = 0;
         let lastCommentsSignature = '';
         let lastCommunitySignature = '';
         let activeCommentVerseId = null;
@@ -6044,6 +5440,8 @@
             initDailyChallenge();
             await loadBibleBooks();
             await loadBiblePicks(true);
+            await loadCommunityRooms();
+            initServiceWorker();
             loadVerseOfDay();
             renderRecHistory();
             await updateXpDisplay();
@@ -6076,6 +5474,11 @@
                     toggleLike();
                 });
             }
+        }
+
+        function initServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            navigator.serviceWorker.register('/static/sw.js').catch(() => {});
         }
 
         function setupTextarea(id) {
@@ -6623,11 +6026,11 @@
                         trackDailyAction('view', nextVerseKey);
                         
                         // Award XP and track stat for viewing
-                        awardXP(30, 'view');
+                        awardXP(5, 'view');
                         trackStat('total_verses');
                         
                         if (settings.notifications) {
-                            showToast('New verse discovered! +30 XP');
+                            showToast('New verse discovered! +5 XP');
                         }
                         if (currentTab === 'comments') loadComments();
                     }
@@ -6688,13 +6091,13 @@
 
         function updateLikeUI(liked) {
             const icon = document.getElementById('likeIcon');
-            icon.innerHTML = liked ? '&#9829;' : '&#9825;';
+            icon.classList.toggle('active', !!liked);
             icon.style.color = liked ? 'var(--danger)' : '';
         }
 
         function updateSaveUI(saved) {
             const icon = document.getElementById('saveIcon');
-            icon.innerHTML = saved ? '&#128209;' : '&#128278;';
+            icon.classList.toggle('active', !!saved);
             icon.style.color = saved ? 'var(--warning)' : '';
         }
 
@@ -6727,7 +6130,7 @@
             // Track daily challenge and achievements
             if (data.liked) {
                 trackDailyAction('like');
-                awardXP(150, 'like');
+                awardXP(50, 'like');
                 trackStat('likes');
             }
         }
@@ -6755,7 +6158,7 @@
             // Track daily challenge and achievements
             if (data.saved) {
                 trackDailyAction('save');
-                awardXP(160, 'save');
+                awardXP(50, 'save');
                 trackStat('saves');
             }
             if (settings.notifications) showToast(data.saved ? 'Verse saved' : 'Removed from saved');
@@ -6847,7 +6250,6 @@
             if (data.recommendations.length > 0) {
                 displayRecommendations(data.recommendations);
             }
-            generateFortunes();
         }
 
         async function generateRec(silent = false) {
@@ -6879,55 +6281,6 @@
                 addToRecHistory(recommendation);
                 if (!silent && settings.notifications) showToast('New recommendation!');
             }
-        }
-
-        const fortuneThemes = [
-            'gentle surprise',
-            'peaceful breakthrough',
-            'grace-filled win',
-            'unexpected uplift',
-            'delightful twist',
-            'quiet victory',
-            'joyful payoff',
-            'calm momentum'
-        ];
-
-        function randomChoice(array) {
-            return array[Math.floor(Math.random() * array.length)];
-        }
-
-        const fortunePrompts = [
-            ctx => `AI whispers that your ${formatNumber(ctx.likes)} likes have warmed hearts, so ${randomChoice(fortuneThemes)} arrives as a reminder of purpose.`,
-            ctx => `Since you turned ${formatNumber(ctx.dislikes)} mini setbacks into lessons, expect a ${randomChoice(fortuneThemes)} on a plan you recently revisited.`,
-            ctx => `The AI spots ${formatNumber(ctx.saves)} saved treasures and ${formatNumber(ctx.replies)} heart-filled replies—luck is aligning to bless a ${randomChoice(fortuneThemes)}.`,
-            ctx => `Your steady rhythm of giving grace (level ${ctx.level}) means a grateful voice will celebrate you soon with ${randomChoice(fortuneThemes)}.`
-        ];
-
-        function buildFortuneContext() {
-            const likes = Math.max(0, Number(userStats.liked || 0));
-            const saves = Math.max(0, Number(userStats.saved || 0));
-            const replies = Math.max(0, Number(userStats.replies || 0));
-            const comments = Math.max(0, Number(userStats.comments || 0));
-            const dislikes = Math.round(Math.max(0, comments * 0.18));
-            const level = Number(userXP?.level || 1);
-            return { likes: likes + saves, saves, replies, comments, dislikes, level };
-        }
-
-        function generateFortunes() {
-            const list = document.getElementById('fortuneList');
-            if (!list) return;
-            const context = buildFortuneContext();
-            const fortunes = Array.from({ length: 4 }, (_, idx) => ({
-                id: idx,
-                text: randomChoice(fortunePrompts)(context)
-            }));
-            list.innerHTML = fortunes.map(f => `
-                <div class="fortune-item">
-                    <h4>Fortune ${f.id + 1}</h4>
-                    <p>${f.text}</p>
-                </div>
-            `).join('');
-            if (settings.notifications) showToast('Your Fortune is ready ✨');
         }
 
         function isDuplicateRec(rec) {
@@ -7055,8 +6408,8 @@
                 }
                 libraryViewMode = 'bible-search';
                 librarySearchResults = [];
-                document.getElementById('libraryListTitle').textContent = 'Bible Database Search';
-                setLibrarySearchMeta('Search by Bible title to browse verses already in the database.');
+                document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
+                setLibrarySearchMeta('Search by Bible title to browse verses already in your database.');
                 renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
                 return;
             }
@@ -7140,6 +6493,9 @@
                         <div class="verse-card-ref">${escapeHtml(v.ref || '')}</div>
                         ${statusHtml}
                         <div class="verse-card-actions">
+                            <button class="verse-card-btn" onclick="event.stopPropagation(); setResearchSelectedVerse(${v.id})">
+                                Select
+                            </button>
                             <button class="verse-card-btn ${isActive ? 'liked' : ''}" onclick="event.stopPropagation(); libraryLike(${v.id})">
                                 ${isActive ? '&#9829; Liked' : '&#9825; Like'}
                             </button>
@@ -7159,25 +6515,55 @@
             renderVerseCards(sorted, 'No verses yet. Start liking and saving!');
         }
 
+        function setResearchSelectedVerse(verseId) {
+            selectedResearchVerseId = Number(verseId) || null;
+            if (!selectedResearchVerseId) return;
+            const verse = librarySearchResults.find(v => Number(v.id) === selectedResearchVerseId) || null;
+            if (!verse) return;
+            setLibrarySearchMeta(`Selected verse: ${verse.ref || verse.id}`);
+        }
+
+        function getResearchFilters() {
+            return {
+                book: (document.getElementById('researchFilterBook')?.value || '').trim(),
+                chapter: (document.getElementById('researchFilterChapter')?.value || '').trim(),
+                status: (document.getElementById('researchFilterStatus')?.value || '').trim(),
+                translation: (document.getElementById('researchFilterTranslation')?.value || '').trim(),
+                sort: (document.getElementById('researchSort')?.value || 'canonical').trim()
+            };
+        }
+
+        function applyResearchFilters() {
+            searchBibleLibrary();
+        }
+
+        function clearResearchFilters() {
+            const ids = ['researchFilterBook', 'researchFilterChapter', 'researchFilterStatus', 'researchFilterTranslation'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.tagName.toLowerCase() === 'select') el.value = '';
+                else el.value = '';
+            });
+            const sort = document.getElementById('researchSort');
+            if (sort) sort.value = 'canonical';
+            searchBibleLibrary();
+        }
+
         function searchBibleLibraryDebounced() {
             if (bibleLibrarySearchTimer) clearTimeout(bibleLibrarySearchTimer);
-            bibleLibrarySearchTimer = setTimeout(() => searchBibleLibrary(), 250);
+            bibleLibrarySearchTimer = setTimeout(() => searchBibleLibrary(), 280);
         }
 
         async function searchBibleLibrary() {
             const query = (document.getElementById('libraryBibleSearch')?.value || '').trim();
-            if (!query) {
-                if (librarySearchAbortController) {
-                    librarySearchAbortController.abort();
-                    librarySearchAbortController = null;
-                }
-                librarySearchToken += 1;
+            if (!query || query.length < 2) {
                 librarySearchResults = [];
                 if (currentLibraryTab === 'dbsearch') {
                     libraryViewMode = 'bible-search';
-                    document.getElementById('libraryListTitle').textContent = 'Bible Database Search';
-                    setLibrarySearchMeta('Search by Bible title to browse verses already in the database.');
-                    renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
+                    document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
+                    setLibrarySearchMeta('Type at least 2 characters. Example: "1 Peter", "Genesis", "John".');
+                    renderVerseCards([], 'Search by Bible title to browse verses already in your database.');
                 } else {
                     libraryViewMode = 'personal';
                     setLibrarySearchMeta('');
@@ -7186,26 +6572,30 @@
                 }
                 return;
             }
-            if (query.length < 2) {
-                librarySearchResults = [];
-                setLibrarySearchMeta('Type at least 2 characters to search.');
-                renderVerseCards([], 'Enter a fuller Bible title like "Genesis" or "1 Peter".');
-                return;
-            }
+
+            const filters = getResearchFilters();
+            const params = new URLSearchParams();
+            params.set('q', query);
+            if (filters.book) params.set('book', filters.book);
+            if (filters.chapter) params.set('chapter', filters.chapter);
+            if (filters.status) params.set('status', filters.status);
+            if (filters.translation) params.set('translation', filters.translation);
+            if (filters.sort) params.set('sort', filters.sort);
+
+            if (librarySearchAbortController) librarySearchAbortController.abort();
+            librarySearchAbortController = new AbortController();
+            const requestSeq = ++librarySearchRequestSeq;
 
             setLibrarySearchMeta('Searching verses database...');
-            const requestToken = ++librarySearchToken;
-            if (librarySearchAbortController) {
-                librarySearchAbortController.abort();
-            }
-            librarySearchAbortController = new AbortController();
             try {
-                const res = await fetch(`/api/library/search?q=${encodeURIComponent(query)}`, {
+                const res = await fetch(`/api/library/search?${params.toString()}`, {
                     cache: 'no-store',
                     signal: librarySearchAbortController.signal
                 });
-                if (requestToken !== librarySearchToken) return;
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
+                if (requestSeq < librarySearchAppliedSeq) return;
+                librarySearchAppliedSeq = requestSeq;
+
                 if (!res.ok || data.error) {
                     const err = data?.error || 'Search failed';
                     setLibrarySearchMeta(err === 'banned' ? 'Account restricted.' : 'Search failed.');
@@ -7214,16 +6604,362 @@
 
                 libraryViewMode = 'bible-search';
                 librarySearchResults = Array.isArray(data.verses) ? data.verses : [];
-                document.getElementById('libraryListTitle').textContent = `Bible Search: ${query}`;
-                setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found - ordered by book/chapter/verse`);
+                if (librarySearchResults.length && !selectedResearchVerseId) {
+                    selectedResearchVerseId = Number(librarySearchResults[0].id) || null;
+                }
+                document.getElementById('libraryListTitle').textContent = `Research Verses: ${query}`;
+                setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found.`);
                 renderVerseCards(librarySearchResults, `No verses found in database for "${query}".`);
             } catch (e) {
                 if (e && e.name === 'AbortError') return;
                 setLibrarySearchMeta('Network error while searching.');
-            } finally {
-                if (requestToken === librarySearchToken) {
-                    librarySearchAbortController = null;
+            }
+        }
+
+        async function runTopicSearch() {
+            const topic = (document.getElementById('researchTopicInput')?.value || '').trim();
+            if (!topic) {
+                showToast('Enter a topic first');
+                return;
+            }
+            setLibrarySearchMeta('Searching by topic...');
+            try {
+                const res = await fetch(`/api/bible/topic-search?topic=${encodeURIComponent(topic)}&limit=300`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    setLibrarySearchMeta('Topic search failed.');
+                    return;
                 }
+                libraryViewMode = 'bible-search';
+                librarySearchResults = Array.isArray(data.verses) ? data.verses : [];
+                if (librarySearchResults.length) selectedResearchVerseId = Number(librarySearchResults[0].id) || null;
+                document.getElementById('libraryListTitle').textContent = `Topic: ${topic}`;
+                setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found for topic "${topic}".`);
+                renderVerseCards(librarySearchResults, `No verses found for topic "${topic}".`);
+            } catch (_) {
+                setLibrarySearchMeta('Topic search network error.');
+            }
+        }
+
+        async function runTranslationCompare() {
+            const reference = (document.getElementById('compareReferenceInput')?.value || '').trim();
+            if (!reference) {
+                showToast('Enter a reference to compare');
+                return;
+            }
+            const translations = (document.getElementById('compareTranslationsInput')?.value || 'web,kjv').trim();
+            const output = document.getElementById('compareResults');
+            if (output) output.textContent = 'Loading translation comparison...';
+            try {
+                const res = await fetch(`/api/bible/compare?reference=${encodeURIComponent(reference)}&translations=${encodeURIComponent(translations)}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    if (output) output.textContent = 'Comparison failed.';
+                    return;
+                }
+                const lines = [];
+                const rows = Array.isArray(data.translations) ? data.translations : [];
+                rows.forEach(r => {
+                    lines.push(`${r.translation || r.translation_id}:`);
+                    lines.push((r.text || '').trim() || '[No text]');
+                    lines.push('');
+                });
+                if (output) output.textContent = lines.join('\n').trim();
+            } catch (_) {
+                if (output) output.textContent = 'Comparison network error.';
+            }
+        }
+
+        async function createReadingPlan() {
+            const days = parseInt(document.getElementById('readingPlanDays')?.value || '7', 10);
+            const result = document.getElementById('readingPlanResult');
+            if (result) result.textContent = 'Creating reading plan...';
+            try {
+                const res = await fetch('/api/reading-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan_name: 'Research Plan', plan_days: Number.isFinite(days) ? days : 7 })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    if (result) result.textContent = data?.error || 'Create plan failed.';
+                    return;
+                }
+                await loadReadingPlan();
+            } catch (_) {
+                if (result) result.textContent = 'Create plan network error.';
+            }
+        }
+
+        async function toggleReadingPlanDay(day) {
+            try {
+                await fetch('/api/reading-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'toggle_day', day })
+                });
+                await loadReadingPlan();
+            } catch (_) {}
+        }
+
+        async function loadReadingPlan() {
+            const result = document.getElementById('readingPlanResult');
+            if (!result) return;
+            result.textContent = 'Loading reading plan...';
+            try {
+                const res = await fetch('/api/reading-plan', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error || !data.plan) {
+                    result.textContent = data?.error ? `Reading plan error: ${data.error}` : 'No reading plan yet.';
+                    return;
+                }
+                const plan = data.plan;
+                const completedSet = new Set(Array.isArray(plan.completed_days) ? plan.completed_days : []);
+                const schedule = Array.isArray(plan.schedule) ? plan.schedule.slice(0, 12) : [];
+                const lines = [];
+                lines.push(`${plan.plan_name} - ${plan.progress_percent}% complete`);
+                schedule.forEach(item => {
+                    const day = Number(item.day) || 0;
+                    const refs = Array.isArray(item.references) ? item.references.join(', ') : '';
+                    const done = completedSet.has(day);
+                    lines.push(`${done ? '[x]' : '[ ]'} Day ${day}: ${refs}`);
+                });
+                result.innerHTML = lines.map((line, idx) => {
+                    if (idx === 0) return `<div>${escapeHtml(line)}</div>`;
+                    const dayMatch = line.match(/Day (\d+):/);
+                    if (!dayMatch) return `<div>${escapeHtml(line)}</div>`;
+                    const day = parseInt(dayMatch[1], 10);
+                    return `<div style="display:flex; align-items:center; gap:6px;"><button class="library-search-btn" style="padding:2px 8px;" onclick="toggleReadingPlanDay(${day})">Toggle</button><span>${escapeHtml(line)}</span></div>`;
+                }).join('');
+            } catch (_) {
+                result.textContent = 'Loading reading plan failed.';
+            }
+        }
+
+        async function loadMemorizationTrainer() {
+            const output = document.getElementById('memorizationPrompt');
+            if (output) output.textContent = 'Loading memorization prompt...';
+            try {
+                const q = selectedResearchVerseId ? `?verse_id=${encodeURIComponent(selectedResearchVerseId)}` : '';
+                const res = await fetch(`/api/memorization/trainer${q}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error || !data.verse) {
+                    if (output) output.textContent = 'Unable to load memorization verse.';
+                    return;
+                }
+                currentMemorizationVerseId = Number(data.verse.id) || null;
+                if (output) output.textContent = `${data.verse.ref}: ${data.masked_text} (best ${Math.round((data.best_accuracy || 0) * 100)}%)`;
+            } catch (_) {
+                if (output) output.textContent = 'Memorization prompt failed.';
+            }
+        }
+
+        async function checkMemorizationAnswer() {
+            const answer = (document.getElementById('memorizationAnswerInput')?.value || '').trim();
+            const output = document.getElementById('memorizationPrompt');
+            if (!currentMemorizationVerseId) {
+                showToast('Load a memorization prompt first');
+                return;
+            }
+            if (!answer) {
+                showToast('Type your answer first');
+                return;
+            }
+            try {
+                const res = await fetch('/api/memorization/trainer/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verse_id: currentMemorizationVerseId, attempt_text: answer })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    if (output) output.textContent = 'Unable to score memorization answer.';
+                    return;
+                }
+                if (output) output.textContent = `Score: ${data.accuracy_percent}% | Best: ${data.best_accuracy_percent}% | Attempts: ${data.attempts}`;
+            } catch (_) {
+                if (output) output.textContent = 'Memorization check failed.';
+            }
+        }
+
+        async function saveResearchHighlight() {
+            const verseId = selectedResearchVerseId || currentMemorizationVerseId;
+            const color = (document.getElementById('highlightColorInput')?.value || '#FFD54F').trim();
+            const note = (document.getElementById('highlightNoteInput')?.value || '').trim();
+            if (!verseId) {
+                showToast('Select a verse first');
+                return;
+            }
+            try {
+                const res = await fetch('/api/highlights', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verse_id: verseId, color, note })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast('Save highlight failed');
+                    return;
+                }
+                await loadResearchHighlights();
+                showToast('Highlight saved');
+            } catch (_) {
+                showToast('Highlight save error');
+            }
+        }
+
+        async function loadResearchHighlights() {
+            const output = document.getElementById('highlightResult');
+            if (!output) return;
+            output.textContent = 'Loading highlights...';
+            try {
+                const res = await fetch('/api/highlights', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    output.textContent = 'Failed to load highlights.';
+                    return;
+                }
+                const items = Array.isArray(data.highlights) ? data.highlights : [];
+                if (!items.length) {
+                    output.textContent = 'No highlights yet.';
+                    return;
+                }
+                output.innerHTML = items.slice(0, 25).map(h => `
+                    <div style="margin-bottom:4px;">
+                        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${escapeHtml(h.color || '#FFD54F')};"></span>
+                        <strong>${escapeHtml(h.ref || '')}</strong> - ${escapeHtml((h.note || '').slice(0, 90))}
+                        <button class="library-search-btn" style="padding:1px 6px;" onclick="deleteResearchHighlight(${Number(h.verse_id) || 0})">x</button>
+                    </div>
+                `).join('');
+            } catch (_) {
+                output.textContent = 'Highlights network error.';
+            }
+        }
+
+        async function deleteResearchHighlight(verseId) {
+            if (!verseId) return;
+            try {
+                await fetch(`/api/highlights/${verseId}`, { method: 'DELETE' });
+                await loadResearchHighlights();
+            } catch (_) {}
+        }
+
+        async function exportStudyPack() {
+            try {
+                const res = await fetch('/api/study-pack/export?format=markdown', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error || !data.content) {
+                    showToast('Export failed');
+                    return;
+                }
+                const text = data.content;
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(text);
+                    showToast('Study pack copied to clipboard');
+                } else {
+                    showToast('Export ready in response');
+                }
+            } catch (_) {
+                showToast('Export network error');
+            }
+        }
+
+        async function checkDataHealth() {
+            const output = document.getElementById('dataHealthResult');
+            if (!output) return;
+            output.textContent = 'Checking data health...';
+            try {
+                const res = await fetch('/api/admin/data-health', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    output.textContent = data?.error || 'Data health check failed.';
+                    return;
+                }
+                output.textContent = `Verses: ${data.total_verses} | Duplicate groups: ${data.duplicate_groups} | Duplicate rows: ${data.duplicate_rows} | Orphan likes: ${data.orphan_likes} | Orphan saves: ${data.orphan_saves}`;
+            } catch (_) {
+                output.textContent = 'Data health network error.';
+            }
+        }
+
+        async function repairDataHealth() {
+            const output = document.getElementById('dataHealthResult');
+            if (!output) return;
+            output.textContent = 'Running repair...';
+            try {
+                const res = await fetch('/api/admin/data-health/repair', { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    output.textContent = data?.error || 'Repair failed.';
+                    return;
+                }
+                output.textContent = `Repair complete. Removed duplicates: ${data.deduped_verses_removed}. Orphans cleaned: likes ${data.orphan_cleanup?.likes_removed || 0}, saves ${data.orphan_cleanup?.saves_removed || 0}.`;
+                await searchBibleLibrary();
+            } catch (_) {
+                output.textContent = 'Repair network error.';
+            }
+        }
+
+        async function loadCommunityRooms() {
+            const select = document.getElementById('communityRoomSelect');
+            if (!select) return;
+            try {
+                const res = await fetch('/api/community/rooms', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) return;
+                const rooms = Array.isArray(data.rooms) ? data.rooms : [];
+                if (!rooms.length) return;
+                select.innerHTML = rooms.map(r => `<option value="${escapeHtml(r.slug || 'general')}">${escapeHtml(r.name || r.slug || 'general')}</option>`).join('');
+                if (!rooms.some(r => r.slug === currentCommunityRoom)) currentCommunityRoom = rooms[0].slug;
+                select.value = currentCommunityRoom;
+            } catch (_) {}
+        }
+
+        function changeCommunityRoom() {
+            const select = document.getElementById('communityRoomSelect');
+            currentCommunityRoom = (select?.value || 'general').trim() || 'general';
+            loadRoomMessages();
+        }
+
+        async function loadRoomMessages() {
+            const output = document.getElementById('roomMessagesResult');
+            if (!output) return;
+            output.textContent = 'Loading room messages...';
+            try {
+                const res = await fetch(`/api/community/rooms/${encodeURIComponent(currentCommunityRoom)}/messages`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    output.textContent = 'Unable to load room messages.';
+                    return;
+                }
+                const rows = Array.isArray(data.messages) ? data.messages : [];
+                if (!rows.length) {
+                    output.textContent = 'No room messages yet.';
+                    return;
+                }
+                output.innerHTML = rows.slice(0, 40).map(m => `<div style="margin-bottom:4px;"><strong>${escapeHtml(m.user_name || 'User')}:</strong> ${escapeHtml(m.text || '')}</div>`).join('');
+            } catch (_) {
+                output.textContent = 'Room message network error.';
+            }
+        }
+
+        async function sendRoomMessage() {
+            const input = document.getElementById('roomMessageInput');
+            const text = (input?.value || '').trim();
+            if (!text) return;
+            try {
+                const res = await fetch(`/api/community/rooms/${encodeURIComponent(currentCommunityRoom)}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                if (!res.ok) {
+                    showToast('Send failed');
+                    return;
+                }
+                if (input) input.value = '';
+                await loadRoomMessages();
+            } catch (_) {
+                showToast('Send failed');
             }
         }
 
@@ -7231,10 +6967,11 @@
             const input = document.getElementById('libraryBibleSearch');
             if (input) input.value = '';
             librarySearchResults = [];
+            if (librarySearchAbortController) librarySearchAbortController.abort();
             if (currentLibraryTab === 'dbsearch') {
                 libraryViewMode = 'bible-search';
-                document.getElementById('libraryListTitle').textContent = 'Bible Database Search';
-                setLibrarySearchMeta('Search by Bible title to browse verses already in the database.');
+                document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
+                setLibrarySearchMeta('Search by Bible title to browse verses already in your database.');
                 renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
                 return;
             }
@@ -7364,7 +7101,7 @@
                 const data = await res.json();
                 if (data.success) {
                     if (settings.notifications) showToast('Added to Favorites!');
-                    loadLibrary();
+                    await loadLibrary();
                 } else {
                     if (settings.notifications) showToast('Already in Favorites');
                 }
@@ -7383,7 +7120,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({verse_id: id})
             });
-            loadLibrary();
+            await loadLibrary();
             if (currentVerse && currentVerse.id === id) checkStatus(id);
         }
 
@@ -7393,7 +7130,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({verse_id: id})
             });
-            loadLibrary();
+            await loadLibrary();
             if (currentVerse && currentVerse.id === id) checkStatus(id);
         }
 
@@ -7491,7 +7228,7 @@
             loadProfileStats();
             if (settings.notifications) showToast('Comment posted!');
             trackDailyAction('comment');
-            awardXP(300, 'comment');
+            awardXP(100, 'comment');
             trackStat('comments');
         }
 
@@ -7935,62 +7672,6 @@
             }
             return customization;
         }
-
-        function resolveFrameClass(itemId, effects) {
-            const id = String(itemId || '').toLowerCase();
-            const fx = effects || {};
-            const frameStyle = String(fx.frame_style || '').toLowerCase();
-            const frameColor = String(fx.frame_color || '').toUpperCase();
-
-            if (id.includes('gold') || frameColor === '#FFD700') return 'gold';
-            if (id.includes('silver') || frameColor === '#C0C0C0') return 'silver';
-            if (id.includes('bronze') || frameColor === '#CD7F32') return 'bronze';
-            if (id.includes('angel') || frameStyle === 'wings') return 'angel';
-            if (id.includes('cross') || frameStyle === 'cross') return 'cross';
-            if (id.includes('heart') || frameStyle === 'heart') return 'heart';
-            if (id.includes('fire') || frameStyle === 'fire') return 'fire';
-            if (id.includes('ice') || frameColor === '#00CED1') return 'ice';
-            if (id.includes('nature') || frameStyle === 'nature') return 'nature';
-            if (id.includes('stars') || frameStyle === 'stars') return 'stars';
-            if (id.includes('royal') || frameStyle === 'royal') return 'royal';
-            if (id.includes('aurora') || frameStyle === 'aurora') return 'aurora';
-            if (id.includes('wood')) return 'wood';
-            if (id.includes('stone')) return 'stone';
-            if (id.includes('divine') || frameStyle === 'divine') return 'divine';
-            if (id.includes('cosmic') || frameStyle === 'cosmic') return 'cosmic';
-            if (id.includes('infinity') || frameStyle === 'infinity') return 'infinity';
-            return '';
-        }
-
-        function resolveFrameClassFromItem(frameItem) {
-            if (!frameItem) return '';
-            return resolveFrameClass(frameItem.item_id || '', frameItem.effects || {});
-        }
-
-        function getNameColorClass(nameColorItem) {
-            if (!nameColorItem || !nameColorItem.item_id) return '';
-            const safeItemId = String(nameColorItem.item_id).replace(/[^a-zA-Z0-9_-]/g, '');
-            return safeItemId ? `profile-name-${safeItemId}` : '';
-        }
-
-        function renderBadgeIconMarkup(badge, profileBadge = false) {
-            if (!badge || !(badge.icon || badge.name)) return '';
-            const badgeIcon = badge.icon || '🏅';
-            const badgeName = escapeHtml(badge.name || 'Badge');
-            const badgeColor = badge.effects?.color || 'var(--primary)';
-            const badgeRarity = (badge.rarity || 'common').toLowerCase();
-            if (profileBadge) {
-                return `<span class="profile-badge badge-${badgeRarity}" style="--badge-color: ${badgeColor};" title="${badgeName}">${badgeIcon}</span>`;
-            }
-            return `<span class="user-badge-icon badge-${badgeRarity}" style="--badge-color: ${badgeColor};" title="${badgeName}">${badgeIcon}</span>`;
-        }
-
-        function removeClassesByPrefix(el, prefix) {
-            if (!el) return;
-            Array.from(el.classList).forEach(cls => {
-                if (cls.startsWith(prefix)) el.classList.remove(cls);
-            });
-        }
         
         function renderCommentItem(c, type) {
             const isOwner = c.user_id === parseInt('{{ user.id }}');
@@ -8005,8 +7686,8 @@
             const canDm = c.user_id && !isOwner;
             
             // Extract equipped items from comment data
-            const frameClass = resolveFrameClassFromItem(c.equipped_frame);
-            const nameColorClass = getNameColorClass(c.equipped_name_color);
+            const frameClass = c.equipped_frame ? `profile-frame profile-frame-${c.equipped_frame.item_id}` : '';
+            const nameColorClass = c.equipped_name_color ? `profile-name-${c.equipped_name_color.item_id}` : '';
             
             // Build title HTML with fallback
             let titleHtml = '';
@@ -8016,11 +7697,14 @@
             }
             
             // Build badges HTML with fallback
-            const badgesHtml = (c.equipped_badges || []).map(b => renderBadgeIconMarkup(b)).join('');
+            const badgesHtml = (c.equipped_badges || []).filter(b => b && b.name).map(b => {
+                const badgeIcon = b.icon || '🏅';
+                return `<span class="user-badge-icon" title="${b.name}">${badgeIcon}</span>`;
+            }).join('');
             
             const chatEffectClass = c.equipped_chat_effect ? `chat-effect-${c.equipped_chat_effect.item_id}` : '';
             
-            const avatarHtml = renderAvatarMarkup(c.user_picture, c.user_name, c.avatar_decoration, 'comment-avatar', frameClass);
+            const avatarHtml = renderAvatarMarkup(c.user_picture, c.user_name, c.avatar_decoration, 'comment-avatar ' + frameClass);
             
             return `
                 <div class="comment-item ${chatEffectClass}" id="${type}-${c.id}" data-user-id="${c.user_id || ''}">
@@ -8034,9 +7718,9 @@
                         <div class="comment-meta">
                             <div class="comment-name-row">
                                 ${c.user_id ? `
-                                    <a class="comment-user-link comment-name ${nameColorClass}" href="/u/${c.user_id}" data-user-id="${c.user_id}">${escapeHtml(c.user_name || 'Anonymous')}</a>
+                                    <a class="comment-user-link comment-name ${nameColorClass}" href="/u/${c.user_id}" data-user-id="${c.user_id}">${c.user_name}</a>
                                 ` : `
-                                    <div class="comment-name ${nameColorClass}">${escapeHtml(c.user_name || 'Anonymous')}</div>
+                                    <div class="comment-name ${nameColorClass}">${c.user_name}</div>
                                 `}
                                 <span class="comment-role-badge comment-role-${role}">${escapeHtml(roleDisplay)}</span>
                                 ${badgesHtml}
@@ -8094,8 +7778,8 @@
                 const roleDisplay = role.replace('_', ' ');
                 
                 // Extract equipped items from reply data
-                const frameClass = resolveFrameClassFromItem(r.equipped_frame);
-                const nameColorClass = getNameColorClass(r.equipped_name_color);
+                const frameClass = r.equipped_frame ? `profile-frame profile-frame-${r.equipped_frame.item_id}` : '';
+                const nameColorClass = r.equipped_name_color ? `profile-name-${r.equipped_name_color.item_id}` : '';
                 
                 // Build title HTML with fallback
                 let titleHtml = '';
@@ -8105,11 +7789,14 @@
                 }
                 
                 // Build badges HTML with fallback
-                const badgesHtml = (r.equipped_badges || []).map(b => renderBadgeIconMarkup(b)).join('');
+                const badgesHtml = (r.equipped_badges || []).filter(b => b && b.name).map(b => {
+                    const badgeIcon = b.icon || '🏅';
+                    return `<span class="user-badge-icon" title="${b.name}">${badgeIcon}</span>`;
+                }).join('');
                 
                 const chatEffectClass = r.equipped_chat_effect ? `chat-effect-${r.equipped_chat_effect.item_id}` : '';
                 
-                const avatarHtml = renderAvatarMarkup(r.user_picture || '', r.user_name || 'User', r.avatar_decoration || '', 'comment-avatar', frameClass);
+                const avatarHtml = renderAvatarMarkup(r.user_picture || '', r.user_name || 'User', r.avatar_decoration || '', 'comment-avatar ' + frameClass);
                 return `
                     <div class="comment-item reply-item ${chatEffectClass}" style="margin-left: 26px; margin-top: 8px; border-left: 2px solid rgba(255,255,255,0.12);" data-user-id="${r.user_id || ''}">
                         <div class="comment-header">
@@ -8169,31 +7856,14 @@
             return div.innerHTML;
         }
 
-        function animateStatValue(statId, value) {
-            const valueEl = document.getElementById(statId);
-            if (!valueEl) return;
-            const nextText = String(value ?? 0);
-            const changed = valueEl.textContent !== nextText;
-            valueEl.textContent = nextText;
-            if (!changed || !settings.animations) return;
-            const card = valueEl.closest('.stat-card');
-            if (!card) return;
-            card.classList.remove('stat-pop');
-            void card.offsetWidth;
-            card.classList.add('stat-pop');
-            setTimeout(() => card.classList.remove('stat-pop'), 520);
-        }
-
-        function renderAvatarMarkup(url, name, decor, imgClass, frameClass = '') {
+        function renderAvatarMarkup(url, name, decor, imgClass) {
             const safeName = name || 'User';
             const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random`;
             const avatarUrl = url || '';
             const decorAnim = (typeof DECOR_ANIMATIONS === 'object' && DECOR_ANIMATIONS[decor]) ? ` ${DECOR_ANIMATIONS[decor]}` : '';
             const decorImg = decor ? `<img class="avatar-decor${decorAnim}" src="${decor}" alt="">` : '';
-            const frameMarkup = frameClass ? `<span class="comment-avatar-frame ${frameClass}" aria-hidden="true"></span>` : '';
             return `
                 <span class="avatar-wrap">
-                    ${frameMarkup}
                     <img src="${avatarUrl}" class="${imgClass}" onerror="this.src='${fallback}'">
                     ${decorImg}
                 </span>
@@ -8238,13 +7908,12 @@
             } catch (_) {}
 
             const safeStats = stats || { total_verses: 0, liked: 0, saved: 0, comments: 0, replies: 0 };
-            userStats = { ...userStats, ...safeStats };
-            animateStatValue('statVerses', safeStats.total_verses ?? 0);
-            animateStatValue('statLiked', safeStats.liked ?? 0);
-            animateStatValue('statSaved', safeStats.saved ?? 0);
-            animateStatValue('statComments', safeStats.comments ?? 0);
+            document.getElementById('statVerses').textContent = safeStats.total_verses ?? 0;
+            document.getElementById('statLiked').textContent = safeStats.liked ?? 0;
+            document.getElementById('statSaved').textContent = safeStats.saved ?? 0;
+            document.getElementById('statComments').textContent = safeStats.comments ?? 0;
             if (document.getElementById('statReplies')) {
-                animateStatValue('statReplies', safeStats.replies || 0);
+                document.getElementById('statReplies').textContent = safeStats.replies || 0;
             }
             
             let userData = {};
@@ -8332,24 +8001,48 @@
                 // Apply frame - check both equipped_frame (from API) and frame
                 const frameEl = document.getElementById('profileFrame');
                 const equippedFrame = data.equipped_frame || data.frame;
-                if (frameEl) {
+                if (frameEl && equippedFrame) {
+                    const effects = equippedFrame.effects || {};
+                    const itemId = equippedFrame.item_id || '';
                     frameEl.className = 'profile-frame';
-                    const frameClass = resolveFrameClassFromItem(equippedFrame);
-                    if (frameClass) frameEl.classList.add(frameClass);
+                    
+                    // Apply frame based on item_id for more specific styling
+                    if (itemId.includes('gold') || effects.frame_color === '#FFD700') frameEl.classList.add('gold');
+                    else if (itemId.includes('silver') || effects.frame_color === '#C0C0C0') frameEl.classList.add('silver');
+                    else if (itemId.includes('bronze') || effects.frame_color === '#CD7F32') frameEl.classList.add('bronze');
+                    else if (itemId.includes('angel') || effects.frame_style === 'wings') frameEl.classList.add('angel');
+                    else if (itemId.includes('cross') || effects.frame_style === 'cross') frameEl.classList.add('cross');
+                    else if (itemId.includes('heart') || effects.frame_style === 'heart') frameEl.classList.add('heart');
+                    else if (itemId.includes('fire') || effects.frame_style === 'fire') frameEl.classList.add('fire');
+                    else if (itemId.includes('ice') || effects.frame_color === '#00CED1') frameEl.classList.add('ice');
+                    else if (itemId.includes('nature') || effects.frame_style === 'nature') frameEl.classList.add('nature');
+                    else if (itemId.includes('stars') || effects.frame_style === 'stars') frameEl.classList.add('stars');
+                    else if (itemId.includes('wood')) frameEl.classList.add('wood');
+                    else if (itemId.includes('stone')) frameEl.classList.add('stone');
+                    else if (itemId.includes('divine')) frameEl.classList.add('divine');
+                    else if (itemId.includes('cosmic')) frameEl.classList.add('cosmic');
+                    else if (itemId.includes('infinity')) frameEl.classList.add('infinity');
+                } else if (frameEl) {
+                    frameEl.className = 'profile-frame';
                 }
                 
                 // Apply name color - check both equipped_name_color and name_color
                 const nameEl = document.getElementById('profileUserName');
                 const equippedNameColor = data.equipped_name_color || data.name_color;
-                if (nameEl) {
+                if (nameEl && equippedNameColor) {
+                    const effects = equippedNameColor.effects || {};
+                    const itemId = equippedNameColor.item_id || '';
                     nameEl.className = 'user-name';
-                    nameEl.style.color = '';
-                    if (equippedNameColor) {
-                        const effects = equippedNameColor.effects || {};
-                        const colorClass = getNameColorClass(equippedNameColor);
-                        if (colorClass) nameEl.classList.add(colorClass);
-                        else if (effects.color) nameEl.style.color = effects.color;
-                    }
+                    
+                    if (effects.gradient || itemId.includes('rainbow')) nameEl.classList.add('rainbow');
+                    else if (itemId.includes('gold') || effects.color === '#FFD700') nameEl.classList.add('gold');
+                    else if (itemId.includes('neon') || effects.color === '#39FF14') nameEl.classList.add('neon');
+                    else if (itemId.includes('blue') || effects.color === '#0A84FF') nameEl.classList.add('blue');
+                    else if (itemId.includes('red') || effects.color === '#FF375F') nameEl.classList.add('red');
+                    else if (itemId.includes('purple') || effects.color === '#BF5AF2') nameEl.classList.add('purple');
+                    else if (itemId.includes('green') || effects.color === '#30D158') nameEl.classList.add('green');
+                    else if (itemId.includes('pink') || effects.color === '#FF69B4') nameEl.classList.add('pink');
+                    else if (effects.color) nameEl.style.color = effects.color;
                 }
                 
                 // Apply title - check both equipped_title and title
@@ -8367,7 +8060,10 @@
                 const badgesEl = document.getElementById('profileBadges');
                 const equippedBadges = data.equipped_badges || data.badges;
                 if (badgesEl && equippedBadges && equippedBadges.length > 0) {
-                    badgesEl.innerHTML = equippedBadges.map(b => renderBadgeIconMarkup(b, true)).join('');
+                    badgesEl.innerHTML = equippedBadges.map(b => {
+                        const effects = b.effects || {};
+                        return `<span class="profile-badge" style="background: ${effects.color || 'var(--primary)'}" title="${b.name}">${b.icon}</span>`;
+                    }).join('');
                 } else if (badgesEl) {
                     badgesEl.innerHTML = '';
                 }
@@ -8422,12 +8118,17 @@
             const nameEl = element.querySelector('.user-name, .comment-name, .message-name');
             if (nameEl && customization.name_color) {
                 const effects = customization.name_color.effects || {};
-                const colorClass = getNameColorClass(customization.name_color);
+                const itemId = customization.name_color.item_id || '';
                 nameEl.classList.add('user-name');
-                removeClassesByPrefix(nameEl, 'profile-name-');
-                nameEl.style.color = '';
-                if (colorClass) nameEl.classList.add(colorClass);
-                else if (effects.color) nameEl.style.color = effects.color;
+                
+                if (effects.gradient || itemId.includes('rainbow')) nameEl.classList.add('rainbow');
+                else if (itemId.includes('gold') || effects.color === '#FFD700') nameEl.classList.add('gold');
+                else if (itemId.includes('neon') || effects.color === '#39FF14') nameEl.classList.add('neon');
+                else if (itemId.includes('blue') || effects.color === '#0A84FF') nameEl.classList.add('blue');
+                else if (itemId.includes('red') || effects.color === '#FF375F') nameEl.classList.add('red');
+                else if (itemId.includes('purple') || effects.color === '#BF5AF2') nameEl.classList.add('purple');
+                else if (itemId.includes('green') || effects.color === '#30D158') nameEl.classList.add('green');
+                else if (itemId.includes('pink') || effects.color === '#FF69B4') nameEl.classList.add('pink');
             }
             
             // Apply title - only if not already present
@@ -8461,7 +8162,10 @@
                         const badgesSpan = document.createElement('span');
                         badgesSpan.className = 'user-badges';
                         badgesSpan.setAttribute('data-shop-effect', 'true');
-                        badgesSpan.innerHTML = validBadges.map(b => renderBadgeIconMarkup(b)).join('');
+                        badgesSpan.innerHTML = validBadges.map(b => {
+                            const badgeIcon = b.icon || '🏅';
+                            return `<span class="user-badge-small" style="background: ${b.effects?.color || 'var(--primary)'}" title="${b.name}">${badgeIcon}</span>`;
+                        }).join('');
                         nameEl.parentNode.insertBefore(badgesSpan, nameEl.nextSibling);
                     }
                 }
@@ -8469,33 +8173,38 @@
             
             // Apply avatar frame
             const avatarEl = element.querySelector('.comment-avatar, .message-avatar, .user-avatar');
-            const avatarWrap = avatarEl ? (avatarEl.closest('.avatar-wrap') || avatarEl.parentElement) : null;
-            let frameDiv = avatarWrap ? avatarWrap.querySelector('.comment-avatar-frame') : null;
-            if (avatarWrap && customization.frame) {
+            if (avatarEl && customization.frame) {
+                const effects = customization.frame.effects || {};
+                const itemId = customization.frame.item_id || '';
+                let frameDiv = avatarEl.querySelector('.comment-avatar-frame');
                 if (!frameDiv) {
-                    frameDiv = document.createElement('span');
+                    frameDiv = document.createElement('div');
                     frameDiv.className = 'comment-avatar-frame';
-                    avatarWrap.insertBefore(frameDiv, avatarWrap.firstChild);
+                    avatarEl.appendChild(frameDiv);
                 }
-                frameDiv.className = 'comment-avatar-frame';
-                const frameClass = resolveFrameClassFromItem(customization.frame);
-                if (frameClass) frameDiv.classList.add(frameClass);
-            } else if (frameDiv) {
-                frameDiv.remove();
+                
+                if (itemId.includes('gold') || effects.frame_color === '#FFD700') frameDiv.classList.add('gold');
+                else if (itemId.includes('silver') || effects.frame_color === '#C0C0C0') frameDiv.classList.add('silver');
+                else if (itemId.includes('bronze') || effects.frame_color === '#CD7F32') frameDiv.classList.add('bronze');
+                else if (itemId.includes('angel') || effects.frame_style === 'wings') frameDiv.classList.add('angel');
+                else if (itemId.includes('cross') || effects.frame_style === 'cross') frameDiv.classList.add('cross');
+                else if (itemId.includes('heart') || effects.frame_style === 'heart') frameDiv.classList.add('heart');
+                else if (itemId.includes('fire') || effects.frame_style === 'fire') frameDiv.classList.add('fire');
+                else if (itemId.includes('ice') || effects.frame_color === '#00CED1') frameDiv.classList.add('ice');
+                else if (itemId.includes('nature') || effects.frame_style === 'nature') frameDiv.classList.add('nature');
+                else if (itemId.includes('stars') || effects.frame_style === 'stars') frameDiv.classList.add('stars');
             }
             
             // Apply chat effect
             const messageEl = element.querySelector('.comment-text, .message-text');
             if (messageEl && customization.chat_effect) {
+                const effects = customization.chat_effect.effects || {};
                 const itemId = customization.chat_effect.item_id || '';
-                removeClassesByPrefix(messageEl, 'chat-effect-');
-                messageEl.classList.remove('sparkle', 'rainbow-text', 'glow', 'fire-text');
-                if (itemId) messageEl.classList.add(`chat-effect-${itemId}`);
-                const parentMessage = messageEl.closest('.comment-item, .message-item') || element;
-                if (parentMessage) {
-                    removeClassesByPrefix(parentMessage, 'chat-effect-');
-                    if (itemId) parentMessage.classList.add(`chat-effect-${itemId}`);
-                }
+                
+                if (itemId.includes('sparkle') || effects.effect === 'sparkle') messageEl.classList.add('sparkle');
+                else if (itemId.includes('rainbow') || effects.effect === 'rainbow') messageEl.classList.add('rainbow-text');
+                else if (itemId.includes('glow') || effects.effect === 'glow') messageEl.classList.add('glow');
+                else if (itemId.includes('fire') || effects.effect === 'fire') messageEl.classList.add('fire-text');
             }
         }
 
@@ -8689,7 +8398,7 @@
 
         // 1. READING STREAK
         function loadStreak() {
-            const streakData = JSON.parse(localStorage.getItem(VERSE_STREAK_KEY) || '{}');
+            const streakData = JSON.parse(localStorage.getItem('verseStreak') || '{}');
             const today = new Date().toDateString();
             const lastVisit = streakData.lastVisit;
             let streak = streakData.streak || 0;
@@ -8707,7 +8416,7 @@
                 
                 streakData.streak = streak;
                 streakData.lastVisit = today;
-                localStorage.setItem(VERSE_STREAK_KEY, JSON.stringify(streakData));
+                localStorage.setItem('verseStreak', JSON.stringify(streakData));
             }
             
             // Update UI
@@ -8753,11 +8462,11 @@
 
         // 2. ACHIEVEMENT BADGES
 function getSharedVerseCount() {
-    return (localStorage.getItem(SHARED_VERSES_KEY) || '').split(',').filter(x => x).length;
+    return (localStorage.getItem('sharedVerses') || '').split(',').filter(x => x).length;
 }
 
 function getStreakCount() {
-    const s = JSON.parse(localStorage.getItem(VERSE_STREAK_KEY) || '{}');
+    const s = JSON.parse(localStorage.getItem('verseStreak') || '{}');
     return s.streak || 0;
 }
 
@@ -8805,8 +8514,6 @@ const ACHIEVEMENTS = [
     { id: 'master', icon: '👑', name: 'Master', desc: 'View 2500 verses', goal: 2500, category: 'special', xp: 1000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 2500 },
     { id: 'pilgrim', icon: '🥾', name: 'Pilgrim', desc: 'View 5000 verses', goal: 5000, category: 'special', xp: 2000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 5000 },
     { id: 'seeker_10000', icon: '🔍', name: 'Divine Seeker', desc: 'View 10000 verses', goal: 10000, category: 'special', xp: 5000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 10000 },
-    { id: 'seer_15000', icon: '🧿', name: 'Verse Seer', desc: 'View 15000 verses', goal: 15000, category: 'special', xp: 8000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 15000 },
-    { id: 'eternal_reader_25000', icon: '🌌', name: 'Eternal Reader', desc: 'View 25000 verses', goal: 25000, category: 'special', xp: 15000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 25000 },
 
     // Streak Achievements
     { id: 'first_day', icon: '☀️', name: 'First Day', desc: 'Start your streak', goal: 1, category: 'streak', xp: 25, progress: () => getStreakCount(), check: () => getStreakCount() >= 1 },
@@ -8872,44 +8579,29 @@ async function loadAchievements(stats) {
         stats = await fetchUserStats();
     }
     currentAchievementStats = stats;
-    const unlocked = JSON.parse(localStorage.getItem(UNLOCKED_ACHIEVEMENTS_KEY) || '[]');
+    const unlocked = JSON.parse(localStorage.getItem('unlockedAchievements') || '[]');
     let totalXPEarned = 0;
     let newUnlocks = false;
-    const newUnlockIds = [];
     
     // Check for new unlocks and calculate XP
     ACHIEVEMENTS.forEach(ach => {
         if (unlocked.includes(ach.id)) {
-            totalXPEarned += getAchievementReward(ach);
+            totalXPEarned += ach.xp || 50;
         } else if (ach.check(stats)) {
             unlocked.push(ach.id);
-            newUnlockIds.push(ach.id);
-            const rewardXp = getAchievementReward(ach);
-            totalXPEarned += rewardXp;
+            totalXPEarned += ach.xp || 50;
             newUnlocks = true;
-            const awarded = awardXp(rewardXp, 'achievement', ach.id);
+            const awarded = awardXp(ach.xp || 50, 'achievement', ach.id);
             if (settings.notifications) {
-                showToast(`🏆 Unlocked: ${ach.name}! +${rewardXp} XP`);
+                showToast(`🏆 Unlocked: ${ach.name}! +${ach.xp || 50} XP`);
             }
             if (awarded && typeof AudioSys !== 'undefined') AudioSys.playSuccess();
         }
     });
-    localStorage.setItem(UNLOCKED_ACHIEVEMENTS_KEY, JSON.stringify(unlocked));
+    localStorage.setItem('unlockedAchievements', JSON.stringify(unlocked));
     
     // Update achievements list
     renderAchievementsList();
-    if (newUnlockIds.length) {
-        requestAnimationFrame(() => {
-            newUnlockIds.forEach(id => {
-                const el = document.querySelector(`.achievement-item[data-ach-id="${id}"]`);
-                if (!el) return;
-                el.classList.remove('just-unlocked');
-                void el.offsetWidth;
-                el.classList.add('just-unlocked');
-                setTimeout(() => el.classList.remove('just-unlocked'), 1200);
-            });
-        });
-    }
     
     // Update achievements stats header
     const completedEl = document.getElementById('achievementsCompleted');
@@ -8922,7 +8614,7 @@ async function loadAchievements(stats) {
 
 async function fetchUserStats() {
     try {
-        const res = await fetch('/api/stats');
+        const res = await fetch('/api/profile_stats');
         if (!res.ok) return userStats;
         return await res.json();
     } catch (e) {
@@ -8934,7 +8626,7 @@ function renderAchievementsList() {
     const container = document.getElementById('achievementsList');
     if (!container) return;
     
-    const unlocked = JSON.parse(localStorage.getItem(UNLOCKED_ACHIEVEMENTS_KEY) || '[]');
+    const unlocked = JSON.parse(localStorage.getItem('unlockedAchievements') || '[]');
     const stats = currentAchievementStats;
     
     // Filter achievements
@@ -8943,7 +8635,7 @@ function renderAchievementsList() {
         achievementsToShow = ACHIEVEMENTS.filter(ach => ach.category === currentAchievementFilter);
     }
     
-    container.innerHTML = achievementsToShow.map((ach, idx) => {
+    container.innerHTML = achievementsToShow.map(ach => {
         const isUnlocked = unlocked.includes(ach.id);
         const progress = getAchievementProgress(ach, stats, isUnlocked);
         const categoryLabels = {
@@ -8952,10 +8644,9 @@ function renderAchievementsList() {
         };
         
         return `
-            <div class="achievement-item animated-in ${isUnlocked ? 'completed' : ''}" 
+            <div class="achievement-item ${isUnlocked ? 'completed' : ''}" 
                  onclick="showAchievementDetail('${ach.id}', ${isUnlocked})"
-                 data-ach-id="${ach.id}"
-                 style="--ach-delay:${Math.min(idx * 40, 320)}ms;">
+                 data-ach-id="${ach.id}">
                 <div class="achievement-icon">${ach.icon}</div>
                 <div class="achievement-content">
                     <div class="achievement-name">
@@ -8964,7 +8655,7 @@ function renderAchievementsList() {
                         ${isUnlocked ? '✓' : ''}
                     </div>
                     <div class="achievement-desc">${ach.desc}</div>
-                    <div class="achievement-reward">⚡ +${getAchievementReward(ach)} XP</div>
+                    <div class="achievement-reward">⚡ +${ach.xp || 50} XP</div>
                     <div class="achievement-progress">
                         <div class="achievement-progress-bar">
                             <div class="achievement-progress-fill" style="width: ${progress.pct}%"></div>
@@ -9035,7 +8726,7 @@ function showAchievementDetail(achId, isUnlocked) {
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Reward:</span>
-                <span style="color: var(--primary); font-weight: 600;">⚡ ${getAchievementReward(ach)} XP</span>
+                <span style="color: var(--primary); font-weight: 600;">⚡ ${ach.xp || 50} XP</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>Progress:</span>
@@ -9132,7 +8823,7 @@ async function checkAchievement(type, value) {
         // 4. VERSE HISTORY
         function loadVerseHistory() {
             const container = document.getElementById('verseHistory');
-            const history = JSON.parse(localStorage.getItem(VERSE_HISTORY_KEY) || '[]');
+            const history = JSON.parse(localStorage.getItem('verseHistory') || '[]');
             const today = new Date().toDateString();
             
             // Filter to today's verses only
@@ -9161,7 +8852,7 @@ async function checkAchievement(type, value) {
         // Save verse to history when fetched
         function addToVerseHistory(verse) {
             if (!verse || !verse.ref) return;
-            const history = JSON.parse(localStorage.getItem(VERSE_HISTORY_KEY) || '[]');
+            const history = JSON.parse(localStorage.getItem('verseHistory') || '[]');
             history.push({
                 ref: verse.ref,
                 id: verse.id,
@@ -9169,52 +8860,27 @@ async function checkAchievement(type, value) {
             });
             // Keep last 100
             if (history.length > 100) history.shift();
-            localStorage.setItem(VERSE_HISTORY_KEY, JSON.stringify(history));
+            localStorage.setItem('verseHistory', JSON.stringify(history));
         }
 
         // Track shares for achievement
         function trackShare() {
-            const shared = (localStorage.getItem(SHARED_VERSES_KEY) || '').split(',').filter(x => x);
+            const shared = (localStorage.getItem('sharedVerses') || '').split(',').filter(x => x);
             shared.push(Date.now());
-            localStorage.setItem(SHARED_VERSES_KEY, shared.join(','));
+            localStorage.setItem('sharedVerses', shared.join(','));
             trackDailyAction('share');
-            awardXP(220, 'share');
+            awardXP(35, 'share');
             trackStat('shares');
-            showToast('Verse shared! +220 XP');
+            showToast('📤 Verse shared! +35 XP');
         }
 
         // === DISCOVER TAB FEATURES ===
         
         // Daily Challenge + XP System
+        const DAILY_CHALLENGE_TOAST_KEY = 'dailyChallengeCompleteDate';
+        const DAILY_CHALLENGE_COMPLETED_AT_PREFIX = 'dailyChallengeCompletedAt:';
+        const XP_STORAGE_KEY = 'bibleXpState';
         const ACHIEVEMENT_XP = 750;
-        const ACHIEVEMENT_XP_MULTIPLIER = 4;
-        const LEVEL_BASE_XP = 900;
-        const LEVEL_GROWTH_XP = 150;
-
-        function getAchievementReward(ach) {
-            const base = Math.max(50, Number((ach && ach.xp) || 50));
-            return Math.max(ACHIEVEMENT_XP, Math.round(base * ACHIEVEMENT_XP_MULTIPLIER));
-        }
-
-        function xpNeededForLevel(level) {
-            return LEVEL_BASE_XP + LEVEL_GROWTH_XP * Math.max(0, level - 1);
-        }
-
-        function getLevelInfoFromXp(totalXp) {
-            let level = 1;
-            let remaining = Math.max(0, Number(totalXp) || 0);
-            while (true) {
-                const requirement = xpNeededForLevel(level);
-                if (remaining < requirement) break;
-                remaining -= requirement;
-                level += 1;
-            }
-            return { level, xpIntoLevel: remaining, nextLevelXp: xpNeededForLevel(level) };
-        }
-
-        function getLevelFromXp(xp) {
-            return getLevelInfoFromXp(xp).level;
-        }
 
         function getXpState() {
             try {
@@ -9231,6 +8897,11 @@ async function checkAchievement(type, value) {
 
         function saveXpState(state) {
             localStorage.setItem(XP_STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function getLevelFromXp(xp) {
+            const level = Math.floor(xp / 1000) + 1;
+            return { level };
         }
 
         async function syncXpWithServer() {
@@ -9262,43 +8933,6 @@ async function checkAchievement(type, value) {
             if (levelEl) levelEl.textContent = `Level ${level}`;
         }
 
-        function pulseSceneFx() {
-            if (document.body.classList.contains('no-animations')) return;
-            document.body.classList.add('xp-fever');
-            clearTimeout(pulseSceneFx._timer);
-            pulseSceneFx._timer = setTimeout(() => {
-                document.body.classList.remove('xp-fever');
-            }, 850);
-        }
-
-        function spawnXpBurst(amount, label = 'XP') {
-            if (document.body.classList.contains('no-animations')) return;
-            const layer = document.getElementById('fxLayer');
-            if (!layer) return;
-
-            const xpAmount = Math.max(0, Math.floor(Number(amount) || 0));
-            if (!xpAmount) return;
-
-            const bubble = document.createElement('div');
-            bubble.className = 'fx-xp-float';
-            bubble.textContent = `+${formatNumber(xpAmount)} ${label}`;
-            layer.appendChild(bubble);
-            requestAnimationFrame(() => bubble.classList.add('show'));
-            setTimeout(() => bubble.remove(), 1400);
-
-            for (let i = 0; i < 9; i += 1) {
-                const spark = document.createElement('span');
-                spark.className = 'fx-xp-spark';
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 34 + Math.random() * 92;
-                spark.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
-                spark.style.setProperty('--dy', `${Math.sin(angle) * dist - 62}px`);
-                layer.appendChild(spark);
-                requestAnimationFrame(() => spark.classList.add('show'));
-                setTimeout(() => spark.remove(), 980);
-            }
-        }
-
         async function awardXp(amount, type, key) {
             const state = getXpState();
             if (type === 'challenge') {
@@ -9323,8 +8957,6 @@ async function checkAchievement(type, value) {
             }
             
             updateXpDisplay();
-            spawnXpBurst(amount, type === 'achievement' ? 'Achievement XP' : 'XP');
-            pulseSceneFx();
             return true;
         }
 
@@ -9931,9 +9563,16 @@ async function checkAchievement(type, value) {
             document.getElementById('librarySortWrap').style.display = showPersonalSearch ? 'flex' : 'none';
             document.getElementById('libraryBibleSearchWrap').style.display = isDbSearch ? 'flex' : 'none';
             document.getElementById('librarySearchMeta').style.display = isDbSearch ? 'block' : 'none';
+            document.getElementById('researchToolsPanel').style.display = isDbSearch ? 'block' : 'none';
 
             if (tab === 'all' || isFavorites || isDbSearch) {
                 loadLibrary();
+            }
+            if (isDbSearch) {
+                loadCommunityRooms();
+                loadRoomMessages();
+                loadReadingPlan();
+                loadResearchHighlights();
             }
         }
 
@@ -10177,9 +9816,9 @@ async function checkAchievement(type, value) {
                 if (parentType === 'community') loadCommunityMessages(true);
                 else loadComments(true);
                 loadProfileStats();
-                awardXP(120, 'reply');
+                awardXP(20, 'reply');
                 trackStat('replies');
-                showToast('Reply posted! +120 XP');
+                showToast('Reply posted! +20 XP');
             } catch (e) {
                 showToast('Reply failed');
             }
@@ -10716,67 +10355,6 @@ async function checkAchievement(type, value) {
             showToast(`Font size: ${size}`);
         }
 
-        function normalizeEquipFxIntensity(level) {
-            const value = String(level || '').toLowerCase();
-            if (value === 'auto' || value === 'subtle' || value === 'extreme' || value === 'balanced') return value;
-            return 'auto';
-        }
-
-        function formatEquipFxLabel(level) {
-            const normalized = normalizeEquipFxIntensity(level);
-            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-        }
-
-        function getEquipFxDeviceMode() {
-            const coarseNoHover = !!(window.matchMedia && window.matchMedia('(pointer: coarse) and (hover: none)').matches);
-            const narrowViewport = window.innerWidth <= 900;
-            if (coarseNoHover || narrowViewport) return 'mobile';
-            return 'desktop';
-        }
-
-        function applyEquipFxDeviceClass() {
-            const mode = getEquipFxDeviceMode();
-            if (equipFxDeviceMode !== mode) {
-                equipFxDeviceMode = mode;
-                equipFxConfigCacheKey = '';
-                equipFxConfigCache = null;
-            }
-            document.body.classList.remove('equip-fx-mobile', 'equip-fx-desktop');
-            document.body.classList.add(mode === 'mobile' ? 'equip-fx-mobile' : 'equip-fx-desktop');
-        }
-
-        function applyEquipFxIntensityClass(level) {
-            const normalized = normalizeEquipFxIntensity(level);
-            const resolved = normalized === 'auto' ? getEquipFxAutoLevel() : normalized;
-            document.body.classList.remove('equip-fx-subtle', 'equip-fx-extreme');
-            if (resolved === 'subtle') document.body.classList.add('equip-fx-subtle');
-            if (resolved === 'extreme') document.body.classList.add('equip-fx-extreme');
-        }
-
-        function setEquipFxIntensity(level, btn = null, silent = false, persist = true) {
-            const normalized = normalizeEquipFxIntensity(level);
-            settings.equipFxIntensity = normalized;
-            applyEquipFxDeviceClass();
-            applyEquipFxIntensityClass(normalized);
-
-            document.querySelectorAll('#equipFxSegment .segment-btn').forEach(b => b.classList.remove('active'));
-            if (btn) {
-                btn.classList.add('active');
-            } else {
-                const map = { auto: 0, subtle: 1, balanced: 2, extreme: 3 };
-                const buttons = document.querySelectorAll('#equipFxSegment .segment-btn');
-                if (buttons[map[normalized]]) buttons[map[normalized]].classList.add('active');
-            }
-
-            if (persist) saveSettings();
-            if (!silent) {
-                AudioSys.playClick();
-                const resolved = normalized === 'auto' ? ` (${formatEquipFxLabel(getEquipFxAutoLevel())})` : '';
-                const label = formatEquipFxLabel(normalized) + resolved;
-                showToast(`Equip FX: ${label}`);
-            }
-        }
-
         function toggleAnimations() {
             settings.animations = !settings.animations;
             document.body.classList.toggle('no-animations', !settings.animations);
@@ -10987,7 +10565,6 @@ async function checkAchievement(type, value) {
                 darkMode: false,
                 fontSize: 'medium',
                 animations: true,
-                equipFxIntensity: 'auto',
                 sound: true,
                 autoRec: true,
                 compact: false,
@@ -11022,27 +10599,11 @@ async function checkAchievement(type, value) {
                     applyTheme();
                 });
             }
-            const reducedMotionMedia = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-            if (reducedMotionMedia) {
-                const onReducedMotionChange = () => {
-                    equipFxConfigCacheKey = '';
-                    equipFxConfigCache = null;
-                    if (normalizeEquipFxIntensity(settings.equipFxIntensity) === 'auto') {
-                        applyEquipFxIntensityClass('auto');
-                    }
-                };
-                if (typeof reducedMotionMedia.addEventListener === 'function') {
-                    reducedMotionMedia.addEventListener('change', onReducedMotionChange);
-                } else if (typeof reducedMotionMedia.addListener === 'function') {
-                    reducedMotionMedia.addListener(onReducedMotionChange);
-                }
-            }
             
             // Apply font size class to both html and body
             document.documentElement.classList.add('font-' + settings.fontSize);
             document.body.classList.add('font-' + settings.fontSize);
             applyGlobalFontScale();
-            applyEquipFxDeviceClass();
             
             // Update font size button states
             const fontSizeMap = {small: 0, medium: 1, large: 2};
@@ -11051,7 +10612,6 @@ async function checkAchievement(type, value) {
                 fontBtns.forEach(b => b.classList.remove('active'));
                 fontBtns[fontSizeMap[settings.fontSize]].classList.add('active');
             }
-            setEquipFxIntensity(settings.equipFxIntensity || 'auto', null, true, false);
             
             // Apply animations
             if (!settings.animations) {
@@ -11181,13 +10741,9 @@ async function checkAchievement(type, value) {
 
         function showToast(msg, type = 'info', duration = 2800) {
             const toast = document.getElementById('toast');
-            const safeDuration = Math.max(500, Number(duration) || 2800);
             toast.textContent = msg;
             toast.className = 'toast';
-            if (toast._hideTimer) clearTimeout(toast._hideTimer);
-            toast.style.setProperty('--toast-duration', `${safeDuration}ms`);
-            void toast.offsetWidth;
-            toast.classList.add('show', 'burst');
+            toast.classList.add('show');
             
             // Play appropriate sound
             if (settings.sound) {
@@ -11200,7 +10756,7 @@ async function checkAchievement(type, value) {
                 }
             }
             
-            toast._hideTimer = setTimeout(() => toast.classList.remove('show', 'burst'), safeDuration);
+            setTimeout(() => toast.classList.remove('show'), duration);
         }
 
         function logout() {
@@ -11216,8 +10772,6 @@ async function checkAchievement(type, value) {
 
         // Responsive handler
         window.addEventListener('resize', () => {
-            applyEquipFxDeviceClass();
-            applyEquipFxIntensityClass(settings.equipFxIntensity || 'auto');
             if (window.innerWidth >= 1024) {
                 document.querySelectorAll('.tab-view.active').forEach(el => el.classList.add('desktop-active'));
             } else {
@@ -11229,8 +10783,6 @@ async function checkAchievement(type, value) {
         let shopItems = [];
         let userInventory = [];
         let userXP = { xp: 0, level: 1 };
-        let activeBoost = null;
-        let boostUiTicker = null;
         let currentShopTab = 'shop';
         let currentCategory = 'all';
         
@@ -11259,9 +10811,7 @@ async function checkAchievement(type, value) {
                 }
                 
                 await loadInventory();
-                await loadBoostStatus();
                 renderShopItems();
-                if (currentShopTab === 'inventory' || currentTab === 'inventory') renderInventory();
             } catch (e) {
                 console.error('Error loading shop:', e);
             }
@@ -11272,96 +10822,9 @@ async function checkAchievement(type, value) {
                 const res = await fetch('/api/shop/inventory');
                 const data = await res.json();
                 if (data.inventory) userInventory = data.inventory;
-                activeBoost = data.active_boost || null;
-                refreshBoostTicker();
             } catch (e) {
                 console.error('Error loading inventory:', e);
             }
-        }
-
-        async function loadBoostStatus() {
-            try {
-                const res = await fetch('/api/shop/boost/status');
-                const data = await res.json();
-                activeBoost = data.active_boost || null;
-                refreshBoostTicker();
-            } catch (e) {
-                console.error('Error loading boost status:', e);
-            }
-        }
-
-        function getItemOwnedCount(itemId) {
-            const inv = userInventory.find(i => i.item_id === itemId);
-            if (!inv) return 0;
-            const qty = Number(inv.quantity);
-            return Number.isFinite(qty) ? Math.max(0, qty) : 1;
-        }
-
-        function getShopItemById(itemId) {
-            return shopItems.find(item => item.item_id === itemId) || null;
-        }
-
-        function getItemEffectHint(item) {
-            const category = String(item.category || '');
-            if (category === 'frame') return 'Shows around your avatar on your profile, comments, and replies.';
-            if (category === 'chat_effect') return 'Styles your comment/community message text when equipped.';
-            if (category === 'name_color') return 'Changes your display name color in profile and comments.';
-            if (category === 'badge') return 'Adds badge icon next to your name.';
-            if (category === 'title') return 'Adds a title tag near your name.';
-            if (category === 'profile_bg') return 'Changes your profile card background.';
-            if (category === 'consumable') return 'Use from My Items to activate timed XP multiplier.';
-            return 'Equip from My Items after purchase.';
-        }
-
-        function getBoostRemainingSeconds(boost) {
-            if (!boost) return 0;
-            if (Number.isFinite(Number(boost.remaining_seconds))) return Math.max(0, Number(boost.remaining_seconds));
-            const expiresAt = boost.expires_at ? new Date(boost.expires_at) : null;
-            if (!expiresAt || Number.isNaN(expiresAt.getTime())) return 0;
-            return Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
-        }
-
-        function formatRemainingDuration(totalSeconds) {
-            const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            if (h > 0) return `${h}h ${m}m`;
-            if (m > 0) return `${m}m ${s}s`;
-            return `${s}s`;
-        }
-
-        function updateVisibleBoostCountdown() {
-            if (!activeBoost) return;
-            const remaining = getBoostRemainingSeconds(activeBoost);
-            if (remaining <= 0) return;
-            const text = '\u26A1 Active ' + formatRemainingDuration(remaining);
-            const selector = '.shop-item[data-item-id="' + activeBoost.item_id + '"] .shop-item-price.active';
-            document.querySelectorAll(selector).forEach(el => {
-                if (el.textContent !== text) el.textContent = text;
-            });
-        }
-
-        function refreshBoostTicker() {
-            if (boostUiTicker) {
-                clearInterval(boostUiTicker);
-                boostUiTicker = null;
-            }
-            const hasActiveBoost = !!(activeBoost && getBoostRemainingSeconds(activeBoost) > 0);
-            if (!hasActiveBoost) return;
-            updateVisibleBoostCountdown();
-            boostUiTicker = setInterval(async () => {
-                const remaining = getBoostRemainingSeconds(activeBoost);
-                if (remaining <= 0) {
-                    clearInterval(boostUiTicker);
-                    boostUiTicker = null;
-                    await loadBoostStatus();
-                    if (currentTab === 'inventory') renderInventory();
-                    if (currentTab === 'shop' && currentCategory === 'consumable') renderShopItems();
-                    return;
-                }
-                updateVisibleBoostCountdown();
-            }, 1000);
         }
         
         function updateShopXPDisplay() {
@@ -11393,128 +10856,89 @@ async function checkAchievement(type, value) {
             event.target.classList.add('active');
             renderShopItems();
         }
+        
         function renderShopItems() {
             const container = document.getElementById('shopItems');
             let items = shopItems;
-
+            
             if (currentCategory !== 'all') {
                 items = items.filter(item => item.category === currentCategory);
             }
-
+            
             if (items.length === 0) {
-                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">&#128722;</div><p>No items found</p></div>';
+                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">📭</div><p>No items found</p></div>';
                 return;
             }
-
-            container.innerHTML = items.map((item, index) => {
-                const ownedCount = getItemOwnedCount(item.item_id);
-                const isConsumable = item.category === 'consumable';
-                const isOwned = ownedCount > 0;
+            
+            container.innerHTML = items.map(item => {
+                const owned = userInventory.find(i => i.item_id === item.item_id);
                 const rarityClass = item.rarity || 'common';
-                const isActiveBoost = !!(isConsumable && activeBoost && activeBoost.item_id === item.item_id && getBoostRemainingSeconds(activeBoost) > 0);
-                const boostLeft = isActiveBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
-                const canBuy = isConsumable || !isOwned;
-                const priceText = isConsumable
-                    ? (isActiveBoost ? ('\u26A1 Active ' + boostLeft) : (isOwned ? (ownedCount + ' in bag') : ('\u26A1 ' + formatNumber(item.price) + ' XP')))
-                    : (isOwned ? 'Owned' : ('\u26A1 ' + formatNumber(item.price) + ' XP'));
-                const buyLabel = isConsumable ? 'Buy +1' : (isOwned ? 'Owned' : 'Buy');
-                const actionHtml = isConsumable
-                    ? ('<div class="shop-item-actions">' +
-                        '<button class="shop-item-btn use" ' + (ownedCount > 0 ? '' : 'disabled') + ' onclick="useBoostItem(' + "'" + item.item_id + "'" + ')">Use</button>' +
-                        '<button class="shop-item-btn add" onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">Add+</button>' +
-                       '</div>')
-                    : ('<button class="shop-item-btn" ' + (canBuy ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buyLabel + '</button>');
-
-                const delayMs = Math.min(index * 42, 294);
-                return '<div class="shop-item animated-in ' + rarityClass + ' ' + (isOwned ? 'owned' : '') + '" style="--item-delay:' + delayMs + 'ms;" data-item-id="' + item.item_id + '">' +
-                    '<span class="shop-item-icon">' + (item.icon || '&#128230;') + '</span>' +
+                
+                return '<div class="shop-item ' + rarityClass + ' ' + (owned ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
+                    '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
-                    '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price ' + (isActiveBoost ? 'active' : (isOwned ? 'owned' : '')) + '">' + priceText + '</div>' +
-                    actionHtml +
+                    '<div class="shop-item-price ' + (owned ? 'owned' : '') + '">' + (owned ? '✓ Owned' : '⚡ ' + formatNumber(item.price) + ' XP') + '</div>' +
+                    '<button class="shop-item-btn" ' + (owned ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + (owned ? 'Owned' : 'Buy') + '</button>' +
                     '</div>';
             }).join('');
         }
+        
         function renderInventory() {
             const container = document.getElementById('inventoryItems');
-
+            
             let items = userInventory;
             if (currentInventoryCategory !== 'all') {
                 items = items.filter(item => item.category === currentInventoryCategory);
             }
-
+            
             if (items.length === 0) {
-                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">&#127890;</div><p>No items in this category</p></div>';
+                container.innerHTML = '<div class="shop-empty"><div class="shop-empty-icon">🎒</div><p>No items in this category</p></div>';
                 return;
             }
-
-            container.innerHTML = items.map((item, index) => {
+            
+            container.innerHTML = items.map(item => {
                 const rarityClass = item.rarity || 'common';
                 const isEquipped = item.equipped;
-                const isConsumable = item.category === 'consumable';
-                const quantity = Math.max(0, Number(item.quantity || 1));
-                const isActiveBoost = !!(activeBoost && activeBoost.item_id === item.item_id && getBoostRemainingSeconds(activeBoost) > 0);
-                const boostLeft = isActiveBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
-                const cardStateClass = (isEquipped && !isConsumable) || isActiveBoost ? 'equipped' : '';
-                const statusText = isConsumable
-                    ? (isActiveBoost ? ('\u26A1 Active ' + boostLeft) : (quantity + ' in bag'))
-                    : (isEquipped ? '\u2713 Equipped' : 'Owned');
-                const btnClass = isConsumable ? 'equip' : (isEquipped ? 'unequip' : 'equip');
-                const btnLabel = isConsumable ? (isActiveBoost ? 'Use Again' : 'Use Boost') : (isEquipped ? 'Unequip' : 'Equip');
-                const btnDisabled = isConsumable ? (quantity <= 0 ? 'disabled' : '') : '';
-                const onClick = isConsumable
-                    ? ("useBoostItem('" + item.item_id + "')")
-                    : ("toggleEquipItem('" + item.item_id + "', " + (!isEquipped) + ")");
-                const boostShopItem = isConsumable ? getShopItemById(item.item_id) : null;
-                const addPrice = boostShopItem ? Number(boostShopItem.price || 0) : 0;
-                const actionHtml = isConsumable
-                    ? ('<div class="shop-item-actions">' +
-                        '<button class="shop-item-btn use" ' + btnDisabled + ' onclick="' + onClick + '">Use</button>' +
-                        '<button class="shop-item-btn add" ' + (addPrice > 0 ? '' : 'disabled') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + addPrice + ')">Add+</button>' +
-                       '</div>')
-                    : ('<button class="shop-item-btn ' + btnClass + '" ' + btnDisabled + ' onclick="' + onClick + '">' + btnLabel + '</button>');
-
-                const delayMs = Math.min(index * 42, 294);
-                return '<div class="shop-item animated-in ' + rarityClass + ' ' + cardStateClass + '" style="--item-delay:' + delayMs + 'ms;" data-item-id="' + item.item_id + '">' +
-                    '<span class="shop-item-icon">' + (item.icon || '&#128230;') + '</span>' +
+                
+                return '<div class="shop-item ' + rarityClass + ' ' + (isEquipped ? 'equipped' : '') + '" data-item-id="' + item.item_id + '">' +
+                    '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
-                    '<div class="shop-item-help">' + getItemEffectHint(item) + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price ' + (isActiveBoost ? 'active' : 'owned') + '">' + statusText + '</div>' +
-                    actionHtml +
+                    '<div class="shop-item-price owned">' + (isEquipped ? '✓ Equipped' : 'Owned') + '</div>' +
+                    '<button class="shop-item-btn ' + (isEquipped ? 'unequip' : 'equip') + '" onclick="toggleEquipItem(' + "'" + item.item_id + "'" + ', ' + (!isEquipped) + ')">' + (isEquipped ? 'Unequip' : 'Equip') + '</button>' +
                     '</div>';
             }).join('');
         }
-
+        
         // XP Guide - Functional XP Actions
         const XP_ACTIONS = {
-            like: { min: 120, max: 240, cooldown: 1000, dailyMax: 100 },
-            save: { min: 140, max: 260, cooldown: 1000, dailyMax: 100 },
-            comment: { min: 280, max: 420, cooldown: 5000, dailyMax: 50 },
-            reply: { min: 100, max: 180, cooldown: 3000, dailyMax: 100 },
-            share: { min: 200, max: 360, cooldown: 60000, dailyMax: 20 },
-            view: { min: 25, max: 55, cooldown: 500, dailyMax: 200 },
-            streak: { min: 200, max: 450, cooldown: 86400000, dailyMax: 1 },
-            trivia_correct: { min: 120, max: 260, cooldown: 0, dailyMax: 50 },
-            prayer: { min: 220, max: 360, cooldown: 60000, dailyMax: 10 },
-            memorize: { min: 320, max: 480, cooldown: 0, dailyMax: 10 },
-            study_note: { min: 220, max: 520, cooldown: 0, dailyMax: 20 },
-            achievement: { min: 600, max: 12000, cooldown: 0, dailyMax: 1000 }
+            like: { min: 25, max: 50, cooldown: 1000, dailyMax: 100 },
+            save: { min: 25, max: 50, cooldown: 1000, dailyMax: 100 },
+            comment: { min: 100, max: 100, cooldown: 5000, dailyMax: 50 },
+            reply: { min: 15, max: 25, cooldown: 3000, dailyMax: 100 },
+            share: { min: 25, max: 50, cooldown: 60000, dailyMax: 20 },
+            view: { min: 5, max: 10, cooldown: 500, dailyMax: 200 },
+            streak: { min: 10, max: 60, cooldown: 86400000, dailyMax: 1 },
+            trivia_correct: { min: 20, max: 50, cooldown: 0, dailyMax: 50 },
+            prayer: { min: 75, max: 75, cooldown: 60000, dailyMax: 10 },
+            memorize: { min: 100, max: 100, cooldown: 0, dailyMax: 10 },
+            study_note: { min: 50, max: 200, cooldown: 0, dailyMax: 20 },
+            achievement: { min: 25, max: 2000, cooldown: 0, dailyMax: 1000 }
         };
         
         let xpActionCooldowns = {};
-        let xpDailyCounts = JSON.parse(localStorage.getItem(XP_DAILY_COUNTS_KEY) || '{}');
+        let xpDailyCounts = JSON.parse(localStorage.getItem('xpDailyCounts') || '{}');
         
         // Reset daily counts at midnight
-        const lastReset = localStorage.getItem(XP_DAILY_RESET_KEY);
+        const lastReset = localStorage.getItem('xpDailyReset');
         const today = new Date().toDateString();
         if (lastReset !== today) {
             xpDailyCounts = {};
-            localStorage.setItem(XP_DAILY_COUNTS_KEY, JSON.stringify(xpDailyCounts));
-            localStorage.setItem(XP_DAILY_RESET_KEY, today);
+            localStorage.setItem('xpDailyCounts', JSON.stringify(xpDailyCounts));
+            localStorage.setItem('xpDailyReset', today);
         }
         
         async function earnXP(actionType, multiplier = 1, customAmount = null) {
@@ -11553,7 +10977,7 @@ async function checkAchievement(type, value) {
             // Apply cooldown and track daily count
             xpActionCooldowns[actionType] = now + action.cooldown;
             xpDailyCounts[dailyKey] = currentCount + 1;
-            localStorage.setItem(XP_DAILY_COUNTS_KEY, JSON.stringify(xpDailyCounts));
+            localStorage.setItem('xpDailyCounts', JSON.stringify(xpDailyCounts));
             
             // Award XP
             const result = await awardXP(amount, actionType);
@@ -11574,37 +10998,37 @@ async function checkAchievement(type, value) {
                 daily: {
                     title: '📅 Daily Actions',
                     items: [
-                        { icon: '👍', action: 'Like a verse', type: 'like', xp: '120-240', bonus: 'Streak bonus +180' },
-                        { icon: '💾', action: 'Save a verse', type: 'save', xp: '140-260', bonus: '' },
-                        { icon: '💬', action: 'Post a comment', type: 'comment', xp: '280-420', bonus: '' },
-                        { icon: '📖', action: 'Read verse (streak)', type: 'view', xp: '25-55', bonus: 'Per verse viewed' },
-                        { icon: '🎯', action: 'Complete daily challenge', type: 'daily_challenge', xp: '400-1400', bonus: 'Auto-awarded' }
+                        { icon: '👍', action: 'Like a verse', type: 'like', xp: '25-50', bonus: 'Streak bonus +50' },
+                        { icon: '💾', action: 'Save a verse', type: 'save', xp: '25-50', bonus: '' },
+                        { icon: '💬', action: 'Post a comment', type: 'comment', xp: '100', bonus: '' },
+                        { icon: '📖', action: 'Read verse (streak)', type: 'view', xp: '5-10', bonus: 'Per verse viewed' },
+                        { icon: '🎯', action: 'Complete daily challenge', type: 'daily_challenge', xp: '50-500', bonus: 'Auto-awarded' }
                     ]
                 },
                 social: {
                     title: '👥 Social Interactions',
                     items: [
                         { icon: '❤️', action: 'Get a like on comment', type: 'liked_comment', xp: '10', bonus: 'Auto-awarded' },
-                        { icon: '📤', action: 'Share a verse', type: 'share', xp: '200-360', bonus: '' },
-                        { icon: '🤝', action: 'Reply to someone', type: 'reply', xp: '100-180', bonus: '' },
-                        { icon: '✝️', action: 'Add prayer to journal', type: 'prayer', xp: '220-360', bonus: 'Limited daily' }
+                        { icon: '📤', action: 'Share a verse', type: 'share', xp: '25-50', bonus: '' },
+                        { icon: '🤝', action: 'Reply to someone', type: 'reply', xp: '15-25', bonus: '' },
+                        { icon: '✝️', action: 'Add prayer to journal', type: 'prayer', xp: '75', bonus: 'Limited daily' }
                     ]
                 },
                 study: {
                     title: '📚 Bible Study',
                     items: [
-                        { icon: '🧠', action: 'Memorize a verse', type: 'memorize', xp: '320-480', bonus: '' },
-                        { icon: '📝', action: 'Write study note', type: 'study_note', xp: '220-520', bonus: 'Based on length' },
-                        { icon: '🎮', action: 'Correct trivia answer', type: 'trivia_correct', xp: '120-260', bonus: 'Streak bonus' },
-                        { icon: '🔥', action: 'Maintain reading streak', type: 'streak', xp: '200-450', bonus: '+12 per streak day' }
+                        { icon: '🧠', action: 'Memorize a verse', type: 'memorize', xp: '100', bonus: '' },
+                        { icon: '📝', action: 'Write study note', type: 'study_note', xp: '50-200', bonus: 'Based on length' },
+                        { icon: '🎮', action: 'Correct trivia answer', type: 'trivia_correct', xp: '20-50', bonus: 'Streak bonus' },
+                        { icon: '🔥', action: 'Maintain reading streak', type: 'streak', xp: '10-60', bonus: '+2 per streak day' }
                     ]
                 },
                 special: {
                     title: '⭐ Achievements & Milestones',
                     items: [
-                        { icon: '🏆', action: 'Complete achievement', type: 'achievement', xp: '600-12000', bonus: 'Based on difficulty' },
+                        { icon: '🏆', action: 'Complete achievement', type: 'achievement', xp: '25-2000', bonus: 'Based on difficulty' },
                         { icon: '⬆️', action: 'Level up bonus', type: 'level_up', xp: 'Bonus', bonus: 'Higher level = more' },
-                        { icon: '🛒', action: 'First purchase', type: 'first_purchase', xp: '600', bonus: 'One-time' },
+                        { icon: '🛒', action: 'First purchase', type: 'first_purchase', xp: '100', bonus: 'One-time' },
                         { icon: '🎁', action: 'Special events', type: 'event', xp: 'Varies', bonus: 'Holiday bonuses' }
                     ]
                 }
@@ -11677,13 +11101,8 @@ async function checkAchievement(type, value) {
                     userXP.xp = data.remaining_xp;
                     updateShopXPDisplay();
                     await loadInventory();
-                    await loadBoostStatus();
                     renderShopItems();
-                    if (currentCategory === 'consumable' || currentInventoryCategory === 'consumable') renderInventory();
-                    const purchasedItem = getShopItemById(itemId);
-                    const isBoostPurchase = purchasedItem && purchasedItem.category === 'consumable';
-                    const qtyText = (isBoostPurchase && Number.isFinite(Number(data.quantity))) ? ` (${data.quantity} in bag)` : '';
-                    showToast('\u2705 Purchased ' + data.name + qtyText + '.');
+                    showToast('✅ Purchased ' + data.name + '!');
                     trackStat('purchases');
                 } else {
                     showToast('❌ ' + (data.error || 'Purchase failed'));
@@ -11691,282 +11110,6 @@ async function checkAchievement(type, value) {
             } catch (e) {
                 showToast('❌ Purchase failed');
             }
-        }
-
-        async function useBoostItem(itemId) {
-            try {
-                const res = await fetch('/api/shop/boost/use', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ item_id: itemId })
-                });
-                const data = await res.json();
-                if (!data.success) {
-                    showToast('❌ ' + (data.error || 'Unable to use boost'));
-                    return;
-                }
-                activeBoost = data.active_boost || null;
-                await loadInventory();
-                renderInventory();
-                renderShopItems();
-                const mult = activeBoost && activeBoost.multiplier ? `${activeBoost.multiplier}x` : 'boost';
-                const left = activeBoost ? formatRemainingDuration(getBoostRemainingSeconds(activeBoost)) : '';
-                showToast(`⚡ ${data.name} active (${mult}) ${left ? 'for ' + left : ''}`);
-            } catch (e) {
-                console.error('Boost activation error:', e);
-                showToast('❌ Failed to activate boost');
-            }
-        }
-
-        function getEquipFxLevel() {
-            const normalized = normalizeEquipFxIntensity(settings && settings.equipFxIntensity ? settings.equipFxIntensity : 'auto');
-            if (normalized === 'auto') return getEquipFxAutoLevel();
-            return normalized;
-        }
-
-        const EQUIP_FX_CONFIG_PRESETS = {
-            mobile: {
-                subtle: {
-                    sparkCount: 6,
-                    distMin: 28,
-                    distMax: 56,
-                    flashSize: 15,
-                    flashMs: 620,
-                    sparkMs: 590,
-                    impactMs: 380,
-                    itemPopMs: 500,
-                    avatarPulseMs: 680,
-                    heroMs: 760,
-                    framePulseMs: 680
-                },
-                balanced: {
-                    sparkCount: 12,
-                    distMin: 46,
-                    distMax: 92,
-                    flashSize: 20,
-                    flashMs: 820,
-                    sparkMs: 780,
-                    impactMs: 540,
-                    itemPopMs: 660,
-                    avatarPulseMs: 860,
-                    heroMs: 980,
-                    framePulseMs: 860
-                },
-                extreme: {
-                    sparkCount: 20,
-                    distMin: 64,
-                    distMax: 130,
-                    flashSize: 27,
-                    flashMs: 980,
-                    sparkMs: 920,
-                    impactMs: 700,
-                    itemPopMs: 860,
-                    avatarPulseMs: 1120,
-                    heroMs: 1240,
-                    framePulseMs: 1120
-                }
-            },
-            desktop: {
-                subtle: {
-                    sparkCount: 10,
-                    distMin: 42,
-                    distMax: 78,
-                    flashSize: 20,
-                    flashMs: 740,
-                    sparkMs: 700,
-                    impactMs: 450,
-                    itemPopMs: 600,
-                    avatarPulseMs: 760,
-                    heroMs: 840,
-                    framePulseMs: 760
-                },
-                balanced: {
-                    sparkCount: 18,
-                    distMin: 62,
-                    distMax: 118,
-                    flashSize: 24,
-                    flashMs: 920,
-                    sparkMs: 880,
-                    impactMs: 640,
-                    itemPopMs: 780,
-                    avatarPulseMs: 1020,
-                    heroMs: 1140,
-                    framePulseMs: 1020
-                },
-                extreme: {
-                    sparkCount: 30,
-                    distMin: 86,
-                    distMax: 174,
-                    flashSize: 34,
-                    flashMs: 1120,
-                    sparkMs: 1040,
-                    impactMs: 800,
-                    itemPopMs: 980,
-                    avatarPulseMs: 1280,
-                    heroMs: 1400,
-                    framePulseMs: 1280
-                }
-            }
-        };
-
-        function getEquipFxPerformanceMultiplier(mode) {
-            const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-            if (reducedMotion) return 0.58;
-            const cores = Number(navigator.hardwareConcurrency || 0);
-            const memoryGb = Number(navigator.deviceMemory || 0);
-            const lowPowerCpu = cores > 0 && cores <= 4;
-            const lowMemory = memoryGb > 0 && memoryGb <= 4;
-            if (mode === 'mobile' && (lowPowerCpu || lowMemory)) return 0.82;
-            if (mode === 'desktop' && (lowPowerCpu || lowMemory)) return 0.9;
-            return 1;
-        }
-
-        function getEquipFxAutoLevel() {
-            const mode = equipFxDeviceMode === 'mobile' ? 'mobile' : 'desktop';
-            const perf = getEquipFxPerformanceMultiplier(mode);
-            if (perf <= 0.62) return 'subtle';
-            if (mode === 'desktop' && perf >= 0.98 && window.innerWidth >= 1180) return 'extreme';
-            return 'balanced';
-        }
-
-        function scaleEquipFxConfig(base, multiplier) {
-            const m = Math.max(0.55, Math.min(1, Number(multiplier) || 1));
-            const scaleVal = (value, min) => Math.max(min, Math.round(value * m));
-            const cfg = {
-                sparkCount: Math.min(36, scaleVal(base.sparkCount, 3)),
-                distMin: scaleVal(base.distMin, 24),
-                distMax: scaleVal(base.distMax, 36),
-                flashSize: scaleVal(base.flashSize, 14),
-                flashMs: scaleVal(base.flashMs, 560),
-                sparkMs: scaleVal(base.sparkMs, 520),
-                impactMs: scaleVal(base.impactMs, 320),
-                itemPopMs: scaleVal(base.itemPopMs, 460),
-                avatarPulseMs: scaleVal(base.avatarPulseMs, 620),
-                heroMs: scaleVal(base.heroMs, 700),
-                framePulseMs: scaleVal(base.framePulseMs, 620)
-            };
-            cfg.distMax = Math.max(cfg.distMax, cfg.distMin + 8);
-            return cfg;
-        }
-
-        function getEquipFxConfig() {
-            const level = getEquipFxLevel();
-            const mode = equipFxDeviceMode === 'mobile' ? 'mobile' : 'desktop';
-            const perf = getEquipFxPerformanceMultiplier(mode);
-            const perfBucket = perf <= 0.6 ? 'reduced' : (perf < 1 ? 'constrained' : 'full');
-            const key = `${mode}:${level}:${perfBucket}`;
-            if (equipFxConfigCache && equipFxConfigCacheKey === key) return equipFxConfigCache;
-            const base = (EQUIP_FX_CONFIG_PRESETS[mode] && EQUIP_FX_CONFIG_PRESETS[mode][level]) || EQUIP_FX_CONFIG_PRESETS.desktop.balanced;
-            const next = scaleEquipFxConfig(base, perf);
-            equipFxConfigCacheKey = key;
-            equipFxConfigCache = next;
-            return next;
-        }
-
-        function getEquipBurstPalette(itemEl) {
-            const classNames = itemEl && itemEl.classList ? itemEl.classList : { contains: () => false };
-            if (classNames.contains('mythic')) return { core: 'rgba(255,20,147,0.96)', mid: 'rgba(179,90,255,0.5)', spark: 'rgba(255,160,232,0.98)' };
-            if (classNames.contains('legendary')) return { core: 'rgba(255,215,0,0.96)', mid: 'rgba(255,171,64,0.48)', spark: 'rgba(255,239,159,0.98)' };
-            if (classNames.contains('epic')) return { core: 'rgba(191,90,242,0.95)', mid: 'rgba(148,85,255,0.46)', spark: 'rgba(215,180,255,0.98)' };
-            if (classNames.contains('rare')) return { core: 'rgba(10,132,255,0.95)', mid: 'rgba(80,170,255,0.46)', spark: 'rgba(180,230,255,0.98)' };
-            return { core: 'rgba(52,199,89,0.92)', mid: 'rgba(10,132,255,0.4)', spark: 'rgba(200,255,225,0.95)' };
-        }
-
-        function triggerEquipImpactFx(fxConfig = null) {
-            if (document.body.classList.contains('no-animations')) return;
-            const fx = fxConfig || getEquipFxConfig();
-            document.body.classList.add('equip-impact');
-            clearTimeout(triggerEquipImpactFx._timer);
-            triggerEquipImpactFx._timer = setTimeout(() => {
-                document.body.classList.remove('equip-impact');
-            }, Math.max(260, Number(fx.impactMs) || 620));
-        }
-
-        function spawnEquipBurstFx(itemEl, fxConfig = null) {
-            if (document.body.classList.contains('no-animations')) return;
-            const fx = fxConfig || getEquipFxConfig();
-            const layer = document.getElementById('fxLayer');
-            const anchor = document.getElementById('profileAvatarWrap') || itemEl;
-            if (!layer || !anchor) return;
-            const now = (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now();
-            if (now < equipFxBurstCooldownUntil) return;
-            equipFxBurstCooldownUntil = now + Math.max(120, Math.round((Number(fx.sparkMs) || 860) * 0.25));
-            const activeBurstNodes = layer.querySelectorAll('.fx-equip-flash, .fx-equip-spark').length;
-            if (activeBurstNodes > 72) return;
-
-            const rect = anchor.getBoundingClientRect();
-            const x = Math.round(rect.left + rect.width / 2);
-            const y = Math.round(rect.top + rect.height / 2);
-            const palette = getEquipBurstPalette(itemEl);
-            const fragment = document.createDocumentFragment();
-            const burstNodes = [];
-
-            const flash = document.createElement('span');
-            flash.className = 'fx-equip-flash';
-            flash.style.left = x + 'px';
-            flash.style.top = y + 'px';
-            flash.style.width = `${fx.flashSize}px`;
-            flash.style.height = `${fx.flashSize}px`;
-            flash.style.animationDuration = `${fx.flashMs}ms`;
-            flash.style.setProperty('--equip-core', palette.core);
-            flash.style.setProperty('--equip-mid', palette.mid);
-            fragment.appendChild(flash);
-            burstNodes.push(flash);
-            setTimeout(() => flash.remove(), Math.max(500, fx.flashMs + 140));
-
-            for (let i = 0; i < fx.sparkCount; i += 1) {
-                const spark = document.createElement('span');
-                spark.className = 'fx-equip-spark';
-                spark.style.left = x + 'px';
-                spark.style.top = y + 'px';
-                spark.style.animationDuration = `${fx.sparkMs}ms`;
-                spark.style.setProperty('--equip-spark', palette.spark);
-                const angle = Math.random() * Math.PI * 2;
-                const dist = fx.distMin + Math.random() * (fx.distMax - fx.distMin);
-                spark.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
-                spark.style.setProperty('--dy', `${Math.sin(angle) * dist - 14}px`);
-                fragment.appendChild(spark);
-                burstNodes.push(spark);
-                setTimeout(() => spark.remove(), Math.max(420, fx.sparkMs + 120));
-            }
-            layer.appendChild(fragment);
-            requestAnimationFrame(() => {
-                burstNodes.forEach(node => node.classList.add('show'));
-            });
-        }
-
-        function playEquipAnimation(itemId) {
-            const fx = getEquipFxConfig();
-            const safeItemId = String(itemId || '').replace(/"/g, '\\"');
-            const itemEl = document.querySelector(`#inventoryItems .shop-item[data-item-id="${safeItemId}"]`);
-            if (itemEl) {
-                itemEl.classList.remove('equip-pop');
-                void itemEl.offsetWidth;
-                itemEl.classList.add('equip-pop');
-                setTimeout(() => itemEl.classList.remove('equip-pop'), fx.itemPopMs);
-            }
-
-            const avatarWrap = document.getElementById('profileAvatarWrap');
-            if (avatarWrap) {
-                avatarWrap.classList.remove('equip-pulse');
-                avatarWrap.classList.remove('equip-hero');
-                void avatarWrap.offsetWidth;
-                avatarWrap.classList.add('equip-pulse');
-                avatarWrap.classList.add('equip-hero');
-                setTimeout(() => avatarWrap.classList.remove('equip-pulse'), fx.avatarPulseMs);
-                setTimeout(() => avatarWrap.classList.remove('equip-hero'), fx.heroMs);
-            }
-
-            const frameEl = document.getElementById('profileFrame');
-            if (frameEl) {
-                frameEl.classList.remove('equip-pulse');
-                void frameEl.offsetWidth;
-                frameEl.classList.add('equip-pulse');
-                setTimeout(() => frameEl.classList.remove('equip-pulse'), fx.framePulseMs);
-            }
-
-            triggerEquipImpactFx(fx);
-            spawnEquipBurstFx(itemEl, fx);
         }
         
         async function toggleEquipItem(itemId, equip) {
@@ -11981,12 +11124,7 @@ async function checkAchievement(type, value) {
                 
                 if (data.success) {
                     await loadInventory();
-                    await loadBoostStatus();
                     renderInventory();
-                    renderShopItems();
-                    await loadProfileCustomization();
-                    applyShopEffectsToComments();
-                    if (equip) playEquipAnimation(itemId);
                     showToast(equip ? '✅ Item equipped!' : 'Item unequipped');
                 } else {
                     showToast('❌ ' + (data.error || 'Failed'));
@@ -11999,10 +11137,7 @@ async function checkAchievement(type, value) {
         const originalSwitchTab = switchTab;
         switchTab = function(tab, btn) {
             originalSwitchTab(tab, btn);
-            if (tab === 'shop' || tab === 'inventory') {
-                currentShopTab = tab;
-                loadShopData();
-            }
+            if (tab === 'shop') loadShopData();
         };
         
         async function awardXP(amount, action) {
@@ -12020,11 +11155,6 @@ async function checkAchievement(type, value) {
                     userXP.level = data.level;
                     updateShopXPDisplay();
                     updateInventoryXPDisplay();
-                    spawnXpBurst(data.xp_awarded || amount, action === 'view' ? 'Verse XP' : 'XP');
-                    pulseSceneFx();
-                    if (data.boost_multiplier && data.boost_multiplier > 1.01) {
-                        showToast(`⚡ Boost applied: ${data.boost_multiplier}x XP`);
-                    }
                     if (data.leveled_up) showToast('Level Up! You are now level ' + data.level + '!');
                     return data;
                 }
@@ -12035,28 +11165,11 @@ async function checkAchievement(type, value) {
         
         // Track stats for achievements
         async function trackStat(type, increment = 1) {
-            const statKeyMap = {
-                like: 'liked',
-                likes: 'liked',
-                save: 'saved',
-                saves: 'saved',
-                comment: 'comments',
-                comments: 'comments',
-                reply: 'replies',
-                replies: 'replies',
-                share: 'shares',
-                shares: 'shares',
-                view: 'total_verses',
-                total_verses: 'total_verses',
-                purchase: 'purchases',
-                purchases: 'purchases'
-            };
-            const statKey = statKeyMap[type] || type;
-            userStats[statKey] = (userStats[statKey] || 0) + increment;
-            await checkAchievement(statKey, userStats[statKey]);
+            userStats[type] = (userStats[type] || 0) + increment;
+            await checkAchievement(type, userStats[type]);
             
             // Save to localStorage
-            localStorage.setItem(USER_ACHIEVEMENTS_KEY, JSON.stringify({
+            localStorage.setItem('userAchievements', JSON.stringify({
                 completed: userAchievements,
                 stats: userStats
             }));

@@ -144,93 +144,6 @@ def get_user_equipped_items(c, db_type, user_id):
             "profile_bg": None
         }
 
-def parse_db_datetime(value):
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value
-    raw = str(value).strip()
-    if not raw:
-        return None
-    normalized = raw.replace("Z", "+00:00")
-    if " " in normalized and "T" not in normalized:
-        normalized = normalized.replace(" ", "T")
-    try:
-        return datetime.fromisoformat(normalized)
-    except Exception:
-        for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
-            try:
-                return datetime.strptime(raw, fmt)
-            except Exception:
-                continue
-    return None
-
-def parse_duration_to_seconds(duration_value):
-    if duration_value is None:
-        return 3600
-    raw = str(duration_value).strip().lower()
-    m = re.match(r'^(\d+)\s*([smhd])$', raw)
-    if not m:
-        try:
-            hours = int(raw)
-            return max(1, hours) * 3600
-        except Exception:
-            return 3600
-    amount = max(1, int(m.group(1)))
-    unit = m.group(2)
-    if unit == 's':
-        return amount
-    if unit == 'm':
-        return amount * 60
-    if unit == 'h':
-        return amount * 3600
-    return amount * 86400
-
-def get_active_boost_for_user_cursor(c, db_type, user_id, cleanup_expired=True):
-    if not user_id:
-        return None
-    try:
-        if db_type == 'postgres':
-            c.execute("""
-                SELECT item_id, multiplier, activated_at, expires_at
-                FROM user_active_boosts
-                WHERE user_id = %s
-                LIMIT 1
-            """, (user_id,))
-        else:
-            c.execute("""
-                SELECT item_id, multiplier, activated_at, expires_at
-                FROM user_active_boosts
-                WHERE user_id = ?
-                LIMIT 1
-            """, (user_id,))
-        row = c.fetchone()
-        if not row:
-            return None
-        item_id = row['item_id'] if hasattr(row, 'keys') else row[0]
-        multiplier = float(row['multiplier'] if hasattr(row, 'keys') else row[1])
-        activated_at_raw = row['activated_at'] if hasattr(row, 'keys') else row[2]
-        expires_at_raw = row['expires_at'] if hasattr(row, 'keys') else row[3]
-        expires_at = parse_db_datetime(expires_at_raw)
-        activated_at = parse_db_datetime(activated_at_raw)
-        now = datetime.utcnow()
-        if not expires_at or expires_at <= now:
-            if cleanup_expired:
-                if db_type == 'postgres':
-                    c.execute("DELETE FROM user_active_boosts WHERE user_id = %s", (user_id,))
-                else:
-                    c.execute("DELETE FROM user_active_boosts WHERE user_id = ?", (user_id,))
-            return None
-        return {
-            "item_id": item_id,
-            "multiplier": multiplier,
-            "activated_at": activated_at.isoformat() if activated_at else None,
-            "expires_at": expires_at.isoformat(),
-            "remaining_seconds": max(0, int((expires_at - now).total_seconds()))
-        }
-    except Exception:
-        return None
-
 ADMIN_CODE = os.environ.get('ADMIN_CODE', 'God Is All')
 MASTER_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'God Is All')
 
@@ -377,6 +290,7 @@ FALLBACK_BOOKS = [
     {"id": "JUD", "name": "Jude"},
     {"id": "REV", "name": "Revelation"},
 ]
+
 _BIBLE_BOOK_ALIASES = {
     "psalm": "psalms",
     "songofsongs": "songofsolomon",
@@ -450,6 +364,284 @@ def _library_verse_sort_key(verse):
     ref = str(verse.get("ref") or "").lower()
     return (book_index, chapter, verse_num, ref)
 
+RESEARCH_TOPIC_MAP = {
+    "hope": ["hope", "future", "promised", "endure", "trust"],
+    "faith": ["faith", "believe", "belief", "trust", "walk by faith"],
+    "peace": ["peace", "calm", "rest", "still", "anxious"],
+    "love": ["love", "charity", "beloved", "compassion", "mercy"],
+    "wisdom": ["wisdom", "understanding", "discern", "knowledge", "counsel"],
+    "salvation": ["salvation", "saved", "redeem", "redemption", "grace"],
+    "prayer": ["pray", "prayer", "supplication", "intercede", "petition"],
+    "holiness": ["holy", "holiness", "sanctified", "pure", "blameless"],
+    "forgiveness": ["forgive", "forgiveness", "pardon", "mercy", "debts"],
+    "strength": ["strength", "strong", "power", "mighty", "courage"]
+}
+
+DEFAULT_COMMUNITY_ROOMS = [
+    {"slug": "general", "name": "General", "description": "Daily conversation and encouragement"},
+    {"slug": "prayer", "name": "Prayer", "description": "Prayer requests and prayer support"},
+    {"slug": "testimony", "name": "Testimony", "description": "Share what God has done"},
+    {"slug": "bible-study", "name": "Bible Study", "description": "Scripture questions and insights"},
+    {"slug": "help", "name": "Need Help", "description": "Ask for practical or spiritual support"}
+]
+
+def _json_loads_safe(value, default):
+    if value is None:
+        return default
+    if isinstance(value, (dict, list)):
+        return value
+    try:
+        parsed = json.loads(value)
+        return parsed
+    except Exception:
+        return default
+
+def _table_exists(c, db_type, table_name):
+    try:
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = %s
+                ) AS exists
+            """, (table_name,))
+            row = c.fetchone()
+            if hasattr(row, 'keys'):
+                return bool(row.get('exists'))
+            return bool(row[0]) if row else False
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (table_name,))
+        return c.fetchone() is not None
+    except Exception:
+        return False
+
+def ensure_research_feature_tables(c, db_type):
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_plans (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                plan_name TEXT NOT NULL,
+                plan_days INTEGER NOT NULL,
+                start_date TEXT,
+                progress_json JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS verse_highlights (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                verse_id INTEGER NOT NULL,
+                color TEXT NOT NULL DEFAULT '#FFD54F',
+                note TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, verse_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memorization_scores (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                verse_id INTEGER NOT NULL,
+                accuracy REAL NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 1,
+                best_accuracy REAL NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, verse_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS research_community_rooms (
+                id SERIAL PRIMARY KEY,
+                slug TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS research_community_messages (
+                id SERIAL PRIMARY KEY,
+                room_slug TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                timestamp TEXT,
+                google_name TEXT,
+                google_picture TEXT
+            )
+        """)
+        for room in DEFAULT_COMMUNITY_ROOMS:
+            c.execute("""
+                INSERT INTO research_community_rooms (slug, name, description)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (slug) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    description = EXCLUDED.description
+            """, (room["slug"], room["name"], room["description"]))
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                plan_name TEXT NOT NULL,
+                plan_days INTEGER NOT NULL,
+                start_date TEXT,
+                progress_json TEXT,
+                created_at TEXT,
+                updated_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS verse_highlights (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                verse_id INTEGER NOT NULL,
+                color TEXT NOT NULL DEFAULT '#FFD54F',
+                note TEXT,
+                created_at TEXT,
+                UNIQUE(user_id, verse_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memorization_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                verse_id INTEGER NOT NULL,
+                accuracy REAL NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 1,
+                best_accuracy REAL NOT NULL DEFAULT 0,
+                updated_at TEXT,
+                UNIQUE(user_id, verse_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS research_community_rooms (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS research_community_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                room_slug TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                timestamp TEXT,
+                google_name TEXT,
+                google_picture TEXT
+            )
+        """)
+        for room in DEFAULT_COMMUNITY_ROOMS:
+            c.execute("""
+                INSERT INTO research_community_rooms (slug, name, description)
+                VALUES (?, ?, ?)
+                ON CONFLICT(slug) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description
+            """, (room["slug"], room["name"], room["description"]))
+
+def _parse_reference_chapter(reference):
+    ref = str(reference or "")
+    match = re.search(r"\s(\d+)(?:\s*:\s*(\d+))?", ref)
+    if not match:
+        return (10**9, 10**9)
+    chapter = int(match.group(1))
+    verse_num = int(match.group(2)) if match.group(2) else 0
+    return (chapter, verse_num)
+
+def _normalize_mem_text(text):
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", "", str(text or "").lower())).strip()
+
+def _build_memorization_mask(text):
+    words = re.findall(r"[A-Za-z0-9']+|[^A-Za-z0-9'\s]+|\s+", str(text or ""))
+    candidates = [w for w in words if re.match(r"[A-Za-z0-9']+$", w)]
+    hide_count = max(1, int(len(candidates) * 0.35))
+    hidden = 0
+    masked = []
+    for token in words:
+        if hidden < hide_count and re.match(r"[A-Za-z0-9']+$", token) and len(token) > 2:
+            masked.append("_" * len(token))
+            hidden += 1
+        else:
+            masked.append(token)
+    return "".join(masked)
+
+def _compute_text_similarity(a, b):
+    aa = _normalize_mem_text(a)
+    bb = _normalize_mem_text(b)
+    if not aa and not bb:
+        return 1.0
+    if not aa or not bb:
+        return 0.0
+    a_tokens = aa.split(" ")
+    b_tokens = bb.split(" ")
+    if not a_tokens or not b_tokens:
+        return 0.0
+    hits = 0
+    b_pool = set(b_tokens)
+    for token in a_tokens:
+        if token in b_pool:
+            hits += 1
+    return max(0.0, min(1.0, hits / max(1, len(a_tokens))))
+
+def _dedupe_verses_in_db(c, db_type):
+    if db_type == 'postgres':
+        c.execute("""
+            WITH ranked AS (
+                SELECT id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY LOWER(TRIM(COALESCE(reference, ''))), LOWER(TRIM(COALESCE(text, '')))
+                           ORDER BY id ASC
+                       ) AS rn
+                FROM verses
+            )
+            DELETE FROM verses v
+            USING ranked r
+            WHERE v.id = r.id AND r.rn > 1
+        """)
+        deleted = c.rowcount if c.rowcount and c.rowcount > 0 else 0
+        return deleted
+    c.execute("""
+        DELETE FROM verses
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY LOWER(TRIM(IFNULL(reference, ''))), LOWER(TRIM(IFNULL(text, '')))
+                           ORDER BY id ASC
+                       ) AS rn
+                FROM verses
+            ) t
+            WHERE t.rn > 1
+        )
+    """)
+    return c.rowcount if c.rowcount and c.rowcount > 0 else 0
+
+def _remove_orphan_verse_refs(c, db_type):
+    if db_type == 'postgres':
+        c.execute("SELECT COUNT(*) AS count FROM likes l LEFT JOIN verses v ON l.verse_id = v.id WHERE v.id IS NULL")
+        row = c.fetchone()
+        likes_before = int(row['count'] if hasattr(row, 'keys') else row[0])
+        c.execute("SELECT COUNT(*) AS count FROM saves s LEFT JOIN verses v ON s.verse_id = v.id WHERE v.id IS NULL")
+        row = c.fetchone()
+        saves_before = int(row['count'] if hasattr(row, 'keys') else row[0])
+
+        c.execute("DELETE FROM likes WHERE verse_id NOT IN (SELECT id FROM verses)")
+        c.execute("DELETE FROM saves WHERE verse_id NOT IN (SELECT id FROM verses)")
+        return {"likes_removed": likes_before, "saves_removed": saves_before}
+
+    c.execute("SELECT COUNT(*) FROM likes WHERE verse_id NOT IN (SELECT id FROM verses)")
+    row = c.fetchone()
+    likes_before = int(row[0] if row else 0)
+    c.execute("SELECT COUNT(*) FROM saves WHERE verse_id NOT IN (SELECT id FROM verses)")
+    row = c.fetchone()
+    saves_before = int(row[0] if row else 0)
+    c.execute("DELETE FROM likes WHERE verse_id NOT IN (SELECT id FROM verses)")
+    c.execute("DELETE FROM saves WHERE verse_id NOT IN (SELECT id FROM verses)")
+    return {"likes_removed": likes_before, "saves_removed": saves_before}
 
 def get_public_url():
     base = os.environ.get('PUBLIC_URL') or os.environ.get('RENDER_EXTERNAL_URL')
@@ -505,64 +697,6 @@ def get_cursor(conn, db_type):
     else:
         return conn.cursor()
 
-
-def _ensure_system_settings_table(c):
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS system_settings (
-            key TEXT PRIMARY KEY,
-            value TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-
-def get_system_setting(key, default=None):
-    conn, db_type = get_db()
-    c = get_cursor(conn, db_type)
-    try:
-        _ensure_system_settings_table(c)
-        conn.commit()
-        placeholder = "%s" if db_type == 'postgres' else "?"
-        c.execute(f"SELECT value FROM system_settings WHERE key = {placeholder}", (key,))
-        row = c.fetchone()
-        if not row:
-            return default
-        value = row['value'] if hasattr(row, 'keys') else row[0]
-        return default if value is None else value
-    except Exception:
-        return default
-    finally:
-        conn.close()
-
-
-def set_system_setting(key, value):
-    conn, db_type = get_db()
-    c = get_cursor(conn, db_type)
-    try:
-        _ensure_system_settings_table(c)
-        if db_type == 'postgres':
-            c.execute("""
-                INSERT INTO system_settings (key, value, updated_at)
-                VALUES (%s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (key) DO UPDATE SET
-                    value = EXCLUDED.value,
-                    updated_at = EXCLUDED.updated_at
-            """, (key, str(value)))
-        else:
-            c.execute("""
-                INSERT INTO system_settings (key, value, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(key) DO UPDATE SET
-                    value = excluded.value,
-                    updated_at = excluded.updated_at
-            """, (key, str(value)))
-        conn.commit()
-        return True
-    except Exception:
-        return False
-    finally:
-        conn.close()
-
 def row_value(row, key, default=None):
     """Safely read a key from dict-like or sqlite3.Row results."""
     try:
@@ -574,6 +708,20 @@ def row_value(row, key, default=None):
                 return row[key]
     except Exception:
         pass
+    return default
+
+def row_pick(row, key, index=None, default=None):
+    """Safely read from dict-like rows and fallback to positional index."""
+    val = row_value(row, key, None)
+    if val is not None:
+        return val
+    if row is None:
+        return default
+    if index is not None:
+        try:
+            return row[index]
+        except Exception:
+            return default
     return default
 
 def _redact_db_url(url):
@@ -604,7 +752,39 @@ def _table_columns(conn, db_type, table):
     return [r[1] for r in c.fetchall()]
 
 def read_system_setting(key, default=None):
-    return get_system_setting(key, default)
+    conn = None
+    try:
+        conn, db_type = get_db()
+        c = get_cursor(conn, db_type)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        if db_type == 'postgres':
+            c.execute("SELECT value FROM system_settings WHERE key = %s", (key,))
+        else:
+            c.execute("SELECT value FROM system_settings WHERE key = ?", (key,))
+        row = c.fetchone()
+        conn.close()
+        if not row:
+            return default
+        if hasattr(row, 'keys'):
+            try:
+                val = row['value']
+            except Exception:
+                val = None
+            return default if val is None else val
+        return row[0] if row[0] is not None else default
+    except Exception:
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        return default
 
 def init_db():
     """Initialize database tables"""
@@ -789,18 +969,7 @@ def init_db():
                     item_id TEXT NOT NULL,
                     purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     equipped BOOLEAN DEFAULT FALSE,
-                    quantity INTEGER DEFAULT 1,
                     UNIQUE(user_id, item_id)
-                )
-            ''')
-
-            c.execute('''
-                CREATE TABLE IF NOT EXISTS user_active_boosts (
-                    user_id INTEGER PRIMARY KEY,
-                    item_id TEXT NOT NULL,
-                    multiplier REAL NOT NULL DEFAULT 1,
-                    activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expires_at TIMESTAMP NOT NULL
                 )
             ''')
             
@@ -1024,18 +1193,7 @@ def init_db():
                     item_id TEXT NOT NULL,
                     purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     equipped INTEGER DEFAULT 0,
-                    quantity INTEGER DEFAULT 1,
                     UNIQUE(user_id, item_id)
-                )
-            ''')
-
-            c.execute('''
-                CREATE TABLE IF NOT EXISTS user_active_boosts (
-                    user_id INTEGER PRIMARY KEY,
-                    item_id TEXT NOT NULL,
-                    multiplier REAL NOT NULL DEFAULT 1,
-                    activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expires_at TIMESTAMP NOT NULL
                 )
             ''')
             
@@ -1503,17 +1661,7 @@ def migrate_db():
                         item_id TEXT NOT NULL,
                         purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         equipped BOOLEAN DEFAULT FALSE,
-                        quantity INTEGER DEFAULT 1,
                         UNIQUE(user_id, item_id)
-                    )
-                ''')
-                c.execute('''
-                    CREATE TABLE IF NOT EXISTS user_active_boosts (
-                        user_id INTEGER PRIMARY KEY,
-                        item_id TEXT NOT NULL,
-                        multiplier REAL NOT NULL DEFAULT 1,
-                        activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        expires_at TIMESTAMP NOT NULL
                     )
                 ''')
                 c.execute('''
@@ -1563,17 +1711,7 @@ def migrate_db():
                         item_id TEXT NOT NULL,
                         purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         equipped INTEGER DEFAULT 0,
-                        quantity INTEGER DEFAULT 1,
                         UNIQUE(user_id, item_id)
-                    )
-                ''')
-                c.execute('''
-                    CREATE TABLE IF NOT EXISTS user_active_boosts (
-                        user_id INTEGER PRIMARY KEY,
-                        item_id TEXT NOT NULL,
-                        multiplier REAL NOT NULL DEFAULT 1,
-                        activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        expires_at TIMESTAMP NOT NULL
                     )
                 ''')
                 c.execute('''
@@ -1589,23 +1727,6 @@ def migrate_db():
                 logger.info("Created shop and XP tables")
             except Exception as e:
                 logger.warning(f"Shop tables may already exist: {e}")
-
-        # Ensure inventory quantity support exists for all existing installations
-        if db_type == 'postgres':
-            try:
-                c.execute("ALTER TABLE user_inventory ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1")
-                c.execute("UPDATE user_inventory SET quantity = 1 WHERE quantity IS NULL OR quantity < 1")
-            except Exception as e:
-                logger.warning(f"Could not ensure user_inventory.quantity (postgres): {e}")
-        else:
-            try:
-                c.execute("PRAGMA table_info(user_inventory)")
-                cols = [str(row[1]).lower() for row in c.fetchall()]
-                if 'quantity' not in cols:
-                    c.execute("ALTER TABLE user_inventory ADD COLUMN quantity INTEGER DEFAULT 1")
-                c.execute("UPDATE user_inventory SET quantity = 1 WHERE quantity IS NULL OR quantity < 1")
-            except Exception as e:
-                logger.warning(f"Could not ensure user_inventory.quantity (sqlite): {e}")
         
         conn.commit()
         logger.info("Database migrations completed")
@@ -1636,7 +1757,7 @@ def get_hour_window():
 def get_hourly_xp_reward(user_id, period_key):
     seed = f"{user_id}:{period_key}"
     value = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16)
-    return 400 + (value % 1001)
+    return 100 + (value % 401)
 
 def pick_hourly_challenge(user_id, period_key):
     challenges = [
@@ -1673,59 +1794,6 @@ def record_daily_action(user_id, action, verse_id=None):
         conn.commit()
     except Exception as e:
         logger.warning(f"Daily action record failed: {e}")
-    finally:
-        conn.close()
-
-def ensure_user_verse_views_table(c, db_type):
-    """Ensure per-user verse view tracking table exists."""
-    if db_type == 'postgres':
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS user_verse_views (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                verse_id INTEGER NOT NULL,
-                first_seen_at TEXT NOT NULL,
-                UNIQUE(user_id, verse_id)
-            )
-        """)
-    else:
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS user_verse_views (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                verse_id INTEGER NOT NULL,
-                first_seen_at TEXT NOT NULL,
-                UNIQUE(user_id, verse_id)
-            )
-        """)
-
-def track_user_verse_view(user_id, verse_id, verse_payload=None):
-    """Record a verse as viewed by a specific user (unique per verse)."""
-    if not user_id:
-        return
-
-    conn, db_type = get_db()
-    c = get_cursor(conn, db_type)
-    now = datetime.now().isoformat()
-    try:
-        ensure_user_verse_views_table(c, db_type)
-        resolved_verse_id = ensure_verse_id(c, db_type, verse_id, verse_payload)
-        if not resolved_verse_id:
-            return
-        if db_type == 'postgres':
-            c.execute("""
-                INSERT INTO user_verse_views (user_id, verse_id, first_seen_at)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (user_id, verse_id) DO NOTHING
-            """, (user_id, resolved_verse_id, now))
-        else:
-            c.execute("""
-                INSERT OR IGNORE INTO user_verse_views (user_id, verse_id, first_seen_at)
-                VALUES (?, ?, ?)
-            """, (user_id, resolved_verse_id, now))
-        conn.commit()
-    except Exception as e:
-        logger.warning(f"Failed to record user verse view: {e}")
     finally:
         conn.close()
 
@@ -2151,24 +2219,6 @@ def auto_ban_user(user_id, reason, original_user_id=None, ip_address=None):
 from admin import admin_bp
 app.register_blueprint(admin_bp)
 
-LEVEL_BASE_XP = 900
-LEVEL_GROWTH_XP = 150
-
-def xp_for_level(level):
-    return LEVEL_BASE_XP + LEVEL_GROWTH_XP * max(0, level - 1)
-
-def level_info_from_xp(total_xp):
-    level = 1
-    remaining = total_xp
-    while True:
-        needed = xp_for_level(level)
-        if remaining < needed:
-            break
-        remaining -= needed
-        level += 1
-    return level, remaining, xp_for_level(level)
-
-
 class BibleGenerator:
     def __init__(self):
         self.running = True
@@ -2245,9 +2295,28 @@ class BibleGenerator:
     def _load_interval_from_db(self):
         """Load verse interval from database, default to 60 seconds"""
         try:
-            interval = int(read_system_setting('verse_interval', '60'))
-            logger.info(f"Loaded verse interval from database: {interval} seconds")
-            return interval
+            conn, db_type = get_db()
+            c = conn.cursor()
+            
+            # Ensure table exists
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            
+            # Get verse_interval setting
+            c.execute("SELECT value FROM system_settings WHERE key = 'verse_interval'")
+            row = c.fetchone()
+            conn.close()
+            
+            if row:
+                interval = int(row[0])
+                logger.info(f"Loaded verse interval from database: {interval} seconds")
+                return interval
         except Exception as e:
             logger.error(f"Failed to load interval from DB: {e}")
         
@@ -2788,17 +2857,15 @@ def index():
         
         user = c.fetchone()
         
-        ensure_user_verse_views_table(c, db_type)
-
         if db_type == 'postgres':
-            c.execute("SELECT COUNT(*) as count FROM user_verse_views WHERE user_id = %s", (session['user_id'],))
+            c.execute("SELECT COUNT(*) as count FROM verses")
             total_verses = c.fetchone()['count']
             c.execute("SELECT COUNT(*) as count FROM likes WHERE user_id = %s", (session['user_id'],))
             liked_count = c.fetchone()['count']
             c.execute("SELECT COUNT(*) as count FROM saves WHERE user_id = %s", (session['user_id'],))
             saved_count = c.fetchone()['count']
         else:
-            c.execute("SELECT COUNT(*) as count FROM user_verse_views WHERE user_id = ?", (session['user_id'],))
+            c.execute("SELECT COUNT(*) as count FROM verses")
             try:
                 total_verses = c.fetchone()[0]
             except:
@@ -3213,7 +3280,6 @@ def get_current():
 
     user_id = session['user_id']
     now = time.time()
-    previous_payload = None
     is_banned, reason, _ = check_ban_status(user_id)
     if is_banned:
         return jsonify({"error": "banned", "message": "Account banned", "reason": reason}), 403
@@ -3221,24 +3287,12 @@ def get_current():
         cached = _current_api_cache.get(user_id)
         if cached and (now - cached['timestamp']) < CURRENT_API_CACHE_TTL:
             return jsonify(cached['payload'])
-        if cached:
-            previous_payload = cached.get('payload')
 
     # Ensure thread is running
     generator.start_thread()
 
-    verse_payload = generator.get_current_verse()
-    previous_verse_id = None
-    if isinstance(previous_payload, dict):
-        prev_verse = previous_payload.get('verse')
-        if isinstance(prev_verse, dict):
-            previous_verse_id = prev_verse.get('id')
-    current_verse_id = verse_payload.get('id') if isinstance(verse_payload, dict) else None
-    if current_verse_id is not None and str(current_verse_id) != str(previous_verse_id):
-        track_user_verse_view(user_id, current_verse_id, verse_payload)
-
     payload = {
-        "verse": verse_payload,
+        "verse": generator.get_current_verse(),
         "countdown": generator.get_time_left(),
         "total_verses": generator.total_verses,
         "session_id": generator.session_id,
@@ -3297,6 +3351,139 @@ def bible_chapter():
         "verses": data.get("verses", []),
         "text": data.get("text", "")
     })
+
+@app.route('/api/bible/compare')
+def bible_compare():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    reference = (request.args.get('reference') or '').strip()
+    if not reference:
+        return jsonify({"error": "reference is required"}), 400
+
+    translations_raw = (request.args.get('translations') or '').strip()
+    if translations_raw:
+        translations = [t.strip().lower() for t in translations_raw.split(',') if t.strip()]
+    else:
+        translations = ['web', 'kjv']
+    translations = translations[:6]
+
+    results = []
+    for trans in translations:
+        encoded = quote(reference)
+        data = _fetch_json(f"{BIBLE_API_BASE}/{encoded}?translation={trans}")
+        if not data:
+            results.append({
+                "translation_id": trans,
+                "translation": trans.upper(),
+                "reference": reference,
+                "text": "",
+                "verses": [],
+                "ok": False
+            })
+            continue
+        results.append({
+            "translation_id": data.get("translation_id", trans),
+            "translation": data.get("translation_name") or data.get("translation") or trans.upper(),
+            "reference": data.get("reference", reference),
+            "text": data.get("text", ""),
+            "verses": data.get("verses", []),
+            "ok": True
+        })
+
+    return jsonify({
+        "reference": reference,
+        "translations": results
+    })
+
+@app.route('/api/bible/topic-search')
+def bible_topic_search():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    topic = (request.args.get('topic') or request.args.get('q') or '').strip().lower()
+    if not topic:
+        return jsonify({"topic": "", "verses": [], "count": 0})
+
+    keywords = RESEARCH_TOPIC_MAP.get(topic, [])
+    if not keywords:
+        keywords = [topic]
+    limit = max(1, min(300, int(request.args.get('limit', 100))))
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        if db_type == 'postgres':
+            predicates = []
+            params = []
+            for kw in keywords:
+                token = f"%{kw.lower()}%"
+                predicates.append("(LOWER(COALESCE(text, '')) LIKE %s OR LOWER(COALESCE(reference, '')) LIKE %s OR LOWER(COALESCE(book, '')) LIKE %s)")
+                params.extend([token, token, token])
+            where_sql = " OR ".join(predicates) if predicates else "TRUE"
+            c.execute(f"""
+                SELECT id, reference, text, translation, source, timestamp, book
+                FROM verses
+                WHERE {where_sql}
+                ORDER BY id DESC
+                LIMIT %s
+            """, tuple(params + [limit]))
+        else:
+            predicates = []
+            params = []
+            for kw in keywords:
+                token = f"%{kw.lower()}%"
+                predicates.append("(LOWER(IFNULL(text, '')) LIKE ? OR LOWER(IFNULL(reference, '')) LIKE ? OR LOWER(IFNULL(book, '')) LIKE ?)")
+                params.extend([token, token, token])
+            where_sql = " OR ".join(predicates) if predicates else "1=1"
+            c.execute(f"""
+                SELECT id, reference, text, translation, source, timestamp, book
+                FROM verses
+                WHERE {where_sql}
+                ORDER BY id DESC
+                LIMIT ?
+            """, tuple(params + [limit]))
+
+        rows = c.fetchall()
+        verses = []
+        seen = set()
+        for row in rows:
+            try:
+                item = {
+                    "id": row['id'],
+                    "ref": row['reference'],
+                    "text": row['text'],
+                    "trans": row['translation'],
+                    "source": row['source'],
+                    "timestamp": row['timestamp'],
+                    "book": row['book']
+                }
+            except Exception:
+                item = {
+                    "id": row[0],
+                    "ref": row[1],
+                    "text": row[2],
+                    "trans": row[3],
+                    "source": row[4],
+                    "timestamp": row[5],
+                    "book": row[6]
+                }
+            content_key = (
+                _normalize_bible_book_name(item.get("ref")),
+                _normalize_mem_text(item.get("text"))
+            )
+            if content_key in seen:
+                continue
+            seen.add(content_key)
+            verses.append(item)
+
+        verses.sort(key=_library_verse_sort_key)
+        return jsonify({"topic": topic, "keywords": keywords, "verses": verses, "count": len(verses)})
+    except Exception as e:
+        logger.error(f"Topic search error: {e}")
+        return jsonify({"error": "topic_search_failed"}), 500
+    finally:
+        conn.close()
 
 def _pick_book_text_url(formats):
     if not isinstance(formats, dict):
@@ -3661,10 +3848,39 @@ def set_interval():
     
     # Save to database for persistence
     try:
-        if set_system_setting('verse_interval', interval):
-            logger.info(f"Verse interval saved to database: {interval} seconds")
+        conn, db_type = get_db()
+        c = conn.cursor()
+        
+        # Ensure table exists
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Save interval
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO system_settings (key, value, updated_at)
+                VALUES ('verse_interval', %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) DO UPDATE SET
+                    value = EXCLUDED.value,
+                    updated_at = EXCLUDED.updated_at
+            """, (str(interval),))
         else:
-            logger.error("Failed to save interval to DB")
+            c.execute("""
+                INSERT INTO system_settings (key, value, updated_at)
+                VALUES ('verse_interval', ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+            """, (str(interval),))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Verse interval saved to database: {interval} seconds")
     except Exception as e:
         logger.error(f"Failed to save interval to DB: {e}")
     
@@ -3924,13 +4140,11 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "🌿", "effects": {"frame_style": "nature", "animation": "sway"}},
     {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "❄️", "effects": {"frame_color": "#00CED1", "glow": True}},
     {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"frame_style": "fire", "animation": "flicker"}},
-    {"item_id": "frame_royal", "name": "Royal Crest", "description": "Animated royal ring shown around your avatar", "category": "frame", "price": 9000, "rarity": "epic", "icon": "👑", "effects": {"frame_style": "royal", "animation": "pulse"}},
     
     # Legendary Frames (12k-20k XP)
     {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "👑", "effects": {"frame_color": "#FFD700", "glow": True}},
     {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "✨", "effects": {"frame_style": "stars", "animation": "twinkle"}},
     {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "🪽", "effects": {"frame_style": "wings", "animation": "float"}},
-    {"item_id": "frame_aurora", "name": "Aurora Ring", "description": "Shimmering aurora ring around your profile avatar", "category": "frame", "price": 22000, "rarity": "legendary", "icon": "🌌", "effects": {"frame_style": "aurora", "animation": "shimmer"}},
     
     # Mythic Frames (50k-100k XP) - ULTRA RARE
     {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "😇", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
@@ -4025,12 +4239,10 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"effect": "fire", "animation": "flicker"}},
     {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "✨", "effects": {"effect": "sparkle", "animation": "twinkle"}},
     {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "❄️", "effects": {"effect": "ice", "animation": "freeze"}},
-    {"item_id": "chat_wave", "name": "Wave Text", "description": "Gentle wave motion on your messages", "category": "chat_effect", "price": 5500, "rarity": "rare", "icon": "🌊", "effects": {"effect": "wave", "animation": "wave"}},
     
     # Legendary Chat Effects (15k-25k XP)
     {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "🌈", "effects": {"effect": "rainbow", "gradient": True}},
     {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "📜", "effects": {"effect": "gold", "animation": "shimmer"}},
-    {"item_id": "chat_starlight", "name": "Starlight Text", "description": "Nebula glow over your message text", "category": "chat_effect", "price": 23000, "rarity": "legendary", "icon": "🌠", "effects": {"effect": "starlight", "animation": "shimmer"}},
     
     # Mythic Chat Effects (50k-100k XP) - ULTRA RARE
     {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "🌌", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
@@ -4196,15 +4408,16 @@ def get_user_xp():
         if row:
             xp = row['xp'] if hasattr(row, 'keys') else row[0]
             total_earned = row['total_xp_earned'] if hasattr(row, 'keys') else row[1]
+            level = row['level'] if hasattr(row, 'keys') else row[2]
         else:
             xp = total_earned = 0
-        level, _, next_req = level_info_from_xp(total_earned)
+            level = 1
         
         return jsonify({
             "xp": xp,
             "total_xp_earned": total_earned,
             "level": level,
-            "next_level_xp": next_req
+            "next_level_xp": level * 1000
         })
     except Exception as e:
         logger.error(f"Error getting user XP: {e}")
@@ -4242,19 +4455,15 @@ def purchase_item():
         item_name = item['name'] if hasattr(item, 'keys') else item[1]
         category = item['category'] if hasattr(item, 'keys') else item[2]
         
-        inventory_qty = 0
-        if db_type == 'postgres':
-            c.execute("SELECT quantity FROM user_inventory WHERE user_id = %s AND item_id = %s", (session['user_id'], item_id))
-        else:
-            c.execute("SELECT quantity FROM user_inventory WHERE user_id = ? AND item_id = ?", (session['user_id'], item_id))
-        inv_row = c.fetchone()
-        if inv_row:
-            inventory_qty = inv_row['quantity'] if hasattr(inv_row, 'keys') else inv_row[0]
-            inventory_qty = int(inventory_qty or 0)
-
-        # Non-consumables can only be owned once
-        if category != 'consumable' and inventory_qty > 0:
-            return jsonify({"error": "You already own this item"}), 400
+        # Check if user already owns this item (unless it's consumable)
+        if category != 'consumable':
+            if db_type == 'postgres':
+                c.execute("SELECT 1 FROM user_inventory WHERE user_id = %s AND item_id = %s", (session['user_id'], item_id))
+            else:
+                c.execute("SELECT 1 FROM user_inventory WHERE user_id = ? AND item_id = ?", (session['user_id'], item_id))
+            
+            if c.fetchone():
+                return jsonify({"error": "You already own this item"}), 400
         
         # Get user's XP
         if db_type == 'postgres':
@@ -4277,24 +4486,11 @@ def purchase_item():
                 ON CONFLICT (user_id) DO UPDATE SET xp = EXCLUDED.xp
             """, (session['user_id'], new_xp))
             
-            # Add to inventory or stack consumables
-            if category == 'consumable':
-                if inventory_qty > 0:
-                    c.execute("""
-                        UPDATE user_inventory
-                        SET quantity = COALESCE(quantity, 1) + 1, purchased_at = CURRENT_TIMESTAMP
-                        WHERE user_id = %s AND item_id = %s
-                    """, (session['user_id'], item_id))
-                else:
-                    c.execute("""
-                        INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
-                        VALUES (%s, %s, FALSE, 1)
-                    """, (session['user_id'], item_id))
-            else:
-                c.execute("""
-                    INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
-                    VALUES (%s, %s, FALSE, 1)
-                """, (session['user_id'], item_id))
+            # Add to inventory
+            c.execute("""
+                INSERT INTO user_inventory (user_id, item_id, equipped)
+                VALUES (%s, %s, FALSE)
+            """, (session['user_id'], item_id))
             
             # Log transaction
             c.execute("""
@@ -4308,23 +4504,10 @@ def purchase_item():
                         COALESCE((SELECT level FROM user_xp WHERE user_id = ?), 1))
             """, (session['user_id'], new_xp, session['user_id'], session['user_id']))
             
-            if category == 'consumable':
-                if inventory_qty > 0:
-                    c.execute("""
-                        UPDATE user_inventory
-                        SET quantity = COALESCE(quantity, 1) + 1, purchased_at = CURRENT_TIMESTAMP
-                        WHERE user_id = ? AND item_id = ?
-                    """, (session['user_id'], item_id))
-                else:
-                    c.execute("""
-                        INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
-                        VALUES (?, ?, 0, 1)
-                    """, (session['user_id'], item_id))
-            else:
-                c.execute("""
-                    INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
-                    VALUES (?, ?, 0, 1)
-                """, (session['user_id'], item_id))
+            c.execute("""
+                INSERT INTO user_inventory (user_id, item_id, equipped)
+                VALUES (?, ?, 0)
+            """, (session['user_id'], item_id))
             
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description)
@@ -4337,8 +4520,7 @@ def purchase_item():
             "success": True,
             "item_id": item_id,
             "name": item_name,
-            "remaining_xp": new_xp,
-            "quantity": (inventory_qty + 1) if category == 'consumable' else 1
+            "remaining_xp": new_xp
         })
     except Exception as e:
         logger.error(f"Error purchasing item: {e}")
@@ -4358,7 +4540,7 @@ def get_user_inventory():
     try:
         if db_type == 'postgres':
             c.execute("""
-                SELECT i.item_id, i.equipped, i.quantity, s.name, s.description, s.category, s.rarity, s.icon, s.effects
+                SELECT i.item_id, i.equipped, s.name, s.description, s.category, s.rarity, s.icon, s.effects
                 FROM user_inventory i
                 JOIN shop_items s ON i.item_id = s.item_id
                 WHERE i.user_id = %s
@@ -4366,7 +4548,7 @@ def get_user_inventory():
             """, (session['user_id'],))
         else:
             c.execute("""
-                SELECT i.item_id, i.equipped, i.quantity, s.name, s.description, s.category, s.rarity, s.icon, s.effects
+                SELECT i.item_id, i.equipped, s.name, s.description, s.category, s.rarity, s.icon, s.effects
                 FROM user_inventory i
                 JOIN shop_items s ON i.item_id = s.item_id
                 WHERE i.user_id = ?
@@ -4375,27 +4557,19 @@ def get_user_inventory():
         
         items = []
         for row in c.fetchall():
-            raw_effects = row['effects'] if hasattr(row, 'keys') else row[8]
-            effects = raw_effects if isinstance(raw_effects, dict) else json.loads(raw_effects or '{}')
+            effects = row['effects'] if isinstance(row['effects'], dict) else json.loads(row['effects'] or '{}')
             items.append({
                 "item_id": row['item_id'] if hasattr(row, 'keys') else row[0],
                 "equipped": bool(row['equipped'] if hasattr(row, 'keys') else row[1]),
-                "quantity": int((row['quantity'] if hasattr(row, 'keys') else row[2]) or 1),
-                "name": row['name'] if hasattr(row, 'keys') else row[3],
-                "description": row['description'] if hasattr(row, 'keys') else row[4],
-                "category": row['category'] if hasattr(row, 'keys') else row[5],
-                "rarity": row['rarity'] if hasattr(row, 'keys') else row[6],
-                "icon": row['icon'] if hasattr(row, 'keys') else row[7],
+                "name": row['name'] if hasattr(row, 'keys') else row[2],
+                "description": row['description'] if hasattr(row, 'keys') else row[3],
+                "category": row['category'] if hasattr(row, 'keys') else row[4],
+                "rarity": row['rarity'] if hasattr(row, 'keys') else row[5],
+                "icon": row['icon'] if hasattr(row, 'keys') else row[6],
                 "effects": effects
             })
-        active_boost = get_active_boost_for_user_cursor(c, db_type, session['user_id'])
-        if active_boost:
-            for item in items:
-                if item["item_id"] == active_boost["item_id"]:
-                    item["active_boost"] = True
-                    item["boost_remaining_seconds"] = active_boost["remaining_seconds"]
         
-        return jsonify({"inventory": items, "active_boost": active_boost})
+        return jsonify({"inventory": items})
     except Exception as e:
         logger.error(f"Error getting inventory: {e}")
         return jsonify({"error": str(e)}), 500
@@ -4432,9 +4606,6 @@ def equip_item():
             return jsonify({"error": "Item not in inventory"}), 404
         
         category = row['category'] if hasattr(row, 'keys') else row[0]
-
-        if category == 'consumable':
-            return jsonify({"error": "Boost items are used from My Items. Tap Use to activate."}), 400
         
         # If equipping, unequip other items in same category (except badges which can stack)
         if equip and category not in ['badge', 'consumable']:
@@ -4466,134 +4637,6 @@ def equip_item():
         return jsonify({"success": True, "equipped": equip, "item_id": item_id})
     except Exception as e:
         logger.error(f"Error equipping item: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
-
-@app.route('/api/shop/boost/status')
-def get_shop_boost_status():
-    if 'user_id' not in session:
-        return jsonify({"error": "Not logged in"}), 401
-    conn, db_type = get_db()
-    c = get_cursor(conn, db_type)
-    try:
-        active_boost = get_active_boost_for_user_cursor(c, db_type, session['user_id'])
-        conn.commit()
-        return jsonify({"active_boost": active_boost})
-    except Exception as e:
-        logger.error(f"Error getting boost status: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
-
-@app.route('/api/shop/boost/use', methods=['POST'])
-def use_shop_boost():
-    if 'user_id' not in session:
-        return jsonify({"error": "Not logged in"}), 401
-
-    data = request.get_json() or {}
-    item_id = data.get('item_id')
-    if not item_id:
-        return jsonify({"error": "Item ID required"}), 400
-
-    conn, db_type = get_db()
-    c = get_cursor(conn, db_type)
-
-    try:
-        if db_type == 'postgres':
-            c.execute("""
-                SELECT i.quantity, s.name, s.effects
-                FROM user_inventory i
-                JOIN shop_items s ON i.item_id = s.item_id
-                WHERE i.user_id = %s AND i.item_id = %s AND s.category = 'consumable'
-                LIMIT 1
-            """, (session['user_id'], item_id))
-        else:
-            c.execute("""
-                SELECT i.quantity, s.name, s.effects
-                FROM user_inventory i
-                JOIN shop_items s ON i.item_id = s.item_id
-                WHERE i.user_id = ? AND i.item_id = ? AND s.category = 'consumable'
-                LIMIT 1
-            """, (session['user_id'], item_id))
-
-        row = c.fetchone()
-        if not row:
-            return jsonify({"error": "Boost item not found in your inventory"}), 404
-
-        quantity = int((row['quantity'] if hasattr(row, 'keys') else row[0]) or 0)
-        item_name = row['name'] if hasattr(row, 'keys') else row[1]
-        effects = row['effects'] if isinstance(row['effects'], dict) else json.loads((row['effects'] if hasattr(row, 'keys') else row[2]) or '{}')
-        if quantity <= 0:
-            return jsonify({"error": "You do not have any of this boost left"}), 400
-
-        multiplier = float(effects.get('multiplier', 1))
-        if multiplier < 1:
-            multiplier = 1
-        duration_raw = effects.get('duration', '1h')
-        duration_seconds = parse_duration_to_seconds(duration_raw)
-        now = datetime.utcnow()
-        expires_at = now + timedelta(seconds=duration_seconds)
-
-        if db_type == 'postgres':
-            c.execute("""
-                INSERT INTO user_active_boosts (user_id, item_id, multiplier, activated_at, expires_at)
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (user_id) DO UPDATE SET
-                    item_id = EXCLUDED.item_id,
-                    multiplier = EXCLUDED.multiplier,
-                    activated_at = EXCLUDED.activated_at,
-                    expires_at = EXCLUDED.expires_at
-            """, (session['user_id'], item_id, multiplier, now, expires_at))
-            c.execute("""
-                UPDATE user_inventory
-                SET quantity = GREATEST(COALESCE(quantity, 1) - 1, 0)
-                WHERE user_id = %s AND item_id = %s
-            """, (session['user_id'], item_id))
-            c.execute("SELECT quantity FROM user_inventory WHERE user_id = %s AND item_id = %s", (session['user_id'], item_id))
-        else:
-            c.execute("""
-                INSERT INTO user_active_boosts (user_id, item_id, multiplier, activated_at, expires_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET
-                    item_id = excluded.item_id,
-                    multiplier = excluded.multiplier,
-                    activated_at = excluded.activated_at,
-                    expires_at = excluded.expires_at
-            """, (session['user_id'], item_id, multiplier, now.isoformat(), expires_at.isoformat()))
-            c.execute("""
-                UPDATE user_inventory
-                SET quantity = MAX(COALESCE(quantity, 1) - 1, 0)
-                WHERE user_id = ? AND item_id = ?
-            """, (session['user_id'], item_id))
-            c.execute("SELECT quantity FROM user_inventory WHERE user_id = ? AND item_id = ?", (session['user_id'], item_id))
-
-        qty_row = c.fetchone()
-        remaining_quantity = int((qty_row['quantity'] if (qty_row and hasattr(qty_row, 'keys')) else (qty_row[0] if qty_row else 0)) or 0)
-        if remaining_quantity <= 0:
-            if db_type == 'postgres':
-                c.execute("DELETE FROM user_inventory WHERE user_id = %s AND item_id = %s", (session['user_id'], item_id))
-            else:
-                c.execute("DELETE FROM user_inventory WHERE user_id = ? AND item_id = ?", (session['user_id'], item_id))
-            remaining_quantity = 0
-
-        conn.commit()
-
-        return jsonify({
-            "success": True,
-            "item_id": item_id,
-            "name": item_name,
-            "quantity": remaining_quantity,
-            "active_boost": {
-                "item_id": item_id,
-                "multiplier": multiplier,
-                "activated_at": now.isoformat(),
-                "expires_at": expires_at.isoformat(),
-                "remaining_seconds": duration_seconds
-            }
-        })
-    except Exception as e:
-        logger.error(f"Error activating boost: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -5341,21 +5384,17 @@ def award_xp_to_user(user_id, amount, description):
         
         row = c.fetchone()
         if row:
-            current_xp = (row['xp'] if hasattr(row, 'keys') else row[0]) or 0
-            total_earned = (row['total_xp_earned'] if hasattr(row, 'keys') else row[1]) or 0
+            current_xp = row[0] or 0
+            total_earned = row[1] or 0
+            current_level = row[2] or 1
         else:
             current_xp = 0
             total_earned = 0
-        current_level, _, _ = level_info_from_xp(total_earned)
-        base_amount = max(1, int(amount or 0))
-        boost = get_active_boost_for_user_cursor(c, db_type, user_id)
-        boost_multiplier = float(boost["multiplier"]) if boost else 1.0
-        awarded_amount = max(1, int(round(base_amount * boost_multiplier)))
-        boost_suffix = f" (Boost x{boost_multiplier:g})" if boost_multiplier > 1 else ""
-
-        new_xp = current_xp + awarded_amount
-        new_total = total_earned + awarded_amount
-        new_level, _, _ = level_info_from_xp(new_total)
+            current_level = 1
+        
+        new_xp = current_xp + amount
+        new_total = total_earned + amount
+        new_level = (new_total // 1000) + 1
         
         # Update user XP
         if db_type == 'postgres':
@@ -5372,7 +5411,7 @@ def award_xp_to_user(user_id, amount, description):
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
                 VALUES (%s, %s, 'bible_learning', %s, CURRENT_TIMESTAMP)
-            """, (user_id, awarded_amount, f"{description}{boost_suffix}"))
+            """, (user_id, amount, description))
         else:
             c.execute("""
                 INSERT OR REPLACE INTO user_xp (user_id, xp, total_xp_earned, level, updated_at)
@@ -5382,18 +5421,10 @@ def award_xp_to_user(user_id, amount, description):
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
                 VALUES (?, ?, 'bible_learning', ?, datetime('now'))
-            """, (user_id, awarded_amount, f"{description}{boost_suffix}"))
+            """, (user_id, amount, description))
         
         conn.commit()
-        return {
-            "success": True,
-            "new_total": new_xp,
-            "level": new_level,
-            "leveled_up": new_level > current_level,
-            "xp_awarded": awarded_amount,
-            "base_amount": base_amount,
-            "boost_multiplier": boost_multiplier
-        }
+        return {"success": True, "new_total": new_xp, "level": new_level, "leveled_up": new_level > current_level}
     except Exception as e:
         logger.error(f"Error awarding XP: {e}")
         return {"success": False, "error": str(e)}
@@ -5430,16 +5461,10 @@ def award_xp():
         else:
             current_xp = 0
             total_earned = 0
-        current_level, _, _ = level_info_from_xp(total_earned)
-        base_amount = max(1, int(amount or 0))
-        active_boost = get_active_boost_for_user_cursor(c, db_type, session['user_id'])
-        boost_multiplier = float(active_boost["multiplier"]) if active_boost else 1.0
-        awarded_amount = max(1, int(round(base_amount * boost_multiplier)))
-        boost_suffix = f" (Boost x{boost_multiplier:g})" if boost_multiplier > 1 else ""
-
-        new_xp = current_xp + awarded_amount
-        new_total = total_earned + awarded_amount
-        new_level, _, _ = level_info_from_xp(new_total)
+        
+        new_xp = current_xp + amount
+        new_total = total_earned + amount
+        new_level = (new_total // 1000) + 1
         
         # Update user XP
         if db_type == 'postgres':
@@ -5455,7 +5480,7 @@ def award_xp():
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description)
                 VALUES (%s, %s, 'earned', %s)
-            """, (session['user_id'], awarded_amount, f"{action}{boost_suffix}"))
+            """, (session['user_id'], amount, action))
         else:
             c.execute("""
                 INSERT OR REPLACE INTO user_xp (user_id, xp, total_xp_earned, level)
@@ -5465,18 +5490,16 @@ def award_xp():
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description)
                 VALUES (?, ?, 'earned', ?)
-            """, (session['user_id'], awarded_amount, f"{action}{boost_suffix}"))
+            """, (session['user_id'], amount, action))
         
         conn.commit()
         
         return jsonify({
             "success": True,
-            "xp_awarded": awarded_amount,
-            "base_amount": base_amount,
-            "boost_multiplier": boost_multiplier,
+            "xp_awarded": amount,
             "new_total": new_xp,
             "level": new_level,
-            "leveled_up": new_level > current_level
+            "leveled_up": new_level > ((total_earned // 1000) + 1)
         })
     except Exception as e:
         logger.error(f"Error awarding XP: {e}")
@@ -5529,10 +5552,8 @@ def get_stats():
                 logger.error(f"Query failed: {query}, error: {e}")
                 return 0
         
-        ensure_user_verse_views_table(c, db_type)
-
         if db_type == 'postgres':
-            total = safe_count("SELECT COUNT(*) FROM user_verse_views WHERE user_id = %s", (session['user_id'],))
+            total = safe_count("SELECT COUNT(*) FROM verses")
             liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = %s", (session['user_id'],))
             saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = %s", (session['user_id'],))
             # Count all comments by this user
@@ -5554,7 +5575,7 @@ def get_stats():
                   )
             """, (session['user_id'],))
         else:
-            total = safe_count("SELECT COUNT(*) FROM user_verse_views WHERE user_id = ?", (session['user_id'],))
+            total = safe_count("SELECT COUNT(*) FROM verses")
             liked = safe_count("SELECT COUNT(*) FROM likes WHERE user_id = ?", (session['user_id'],))
             saved = safe_count("SELECT COUNT(*) FROM saves WHERE user_id = ?", (session['user_id'],))
             comments = safe_count("SELECT COUNT(*) FROM comments WHERE user_id = ? AND COALESCE(is_deleted, 0) = 0", (session['user_id'],))
@@ -6025,22 +6046,29 @@ def search_library_verses():
     like_query = f"%{query_lower}%"
     like_hint = f"%{hint_lower}%"
 
+    filter_book = (request.args.get('book') or '').strip()
+    filter_chapter = (request.args.get('chapter') or '').strip()
+    filter_status = (request.args.get('status') or '').strip().lower()
+    filter_translation = (request.args.get('translation') or '').strip().lower()
+    filter_date_from = (request.args.get('date_from') or '').strip()
+    filter_date_to = (request.args.get('date_to') or '').strip()
+    sort_mode = (request.args.get('sort') or 'canonical').strip().lower()
+
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     try:
         if db_type == 'postgres':
             c.execute("""
-                SELECT v.id, v.reference, v.text, v.translation, v.source, v.book,
-                       (
-                           SELECT MAX(l.timestamp)
-                           FROM likes l
-                           WHERE l.user_id = %s AND l.verse_id = v.id
-                       ) AS liked_at,
-                       (
-                           SELECT MAX(s.timestamp)
-                           FROM saves s
-                           WHERE s.user_id = %s AND s.verse_id = v.id
-                       ) AS saved_at
+                SELECT
+                    v.id,
+                    v.reference,
+                    v.text,
+                    v.translation,
+                    v.source,
+                    v.book,
+                    v.timestamp,
+                    (SELECT MAX(l.timestamp) FROM likes l WHERE l.verse_id = v.id AND l.user_id = %s) AS liked_at,
+                    (SELECT MAX(s.timestamp) FROM saves s WHERE s.verse_id = v.id AND s.user_id = %s) AS saved_at
                 FROM verses v
                 WHERE LOWER(COALESCE(v.book, '')) LIKE %s
                    OR LOWER(COALESCE(v.reference, '')) LIKE %s
@@ -6050,17 +6078,16 @@ def search_library_verses():
             """, (session['user_id'], session['user_id'], like_query, like_query, like_hint, like_hint))
         else:
             c.execute("""
-                SELECT v.id, v.reference, v.text, v.translation, v.source, v.book,
-                       (
-                           SELECT MAX(l.timestamp)
-                           FROM likes l
-                           WHERE l.user_id = ? AND l.verse_id = v.id
-                       ) AS liked_at,
-                       (
-                           SELECT MAX(s.timestamp)
-                           FROM saves s
-                           WHERE s.user_id = ? AND s.verse_id = v.id
-                       ) AS saved_at
+                SELECT
+                    v.id,
+                    v.reference,
+                    v.text,
+                    v.translation,
+                    v.source,
+                    v.book,
+                    v.timestamp,
+                    (SELECT MAX(l.timestamp) FROM likes l WHERE l.verse_id = v.id AND l.user_id = ?) AS liked_at,
+                    (SELECT MAX(s.timestamp) FROM saves s WHERE s.verse_id = v.id AND s.user_id = ?) AS saved_at
                 FROM verses v
                 WHERE LOWER(IFNULL(v.book, '')) LIKE ?
                    OR LOWER(IFNULL(v.reference, '')) LIKE ?
@@ -6079,6 +6106,7 @@ def search_library_verses():
                     "trans": row['translation'],
                     "source": row['source'],
                     "book": row['book'],
+                    "timestamp": row_value(row, 'timestamp'),
                     "liked_at": row['liked_at'],
                     "saved_at": row['saved_at']
                 }
@@ -6090,50 +6118,838 @@ def search_library_verses():
                     "trans": row[3],
                     "source": row[4],
                     "book": row[5],
-                    "liked_at": row[6],
-                    "saved_at": row[7]
+                    "timestamp": row[6],
+                    "liked_at": row[7],
+                    "saved_at": row[8]
                 }
             entry["is_active"] = bool(entry.get("liked_at"))
             entry["is_stored"] = bool(entry.get("saved_at"))
             verses.append(entry)
 
         filtered = [v for v in verses if _verse_matches_title_query(v, query_key)]
+
+        if filter_book:
+            book_key = _normalize_bible_book_name(filter_book)
+            filtered = [
+                v for v in filtered
+                if _normalize_bible_book_name(v.get("book") or _extract_book_from_reference(v.get("ref"))) == book_key
+            ]
+
+        if filter_chapter.isdigit():
+            chapter_value = int(filter_chapter)
+            filtered = [v for v in filtered if _parse_reference_chapter(v.get("ref"))[0] == chapter_value]
+
+        if filter_status in ('active', 'stored'):
+            if filter_status == 'active':
+                filtered = [v for v in filtered if bool(v.get("liked_at"))]
+            else:
+                filtered = [v for v in filtered if bool(v.get("saved_at"))]
+
+        if filter_translation:
+            filtered = [
+                v for v in filtered
+                if str(v.get("trans") or "").strip().lower() == filter_translation
+            ]
+
+        if filter_date_from:
+            filtered = [v for v in filtered if str(v.get("timestamp") or "") >= filter_date_from]
+
+        if filter_date_to:
+            filtered = [v for v in filtered if str(v.get("timestamp") or "") <= filter_date_to]
+
         deduped = []
         seen_ids = set()
-        seen_content = {}
+        seen_content = set()
         for verse in filtered:
             verse_id = verse.get("id")
             if verse_id in seen_ids:
                 continue
-            seen_ids.add(verse_id)
-
-            # Hide content duplicates even if they are different verse row IDs.
-            ref_key = str(verse.get("ref") or "").strip().lower()
-            text_key = str(verse.get("text") or "").strip().lower()
-            content_key = (ref_key, text_key)
+            content_key = (
+                _normalize_bible_book_name(verse.get("ref")),
+                _normalize_mem_text(verse.get("text"))
+            )
             if content_key in seen_content:
-                existing = seen_content[content_key]
-                if verse.get("liked_at") and not existing.get("liked_at"):
-                    existing["liked_at"] = verse.get("liked_at")
-                    existing["is_active"] = True
-                if verse.get("saved_at") and not existing.get("saved_at"):
-                    existing["saved_at"] = verse.get("saved_at")
-                    existing["is_stored"] = True
                 continue
-
-            seen_content[content_key] = verse
+            seen_ids.add(verse_id)
+            seen_content.add(content_key)
             deduped.append(verse)
 
-        deduped.sort(key=_library_verse_sort_key)
+        if sort_mode == 'newest':
+            deduped.sort(key=lambda v: str(v.get("timestamp") or ''), reverse=True)
+        elif sort_mode == 'oldest':
+            deduped.sort(key=lambda v: str(v.get("timestamp") or ''))
+        elif sort_mode == 'az':
+            deduped.sort(key=lambda v: str(v.get("ref") or '').lower())
+        elif sort_mode == 'book':
+            deduped.sort(key=_library_verse_sort_key)
+        else:
+            deduped.sort(key=_library_verse_sort_key)
 
         return jsonify({
             "query": query,
+            "filters": {
+                "book": filter_book,
+                "chapter": filter_chapter,
+                "status": filter_status,
+                "translation": filter_translation,
+                "date_from": filter_date_from,
+                "date_to": filter_date_to,
+                "sort": sort_mode
+            },
             "verses": deduped,
             "count": len(deduped)
         })
     except Exception as e:
         logger.error(f"Library search error: {e}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/reading-plan', methods=['GET', 'POST'])
+def reading_plan():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user_id = session['user_id']
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    now_iso = datetime.now().isoformat()
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            action = (data.get('action') or '').strip().lower()
+
+            if action == 'toggle_day':
+                day = int(data.get('day') or 0)
+                if day <= 0:
+                    return jsonify({"error": "day must be >= 1"}), 400
+                if db_type == 'postgres':
+                    c.execute("""
+                        SELECT id, plan_days, progress_json
+                        FROM reading_plans
+                        WHERE user_id = %s
+                        ORDER BY id DESC
+                        LIMIT 1
+                    """, (user_id,))
+                else:
+                    c.execute("""
+                        SELECT id, plan_days, progress_json
+                        FROM reading_plans
+                        WHERE user_id = ?
+                        ORDER BY id DESC
+                        LIMIT 1
+                    """, (user_id,))
+                row = c.fetchone()
+                if not row:
+                    return jsonify({"error": "No reading plan found"}), 404
+                plan_id = row_pick(row, 'id', 0)
+                plan_days = int(row_pick(row, 'plan_days', 1, 0) or 0)
+                progress = _json_loads_safe(row_pick(row, 'progress_json', 2, {}), {})
+                completed = set(progress.get('completed_days') or [])
+                if day in completed:
+                    completed.remove(day)
+                else:
+                    completed.add(day)
+                progress['completed_days'] = sorted([d for d in completed if isinstance(d, int) and 1 <= d <= plan_days])
+                progress['last_updated'] = now_iso
+
+                if db_type == 'postgres':
+                    c.execute("""
+                        UPDATE reading_plans
+                        SET progress_json = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (json.dumps(progress), plan_id))
+                else:
+                    c.execute("""
+                        UPDATE reading_plans
+                        SET progress_json = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (json.dumps(progress), now_iso, plan_id))
+                conn.commit()
+            else:
+                plan_name = (data.get('plan_name') or 'Research Plan').strip()[:80]
+                plan_days = int(data.get('plan_days') or 7)
+                plan_days = max(1, min(365, plan_days))
+                start_date = (data.get('start_date') or datetime.now().date().isoformat()).strip()
+
+                c.execute("""
+                    SELECT id, reference, text, translation, source, timestamp, book
+                    FROM verses
+                    ORDER BY id DESC
+                    LIMIT 1200
+                """)
+                raw_verses = c.fetchall()
+                verses = []
+                seen = set()
+                for row in raw_verses:
+                    item = {
+                        "id": row_pick(row, 'id', 0),
+                        "ref": row_pick(row, 'reference', 1),
+                        "text": row_pick(row, 'text', 2),
+                        "trans": row_pick(row, 'translation', 3),
+                        "source": row_pick(row, 'source', 4),
+                        "timestamp": row_pick(row, 'timestamp', 5),
+                        "book": row_pick(row, 'book', 6)
+                    }
+                    content_key = (
+                        _normalize_bible_book_name(item.get("ref")),
+                        _normalize_mem_text(item.get("text"))
+                    )
+                    if content_key in seen:
+                        continue
+                    seen.add(content_key)
+                    verses.append(item)
+                verses.sort(key=_library_verse_sort_key)
+
+                if not verses:
+                    return jsonify({"error": "No verses in database to build a plan"}), 400
+
+                per_day = max(1, len(verses) // plan_days)
+                days = []
+                index = 0
+                for day in range(1, plan_days + 1):
+                    start = index
+                    end = min(len(verses), start + per_day)
+                    if day == plan_days:
+                        end = len(verses)
+                    day_refs = [v["ref"] for v in verses[start:end] if v.get("ref")]
+                    if not day_refs and verses:
+                        day_refs = [verses[min(start, len(verses)-1)].get("ref")]
+                    days.append({"day": day, "references": day_refs})
+                    index = end
+                    if index >= len(verses):
+                        index = len(verses)
+
+                progress = {
+                    "completed_days": [],
+                    "schedule": days,
+                    "created_at": now_iso
+                }
+                if db_type == 'postgres':
+                    c.execute("""
+                        INSERT INTO reading_plans (user_id, plan_name, plan_days, start_date, progress_json, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    """, (user_id, plan_name, plan_days, start_date, json.dumps(progress)))
+                else:
+                    c.execute("""
+                        INSERT INTO reading_plans (user_id, plan_name, plan_days, start_date, progress_json, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (user_id, plan_name, plan_days, start_date, json.dumps(progress), now_iso, now_iso))
+                conn.commit()
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT id, plan_name, plan_days, start_date, progress_json, created_at, updated_at
+                FROM reading_plans
+                WHERE user_id = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (user_id,))
+        else:
+            c.execute("""
+                SELECT id, plan_name, plan_days, start_date, progress_json, created_at, updated_at
+                FROM reading_plans
+                WHERE user_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+            """, (user_id,))
+        row = c.fetchone()
+        if not row:
+            return jsonify({"plan": None})
+
+        progress = _json_loads_safe(row_pick(row, 'progress_json', 4, {}), {})
+        completed_days = progress.get("completed_days") or []
+        schedule = progress.get("schedule") or []
+        plan_days = int(row_pick(row, 'plan_days', 2, 0) or 0)
+        done_count = len([d for d in completed_days if isinstance(d, int)])
+        percent = round((done_count / max(1, plan_days)) * 100, 2)
+
+        return jsonify({
+            "plan": {
+                "id": row_pick(row, 'id', 0),
+                "plan_name": row_pick(row, 'plan_name', 1),
+                "plan_days": plan_days,
+                "start_date": row_pick(row, 'start_date', 3),
+                "created_at": row_pick(row, 'created_at', 5),
+                "updated_at": row_pick(row, 'updated_at', 6),
+                "completed_days": completed_days,
+                "schedule": schedule,
+                "progress_percent": percent
+            }
+        })
+    except Exception as e:
+        logger.error(f"Reading plan error: {e}")
+        return jsonify({"error": "reading_plan_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/memorization/trainer')
+def memorization_trainer():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user_id = session['user_id']
+    verse_id = request.args.get('verse_id')
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        if verse_id and str(verse_id).isdigit():
+            c.execute("""
+                SELECT id, reference, text, translation, source, timestamp, book
+                FROM verses WHERE id = ?
+            """ if db_type != 'postgres' else """
+                SELECT id, reference, text, translation, source, timestamp, book
+                FROM verses WHERE id = %s
+            """, (int(verse_id),))
+            row = c.fetchone()
+        else:
+            c.execute("""
+                SELECT v.id, v.reference, v.text, v.translation, v.source, v.timestamp, v.book
+                FROM verses v
+                WHERE EXISTS (SELECT 1 FROM likes l WHERE l.verse_id = v.id AND l.user_id = ?)
+                   OR EXISTS (SELECT 1 FROM saves s WHERE s.verse_id = v.id AND s.user_id = ?)
+                ORDER BY RANDOM()
+                LIMIT 1
+            """ if db_type != 'postgres' else """
+                SELECT v.id, v.reference, v.text, v.translation, v.source, v.timestamp, v.book
+                FROM verses v
+                WHERE EXISTS (SELECT 1 FROM likes l WHERE l.verse_id = v.id AND l.user_id = %s)
+                   OR EXISTS (SELECT 1 FROM saves s WHERE s.verse_id = v.id AND s.user_id = %s)
+                ORDER BY RANDOM()
+                LIMIT 1
+            """, (user_id, user_id))
+            row = c.fetchone()
+            if not row:
+                c.execute("""
+                    SELECT id, reference, text, translation, source, timestamp, book
+                    FROM verses
+                    ORDER BY RANDOM()
+                    LIMIT 1
+                """)
+                row = c.fetchone()
+
+        if not row:
+            return jsonify({"error": "No verses available"}), 404
+
+        item = {
+            "id": row_pick(row, 'id', 0),
+            "ref": row_pick(row, 'reference', 1),
+            "text": row_pick(row, 'text', 2),
+            "trans": row_pick(row, 'translation', 3),
+            "source": row_pick(row, 'source', 4),
+            "timestamp": row_pick(row, 'timestamp', 5),
+            "book": row_pick(row, 'book', 6)
+        }
+
+        c.execute("""
+            SELECT best_accuracy, attempts
+            FROM memorization_scores
+            WHERE user_id = ? AND verse_id = ?
+        """ if db_type != 'postgres' else """
+            SELECT best_accuracy, attempts
+            FROM memorization_scores
+            WHERE user_id = %s AND verse_id = %s
+        """, (user_id, item["id"]))
+        score_row = c.fetchone()
+        best_accuracy = float(row_pick(score_row, 'best_accuracy', 0, 0.0) or 0.0) if score_row else 0.0
+        attempts = int(row_pick(score_row, 'attempts', 1, 0) or 0) if score_row else 0
+
+        return jsonify({
+            "verse": item,
+            "masked_text": _build_memorization_mask(item.get("text")),
+            "best_accuracy": round(best_accuracy, 4),
+            "attempts": attempts
+        })
+    except Exception as e:
+        logger.error(f"Memorization trainer error: {e}")
+        return jsonify({"error": "memorization_trainer_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/memorization/trainer/check', methods=['POST'])
+def memorization_trainer_check():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json(silent=True) or {}
+    verse_id = data.get('verse_id')
+    attempt_text = data.get('attempt_text') or ''
+    if not verse_id or not str(verse_id).isdigit():
+        return jsonify({"error": "verse_id is required"}), 400
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    now_iso = datetime.now().isoformat()
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        c.execute("SELECT text FROM verses WHERE id = ?" if db_type != 'postgres' else "SELECT text FROM verses WHERE id = %s", (int(verse_id),))
+        row = c.fetchone()
+        if not row:
+            return jsonify({"error": "Verse not found"}), 404
+
+        verse_text = row_pick(row, 'text', 0) or ''
+        accuracy = _compute_text_similarity(verse_text, attempt_text)
+
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO memorization_scores (user_id, verse_id, accuracy, attempts, best_accuracy, updated_at)
+                VALUES (%s, %s, %s, 1, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (user_id, verse_id) DO UPDATE SET
+                    accuracy = EXCLUDED.accuracy,
+                    attempts = memorization_scores.attempts + 1,
+                    best_accuracy = GREATEST(memorization_scores.best_accuracy, EXCLUDED.accuracy),
+                    updated_at = CURRENT_TIMESTAMP
+            """, (session['user_id'], int(verse_id), accuracy, accuracy))
+            c.execute("SELECT best_accuracy, attempts FROM memorization_scores WHERE user_id = %s AND verse_id = %s", (session['user_id'], int(verse_id)))
+        else:
+            c.execute("""
+                INSERT INTO memorization_scores (user_id, verse_id, accuracy, attempts, best_accuracy, updated_at)
+                VALUES (?, ?, ?, 1, ?, ?)
+                ON CONFLICT(user_id, verse_id) DO UPDATE SET
+                    accuracy = excluded.accuracy,
+                    attempts = memorization_scores.attempts + 1,
+                    best_accuracy = CASE
+                        WHEN excluded.accuracy > memorization_scores.best_accuracy THEN excluded.accuracy
+                        ELSE memorization_scores.best_accuracy
+                    END,
+                    updated_at = excluded.updated_at
+            """, (session['user_id'], int(verse_id), accuracy, accuracy, now_iso))
+            c.execute("SELECT best_accuracy, attempts FROM memorization_scores WHERE user_id = ? AND verse_id = ?", (session['user_id'], int(verse_id)))
+
+        score_row = c.fetchone()
+        conn.commit()
+        best_accuracy = float(row_pick(score_row, 'best_accuracy', 0, accuracy) or accuracy) if score_row else accuracy
+        attempts = int(row_pick(score_row, 'attempts', 1, 1) or 1) if score_row else 1
+        return jsonify({
+            "accuracy": round(accuracy, 4),
+            "accuracy_percent": round(accuracy * 100, 2),
+            "best_accuracy_percent": round(best_accuracy * 100, 2),
+            "attempts": attempts
+        })
+    except Exception as e:
+        logger.error(f"Memorization check error: {e}")
+        return jsonify({"error": "memorization_check_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/highlights', methods=['GET', 'POST'])
+def highlights():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user_id = session['user_id']
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    now_iso = datetime.now().isoformat()
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            verse_id = data.get('verse_id')
+            if not verse_id or not str(verse_id).isdigit():
+                return jsonify({"error": "verse_id is required"}), 400
+            color = (data.get('color') or '#FFD54F').strip()[:24]
+            note = (data.get('note') or '').strip()[:600]
+            if db_type == 'postgres':
+                c.execute("""
+                    INSERT INTO verse_highlights (user_id, verse_id, color, note, created_at)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (user_id, verse_id) DO UPDATE SET
+                        color = EXCLUDED.color,
+                        note = EXCLUDED.note
+                """, (user_id, int(verse_id), color, note))
+            else:
+                c.execute("""
+                    INSERT INTO verse_highlights (user_id, verse_id, color, note, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, verse_id) DO UPDATE SET
+                        color = excluded.color,
+                        note = excluded.note
+                """, (user_id, int(verse_id), color, note, now_iso))
+            conn.commit()
+
+        c.execute("""
+            SELECT h.verse_id, h.color, h.note, h.created_at,
+                   v.reference, v.text, v.translation, v.source, v.book
+            FROM verse_highlights h
+            JOIN verses v ON v.id = h.verse_id
+            WHERE h.user_id = ?
+            ORDER BY h.created_at DESC
+        """ if db_type != 'postgres' else """
+            SELECT h.verse_id, h.color, h.note, h.created_at,
+                   v.reference, v.text, v.translation, v.source, v.book
+            FROM verse_highlights h
+            JOIN verses v ON v.id = h.verse_id
+            WHERE h.user_id = %s
+            ORDER BY h.created_at DESC
+        """, (user_id,))
+        results = []
+        for row in c.fetchall():
+            results.append({
+                "verse_id": row_pick(row, 'verse_id', 0),
+                "color": row_pick(row, 'color', 1),
+                "note": row_pick(row, 'note', 2),
+                "created_at": row_pick(row, 'created_at', 3),
+                "ref": row_pick(row, 'reference', 4),
+                "text": row_pick(row, 'text', 5),
+                "trans": row_pick(row, 'translation', 6),
+                "source": row_pick(row, 'source', 7),
+                "book": row_pick(row, 'book', 8)
+            })
+        return jsonify({"highlights": results, "count": len(results)})
+    except Exception as e:
+        logger.error(f"Highlights error: {e}")
+        return jsonify({"error": "highlights_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/highlights/<int:verse_id>', methods=['DELETE'])
+def remove_highlight(verse_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+        c.execute("DELETE FROM verse_highlights WHERE user_id = ? AND verse_id = ?" if db_type != 'postgres' else "DELETE FROM verse_highlights WHERE user_id = %s AND verse_id = %s", (session['user_id'], verse_id))
+        deleted = c.rowcount if c.rowcount and c.rowcount > 0 else 0
+        conn.commit()
+        return jsonify({"success": True, "deleted": deleted})
+    except Exception as e:
+        logger.error(f"Remove highlight error: {e}")
+        return jsonify({"error": "remove_highlight_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/study-pack/export')
+def study_pack_export():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    include_highlights = str(request.args.get('include_highlights', '1')).lower() in ('1', 'true', 'yes', 'on')
+    include_library = str(request.args.get('include_library', '1')).lower() in ('1', 'true', 'yes', 'on')
+    fmt = (request.args.get('format') or 'markdown').strip().lower()
+    user_id = session['user_id']
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        library_rows = []
+        if include_library:
+            c.execute("""
+                SELECT DISTINCT v.id, v.reference, v.text, v.translation, v.source, v.book
+                FROM verses v
+                WHERE EXISTS (SELECT 1 FROM likes l WHERE l.verse_id = v.id AND l.user_id = ?)
+                   OR EXISTS (SELECT 1 FROM saves s WHERE s.verse_id = v.id AND s.user_id = ?)
+                ORDER BY v.id DESC
+                LIMIT 1000
+            """ if db_type != 'postgres' else """
+                SELECT DISTINCT v.id, v.reference, v.text, v.translation, v.source, v.book
+                FROM verses v
+                WHERE EXISTS (SELECT 1 FROM likes l WHERE l.verse_id = v.id AND l.user_id = %s)
+                   OR EXISTS (SELECT 1 FROM saves s WHERE s.verse_id = v.id AND s.user_id = %s)
+                ORDER BY v.id DESC
+                LIMIT 1000
+            """, (user_id, user_id))
+            library_rows = c.fetchall()
+
+        highlight_rows = []
+        if include_highlights:
+            c.execute("""
+                SELECT h.verse_id, h.color, h.note, h.created_at,
+                       v.reference, v.text, v.translation, v.source, v.book
+                FROM verse_highlights h
+                JOIN verses v ON v.id = h.verse_id
+                WHERE h.user_id = ?
+                ORDER BY h.created_at DESC
+            """ if db_type != 'postgres' else """
+                SELECT h.verse_id, h.color, h.note, h.created_at,
+                       v.reference, v.text, v.translation, v.source, v.book
+                FROM verse_highlights h
+                JOIN verses v ON v.id = h.verse_id
+                WHERE h.user_id = %s
+                ORDER BY h.created_at DESC
+            """, (user_id,))
+            highlight_rows = c.fetchall()
+
+        library_items = []
+        seen = set()
+        for row in library_rows:
+            item = {
+                "id": row_pick(row, 'id', 0),
+                "ref": row_pick(row, 'reference', 1),
+                "text": row_pick(row, 'text', 2),
+                "trans": row_pick(row, 'translation', 3),
+                "source": row_pick(row, 'source', 4),
+                "book": row_pick(row, 'book', 5),
+            }
+            key = (_normalize_bible_book_name(item["ref"]), _normalize_mem_text(item["text"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            library_items.append(item)
+        library_items.sort(key=_library_verse_sort_key)
+
+        highlights = []
+        for row in highlight_rows:
+            highlights.append({
+                "verse_id": row_pick(row, 'verse_id', 0),
+                "color": row_pick(row, 'color', 1),
+                "note": row_pick(row, 'note', 2),
+                "created_at": row_pick(row, 'created_at', 3),
+                "ref": row_pick(row, 'reference', 4),
+                "text": row_pick(row, 'text', 5),
+                "trans": row_pick(row, 'translation', 6),
+                "source": row_pick(row, 'source', 7),
+                "book": row_pick(row, 'book', 8),
+            })
+        highlights.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
+
+        if fmt == 'json':
+            return jsonify({
+                "generated_at": datetime.now().isoformat(),
+                "library": library_items,
+                "highlights": highlights
+            })
+
+        lines = []
+        lines.append(f"# Study Pack Export ({datetime.now().strftime('%Y-%m-%d %H:%M')})")
+        lines.append("")
+        lines.append("## Library Verses")
+        if library_items:
+            for item in library_items:
+                lines.append(f"- **{item.get('ref') or 'Unknown'}**: {item.get('text') or ''}")
+        else:
+            lines.append("- No library verses.")
+        lines.append("")
+        lines.append("## Highlights")
+        if highlights:
+            for item in highlights:
+                note = item.get('note') or ''
+                lines.append(f"- **{item.get('ref') or 'Unknown'}** ({item.get('color') or '#FFD54F'}): {item.get('text') or ''}")
+                if note:
+                    lines.append(f"  Note: {note}")
+        else:
+            lines.append("- No highlights.")
+
+        return jsonify({
+            "format": "markdown",
+            "generated_at": datetime.now().isoformat(),
+            "content": "\n".join(lines)
+        })
+    except Exception as e:
+        logger.error(f"Study pack export error: {e}")
+        return jsonify({"error": "study_pack_export_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/data-health')
+def admin_data_health():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    if not session.get('is_admin') and not require_min_role('host'):
+        return jsonify({"error": "Admin required"}), 403
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT COUNT(*) AS duplicate_groups, COALESCE(SUM(cnt - 1), 0) AS duplicate_rows
+                FROM (
+                    SELECT LOWER(TRIM(COALESCE(reference, ''))) AS ref_key,
+                           LOWER(TRIM(COALESCE(text, ''))) AS text_key,
+                           COUNT(*) AS cnt
+                    FROM verses
+                    GROUP BY ref_key, text_key
+                    HAVING COUNT(*) > 1
+                ) d
+            """)
+            dup = c.fetchone()
+            duplicate_groups = int(row_pick(dup, 'duplicate_groups', 0, 0) or 0) if dup else 0
+            duplicate_rows = int(row_pick(dup, 'duplicate_rows', 1, 0) or 0) if dup else 0
+            c.execute("SELECT COUNT(*) AS count FROM likes l LEFT JOIN verses v ON l.verse_id = v.id WHERE v.id IS NULL")
+            row = c.fetchone()
+            orphan_likes = int(row_pick(row, 'count', 0, 0) or 0) if row else 0
+            c.execute("SELECT COUNT(*) AS count FROM saves s LEFT JOIN verses v ON s.verse_id = v.id WHERE v.id IS NULL")
+            row = c.fetchone()
+            orphan_saves = int(row_pick(row, 'count', 0, 0) or 0) if row else 0
+        else:
+            c.execute("""
+                SELECT COUNT(*), COALESCE(SUM(cnt - 1), 0)
+                FROM (
+                    SELECT LOWER(TRIM(IFNULL(reference, ''))) AS ref_key,
+                           LOWER(TRIM(IFNULL(text, ''))) AS text_key,
+                           COUNT(*) AS cnt
+                    FROM verses
+                    GROUP BY ref_key, text_key
+                    HAVING COUNT(*) > 1
+                ) d
+            """)
+            row = c.fetchone()
+            duplicate_groups = int(row[0] if row else 0)
+            duplicate_rows = int(row[1] if row else 0)
+            c.execute("SELECT COUNT(*) FROM likes WHERE verse_id NOT IN (SELECT id FROM verses)")
+            row = c.fetchone()
+            orphan_likes = int(row[0] if row else 0)
+            c.execute("SELECT COUNT(*) FROM saves WHERE verse_id NOT IN (SELECT id FROM verses)")
+            row = c.fetchone()
+            orphan_saves = int(row[0] if row else 0)
+
+        c.execute("SELECT COUNT(*) FROM verses")
+        row = c.fetchone()
+        total_verses = int(row[0] if row else 0)
+
+        return jsonify({
+            "db_type": db_type,
+            "total_verses": total_verses,
+            "duplicate_groups": duplicate_groups,
+            "duplicate_rows": duplicate_rows,
+            "orphan_likes": orphan_likes,
+            "orphan_saves": orphan_saves
+        })
+    except Exception as e:
+        logger.error(f"Data health error: {e}")
+        return jsonify({"error": "data_health_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/data-health/repair', methods=['POST'])
+def admin_data_health_repair():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    if not session.get('is_admin') and not require_min_role('host'):
+        return jsonify({"error": "Admin required"}), 403
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+        deduped_count = _dedupe_verses_in_db(c, db_type)
+        orphan = _remove_orphan_verse_refs(c, db_type)
+        conn.commit()
+        return jsonify({
+            "success": True,
+            "deduped_verses_removed": deduped_count,
+            "orphan_cleanup": orphan
+        })
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Data repair error: {e}")
+        return jsonify({"error": "data_repair_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/community/rooms')
+def get_community_rooms():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+        c.execute("SELECT slug, name, description FROM research_community_rooms ORDER BY id ASC")
+        rows = c.fetchall()
+        rooms = [{
+            "slug": row_pick(r, 'slug', 0),
+            "name": row_pick(r, 'name', 1),
+            "description": row_pick(r, 'description', 2)
+        } for r in rows]
+        return jsonify({"rooms": rooms})
+    except Exception as e:
+        logger.error(f"Community rooms error: {e}")
+        return jsonify({"error": "community_rooms_failed"}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/community/rooms/<slug>/messages', methods=['GET', 'POST'])
+def community_room_messages(slug):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    room_slug = (slug or '').strip().lower()
+    if not room_slug:
+        return jsonify({"error": "Invalid room"}), 400
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        if request.method == 'POST':
+            is_banned, _, _ = check_ban_status(session['user_id'])
+            if is_banned:
+                return jsonify({"error": "banned", "message": "Account banned"}), 403
+            data = request.get_json(silent=True) or {}
+            text = (data.get('text') or '').strip()
+            if not text:
+                return jsonify({"error": "Empty message"}), 400
+            c.execute("""
+                INSERT INTO research_community_messages (room_slug, user_id, text, timestamp, google_name, google_picture)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """ if db_type != 'postgres' else """
+                INSERT INTO research_community_messages (room_slug, user_id, text, timestamp, google_name, google_picture)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (room_slug, session['user_id'], text, datetime.now().isoformat(), session.get('user_name'), session.get('user_picture')))
+            conn.commit()
+
+        c.execute("""
+            SELECT m.id, m.room_slug, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
+                   u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+            FROM research_community_messages m
+            LEFT JOIN users u ON u.id = m.user_id
+            WHERE m.room_slug = ?
+            ORDER BY m.timestamp DESC
+            LIMIT 120
+        """ if db_type != 'postgres' else """
+            SELECT m.id, m.room_slug, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
+                   u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+            FROM research_community_messages m
+            LEFT JOIN users u ON u.id = m.user_id
+            WHERE m.room_slug = %s
+            ORDER BY m.timestamp DESC
+            LIMIT 120
+        """, (room_slug,))
+        rows = c.fetchall()
+        messages = []
+        for row in rows:
+            messages.append({
+                "id": row_pick(row, 'id', 0),
+                "room_slug": row_pick(row, 'room_slug', 1),
+                "user_id": row_pick(row, 'user_id', 2),
+                "text": row_pick(row, 'text', 3),
+                "timestamp": row_pick(row, 'timestamp', 4),
+                "user_name": row_pick(row, 'name', 7) or row_pick(row, 'google_name', 5) or "Anonymous",
+                "user_picture": row_pick(row, 'picture', 8) or row_pick(row, 'google_picture', 6) or "",
+                "user_role": normalize_role(row_pick(row, 'role', 9) or 'user'),
+                "avatar_decoration": row_pick(row, 'avatar_decoration', 10) or ""
+            })
+        return jsonify({"room": room_slug, "messages": messages})
+    except Exception as e:
+        logger.error(f"Community room messages error: {e}")
+        return jsonify({"error": "community_room_failed"}), 500
     finally:
         conn.close()
 
@@ -7179,6 +7995,45 @@ def get_community_messages():
     c = get_cursor(conn, db_type)
     
     try:
+        room_slug = (request.args.get('room') or '').strip().lower()
+        if room_slug and room_slug != 'general':
+            ensure_research_feature_tables(c, db_type)
+            conn.commit()
+            c.execute("""
+                SELECT m.id, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM research_community_messages m
+                LEFT JOIN users u ON m.user_id = u.id
+                WHERE m.room_slug = ?
+                ORDER BY m.timestamp DESC
+                LIMIT 100
+            """ if db_type != 'postgres' else """
+                SELECT m.id, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM research_community_messages m
+                LEFT JOIN users u ON m.user_id = u.id
+                WHERE m.room_slug = %s
+                ORDER BY m.timestamp DESC
+                LIMIT 100
+            """, (room_slug,))
+            rows = c.fetchall()
+            payload = []
+            for row in rows:
+                payload.append({
+                    "id": row_pick(row, 'id', 0),
+                    "text": row_pick(row, 'text', 2) or "",
+                    "timestamp": row_pick(row, 'timestamp', 3),
+                    "user_name": row_pick(row, 'name', 6) or row_pick(row, 'google_name', 4) or "Anonymous",
+                    "user_picture": row_pick(row, 'picture', 7) or row_pick(row, 'google_picture', 5) or "",
+                    "avatar_decoration": row_pick(row, 'avatar_decoration', 9) or "",
+                    "user_id": row_pick(row, 'user_id', 1),
+                    "user_role": row_pick(row, 'role', 8) or "user",
+                    "reactions": {},
+                    "replies": [],
+                    "reply_count": 0
+                })
+            return jsonify(payload)
+
         ensure_comment_social_tables(c, db_type)
         conn.commit()
 
@@ -7294,6 +8149,20 @@ def post_community_message():
     c = get_cursor(conn, db_type)
     
     try:
+        room_slug = (data.get('room') or '').strip().lower()
+        if room_slug and room_slug != 'general':
+            ensure_research_feature_tables(c, db_type)
+            conn.commit()
+            c.execute("""
+                INSERT INTO research_community_messages (room_slug, user_id, text, timestamp, google_name, google_picture)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """ if db_type != 'postgres' else """
+                INSERT INTO research_community_messages (room_slug, user_id, text, timestamp, google_name, google_picture)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (room_slug, session['user_id'], text, datetime.now().isoformat(), session.get('user_name'), session.get('user_picture')))
+            conn.commit()
+            return jsonify({"success": True})
+
         if db_type == 'postgres':
             c.execute("INSERT INTO community_messages (user_id, text, timestamp, google_name, google_picture) VALUES (%s, %s, %s, %s, %s) RETURNING id",
                       (session['user_id'], text, datetime.now().isoformat(), 
