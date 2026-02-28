@@ -2072,6 +2072,35 @@
             pointer-events: none;
         }
 
+.verse-card-status {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+            pointer-events: none;
+        }
+
+        .verse-status-chip {
+            border: 1px solid var(--glass-border);
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            line-height: 1.3;
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+        }
+
+        .verse-status-chip.active {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .verse-status-chip.stored {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
         .verse-card-actions {
             display: flex;
             gap: 8px;
@@ -3918,6 +3947,34 @@
             outline: none;
             border-color: var(--primary);
         }
+.library-search-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: 10px;
+        }
+        .library-search-btn {
+            border: 1px solid var(--glass-border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 12px;
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .library-search-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .library-search-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            min-height: 18px;
+        }
         .tag-list {
             display: flex;
             flex-wrap: wrap;
@@ -4912,13 +4969,19 @@
             <div id="library" class="tab-view">
                 <!-- Library Tabs -->
                 <div class="library-tabs">
-                    <button class="library-tab active" onclick="switchLibraryTab('all')">📚 All</button>
-                    <button class="library-tab" onclick="switchLibraryTab('collections')">📁 Collections</button>
-                    <button class="library-tab" onclick="switchLibraryTab('favorites')">⭐ Favorites</button>
+                    <button class="library-tab active" data-library-tab="all" onclick="switchLibraryTab('all', this)">📚 All</button>
+                    <button class="library-tab" data-library-tab="collections" onclick="switchLibraryTab('collections', this)">📁 Collections</button>
+                    <button class="library-tab" data-library-tab="favorites" onclick="switchLibraryTab('favorites', this)">⭐ Favorites</button>
+                    <button class="library-tab" data-library-tab="dbsearch" onclick="switchLibraryTab('dbsearch', this)">DB</button>
                 </div>
 
                 <!-- Search & Filter -->
-                <input type="text" class="library-search" id="librarySearch" placeholder="🔍 Search your verses..." onkeyup="searchLibrary()">
+                <input type="text" class="library-search" id="librarySearch" placeholder="🔍 Search visible verses..." onkeyup="searchLibrary()">
+                <div class="library-search-row" id="libraryBibleSearchWrap" style="display: none;">
+                    <input type="text" class="library-search" style="margin-bottom: 0;" id="libraryBibleSearch" placeholder="📖 Search Bible title (e.g. 1 Peter, 1 John)" onkeyup="searchBibleLibraryDebounced()">
+                    <button class="library-search-btn" type="button" onclick="clearBibleLibrarySearch()">Clear</button>
+                </div>
+                <div class="library-search-meta" id="librarySearchMeta" style="display: none;"></div>
 
                 <!-- Collections View -->
                 <div id="collectionsView" style="display: none;">
@@ -4956,7 +5019,7 @@
                 </div>
 
                 <!-- Sort Options -->
-                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                <div id="librarySortWrap" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                     <select class="library-search" style="flex: 1; min-width: 120px;" id="sortSelect" onchange="sortLibrary()">
                         <option value="newest">🕐 Newest First</option>
                         <option value="oldest">📅 Oldest First</option>
@@ -5762,7 +5825,9 @@
         // State
         let currentVerse = null;
         let currentTab = 'discover';
-        let libraryData = { liked: [], saved: [], collections: [] };
+                let librarySearchResults = [];
+        let libraryViewMode = 'personal';
+        let bibleLibrarySearchTimer = null;
         let settings = {
             darkMode: false,
             fontSize: 'medium',
@@ -6959,68 +7024,196 @@
         async function loadLibrary() {
             const res = await fetch('/api/library');
             libraryData = await res.json();
-            
+
+            if (!libraryData || libraryData.error) {
+                libraryData = { liked: [], saved: [], collections: [] };
+            }
+            libraryData.liked = Array.isArray(libraryData.liked) ? libraryData.liked : [];
+            libraryData.saved = Array.isArray(libraryData.saved) ? libraryData.saved : [];
+            libraryData.collections = Array.isArray(libraryData.collections) ? libraryData.collections : [];
+
             // Find or create favorites collection
-            favoritesCollection = libraryData.collections.find(c => c.name === 'Favorites');
-            
+            favoritesCollection = libraryData.collections.find(c => (c.name || '').toLowerCase() === 'favorites');
+
             // Update favorites drop zone count
-            const favCount = favoritesCollection ? favoritesCollection.verses.length : 0;
+            const favCount = (favoritesCollection && Array.isArray(favoritesCollection.verses)) ? favoritesCollection.verses.length : 0;
             const likedCount = Array.isArray(libraryData.liked) ? libraryData.liked.length : 0;
             const savedCount = Array.isArray(libraryData.saved) ? libraryData.saved.length : 0;
             document.getElementById('favoritesCount').textContent = `${favCount} verses`;
             document.getElementById('favoritesCountDrop').textContent = String(favCount);
             document.getElementById('likedCount').textContent = `${likedCount} verses`;
             document.getElementById('savedCount').textContent = `${savedCount} verses`;
-            
-            // Render combined liked and saved verses
+
+            const bibleQuery = (document.getElementById('libraryBibleSearch')?.value || '').trim();
+            if (currentLibraryTab === 'dbsearch') {
+                if (bibleQuery) {
+                    await searchBibleLibrary();
+                    return;
+                }
+                libraryViewMode = 'bible-search';
+                librarySearchResults = [];
+                document.getElementById('libraryListTitle').textContent = 'Bible Database Search';
+                setLibrarySearchMeta('Search by Bible title to browse verses already in the database.');
+                renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
+                return;
+            }
+
+            libraryViewMode = 'personal';
+            librarySearchResults = [];
+            setLibrarySearchMeta('');
+            document.getElementById('libraryListTitle').textContent = 'My Verses';
             renderLibraryVerses();
         }
 
-        function renderLibraryVerses() {
-            const list = document.getElementById('libraryVersesList');
-            
-            // Combine liked and saved, remove duplicates
+        function setLibrarySearchMeta(message = '') {
+            const metaEl = document.getElementById('librarySearchMeta');
+            if (metaEl) metaEl.textContent = message || '';
+        }
+
+        function getCombinedLibraryVerses() {
             const allVerses = [...libraryData.liked, ...libraryData.saved];
             const seen = new Set();
-            const uniqueVerses = allVerses.filter(v => {
+            return allVerses.filter(v => {
                 if (seen.has(v.id)) return false;
                 seen.add(v.id);
                 return true;
             });
-            
-            if (uniqueVerses.length === 0) {
+        }
+
+        function sortLibraryVerses(verses, sortMode) {
+            const items = Array.isArray(verses) ? [...verses] : [];
+            const ts = (v) => String(v?.saved_at || v?.liked_at || '');
+            if (sortMode === 'oldest') {
+                items.sort((a, b) => ts(a).localeCompare(ts(b)));
+            } else if (sortMode === 'az') {
+                items.sort((a, b) => String(a?.ref || '').localeCompare(String(b?.ref || '')));
+            } else if (sortMode === 'book') {
+                items.sort((a, b) => {
+                    const bookA = String(a?.book || a?.ref || '');
+                    const bookB = String(b?.book || b?.ref || '');
+                    const bookCmp = bookA.localeCompare(bookB);
+                    if (bookCmp !== 0) return bookCmp;
+                    return String(a?.ref || '').localeCompare(String(b?.ref || ''));
+                });
+            } else {
+                items.sort((a, b) => ts(b).localeCompare(ts(a)));
+            }
+            return items;
+        }
+
+        function renderVerseCards(verses, emptyMessage) {
+            const list = document.getElementById('libraryVersesList');
+            if (!Array.isArray(verses) || verses.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">&#9825;</div>
-                        <div class="empty-state-text">No verses yet. Start liking and saving!</div>
+                        <div class="empty-state-text">${escapeHtml(emptyMessage || 'No verses found.')}</div>
                     </div>
                 `;
                 return;
             }
-            
-            list.innerHTML = uniqueVerses.map(v => `
-                <div class="verse-card" 
-                     draggable="true"
-                     data-verse-id="${v.id}"
-                     data-verse='${JSON.stringify(v).replace(/'/g, "&#39;")}'
-                     onmousedown="handleMouseDown(event, this)"
-                     onmouseup="handleMouseUp(event, this)"
-                     onmouseleave="handleMouseLeave(event, this)"
-                     ontouchstart="handleTouchStart(event, this)"
-                     ontouchend="handleTouchEnd(event, this)"
-                     ondragstart="handleDragStart(event, this)">
-                    <div class="verse-card-text">${v.text}</div>
-                    <div class="verse-card-ref">${v.ref}</div>
-                    <div class="verse-card-actions">
-                        <button class="verse-card-btn ${v.liked_at ? 'liked' : ''}" onclick="event.stopPropagation(); libraryLike(${v.id})">
-                            ${v.liked_at ? '&#9829; Liked' : '&#9825; Like'}
-                        </button>
-                        <button class="verse-card-btn ${v.saved_at ? 'saved' : ''}" onclick="event.stopPropagation(); librarySave(${v.id})">
-                            ${v.saved_at ? '&#128209; Saved' : '&#128278; Save'}
-                        </button>
+
+            list.innerHTML = verses.map(v => {
+                const isActive = Boolean(v.is_active || v.liked_at);
+                const isStored = Boolean(v.is_stored || v.saved_at);
+                const statusHtml = (isActive || isStored) ? `
+                    <div class="verse-card-status">
+                        ${isActive ? '<span class="verse-status-chip active">Active</span>' : ''}
+                        ${isStored ? '<span class="verse-status-chip stored">Stored</span>' : ''}
                     </div>
-                </div>
-            `).join('');
+                ` : '';
+                return `
+                    <div class="verse-card"
+                         draggable="true"
+                         data-verse-id="${v.id}"
+                         data-verse='${JSON.stringify(v).replace(/'/g, "&#39;")}'
+                         onmousedown="handleMouseDown(event, this)"
+                         onmouseup="handleMouseUp(event, this)"
+                         onmouseleave="handleMouseLeave(event, this)"
+                         ontouchstart="handleTouchStart(event, this)"
+                         ontouchend="handleTouchEnd(event, this)"
+                         ondragstart="handleDragStart(event, this)">
+                        <div class="verse-card-text">${escapeHtml(v.text || '')}</div>
+                        <div class="verse-card-ref">${escapeHtml(v.ref || '')}</div>
+                        ${statusHtml}
+                        <div class="verse-card-actions">
+                            <button class="verse-card-btn ${isActive ? 'liked' : ''}" onclick="event.stopPropagation(); libraryLike(${v.id})">
+                                ${isActive ? '&#9829; Liked' : '&#9825; Like'}
+                            </button>
+                            <button class="verse-card-btn ${isStored ? 'saved' : ''}" onclick="event.stopPropagation(); librarySave(${v.id})">
+                                ${isStored ? '&#128209; Saved' : '&#128278; Save'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderLibraryVerses() {
+            const sortMode = document.getElementById('sortSelect')?.value || 'newest';
+            const uniqueVerses = getCombinedLibraryVerses();
+            const sorted = sortLibraryVerses(uniqueVerses, sortMode);
+            renderVerseCards(sorted, 'No verses yet. Start liking and saving!');
+        }
+
+        function searchBibleLibraryDebounced() {
+            if (bibleLibrarySearchTimer) clearTimeout(bibleLibrarySearchTimer);
+            bibleLibrarySearchTimer = setTimeout(() => searchBibleLibrary(), 250);
+        }
+
+        async function searchBibleLibrary() {
+            const query = (document.getElementById('libraryBibleSearch')?.value || '').trim();
+            if (!query) {
+                librarySearchResults = [];
+                if (currentLibraryTab === 'dbsearch') {
+                    libraryViewMode = 'bible-search';
+                    document.getElementById('libraryListTitle').textContent = 'Bible Database Search';
+                    setLibrarySearchMeta('Search by Bible title to browse verses already in the database.');
+                    renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
+                } else {
+                    libraryViewMode = 'personal';
+                    setLibrarySearchMeta('');
+                    document.getElementById('libraryListTitle').textContent = 'My Verses';
+                    renderLibraryVerses();
+                }
+                return;
+            }
+
+            setLibrarySearchMeta('Searching verses database...');
+            try {
+                const res = await fetch(`/api/library/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    const err = data?.error || 'Search failed';
+                    setLibrarySearchMeta(err === 'banned' ? 'Account restricted.' : 'Search failed.');
+                    return;
+                }
+
+                libraryViewMode = 'bible-search';
+                librarySearchResults = Array.isArray(data.verses) ? data.verses : [];
+                document.getElementById('libraryListTitle').textContent = `Bible Search: ${query}`;
+                setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found - ordered by book/chapter/verse`);
+                renderVerseCards(librarySearchResults, `No verses found in database for "${query}".`);
+            } catch (e) {
+                setLibrarySearchMeta('Network error while searching.');
+            }
+        }
+
+        function clearBibleLibrarySearch() {
+            const input = document.getElementById('libraryBibleSearch');
+            if (input) input.value = '';
+            librarySearchResults = [];
+            if (currentLibraryTab === 'dbsearch') {
+                libraryViewMode = 'bible-search';
+                document.getElementById('libraryListTitle').textContent = 'Bible Database Search';
+                setLibrarySearchMeta('Search by Bible title to browse verses already in the database.');
+                renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
+                return;
+            }
+            libraryViewMode = 'personal';
+            setLibrarySearchMeta('');
+            document.getElementById('libraryListTitle').textContent = 'My Verses';
+            renderLibraryVerses();
         }
 
         // Drag and Drop Handlers
@@ -9691,17 +9884,29 @@ async function checkAchievement(type, value) {
         // === LIBRARY TAB FEATURES ===
 
         let currentLibraryTab = 'all';
-        function switchLibraryTab(tab) {
+        function switchLibraryTab(tab, btn = null) {
             currentLibraryTab = tab;
             document.querySelectorAll('.library-tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.getElementById('collectionsView').style.display = tab === 'collections' ? 'block' : 'none';
-            document.getElementById('favoritesDropZone').style.display = tab === 'favorites' ? 'block' : 'none';
+
+            const activeBtn = btn || document.querySelector(`.library-tab[data-library-tab="${tab}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const isCollections = tab === 'collections';
+            const isFavorites = tab === 'favorites';
+            const isDbSearch = tab === 'dbsearch';
+            const showPersonalSearch = tab === 'all' || isFavorites;
+
+            document.getElementById('collectionsView').style.display = isCollections ? 'block' : 'none';
+            document.getElementById('favoritesDropZone').style.display = isFavorites ? 'block' : 'none';
             document.getElementById('versesListCard').style.display = 'block';
-            document.getElementById('librarySearch').style.display = tab === 'collections' ? 'none' : 'block';
-            
-            if (tab === 'all') loadLibrary();
+            document.getElementById('librarySearch').style.display = showPersonalSearch ? 'block' : 'none';
+            document.getElementById('librarySortWrap').style.display = showPersonalSearch ? 'flex' : 'none';
+            document.getElementById('libraryBibleSearchWrap').style.display = isDbSearch ? 'flex' : 'none';
+            document.getElementById('librarySearchMeta').style.display = isDbSearch ? 'block' : 'none';
+
+            if (tab === 'all' || isFavorites || isDbSearch) {
+                loadLibrary();
+            }
         }
 
         function showCollection(type) {
@@ -9728,7 +9933,11 @@ async function checkAchievement(type, value) {
         function sortLibrary() {
             const sort = document.getElementById('sortSelect').value;
             showToast(`Sorted by: ${sort}`);
-            loadLibrary();
+            if (libraryViewMode === 'bible-search') {
+                renderVerseCards(librarySearchResults, 'No verses found in search results.');
+                return;
+            }
+            renderLibraryVerses();
         }
 
         // === COMMENTS TAB FEATURES ===

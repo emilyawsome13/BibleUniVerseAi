@@ -377,6 +377,79 @@ FALLBACK_BOOKS = [
     {"id": "JUD", "name": "Jude"},
     {"id": "REV", "name": "Revelation"},
 ]
+_BIBLE_BOOK_ALIASES = {
+    "psalm": "psalms",
+    "songofsongs": "songofsolomon",
+    "canticles": "songofsolomon",
+}
+
+def _normalize_bible_book_name(value):
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    text = re.sub(r"\bfirst\b|\b1st\b", "1", text)
+    text = re.sub(r"\bsecond\b|\b2nd\b", "2", text)
+    text = re.sub(r"\bthird\b|\b3rd\b", "3", text)
+    text = re.sub(r"\bi\b", "1", text)
+    text = re.sub(r"\bii\b", "2", text)
+    text = re.sub(r"\biii\b", "3", text)
+    return re.sub(r"[^a-z0-9]", "", text)
+
+def _extract_book_from_reference(reference):
+    ref = str(reference or "").strip()
+    if not ref:
+        return ""
+    match = re.match(r"^\s*([1-3]?\s*[A-Za-z][A-Za-z\s]+?)\s+\d+", ref)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+def _reference_sort_parts(reference):
+    ref = str(reference or "").strip()
+    if not ref:
+        return (10**9, 10**9)
+    match = re.match(r"^\s*[1-3]?\s*[A-Za-z][A-Za-z\s]+\s+(\d+)(?:\s*:\s*(\d+))?", ref)
+    if match:
+        chapter = int(match.group(1))
+        verse = int(match.group(2)) if match.group(2) else 0
+        return (chapter, verse)
+    match = re.search(r"(\d+)\s*:\s*(\d+)", ref)
+    if match:
+        return (int(match.group(1)), int(match.group(2)))
+    return (10**9, 10**9)
+
+BIBLE_BOOK_ORDER = {}
+for index, entry in enumerate(FALLBACK_BOOKS):
+    key = _normalize_bible_book_name(entry.get("name"))
+    if key and key not in BIBLE_BOOK_ORDER:
+        BIBLE_BOOK_ORDER[key] = index
+
+for alias_name, target_name in _BIBLE_BOOK_ALIASES.items():
+    target_key = _normalize_bible_book_name(target_name)
+    alias_key = _normalize_bible_book_name(alias_name)
+    if target_key in BIBLE_BOOK_ORDER and alias_key:
+        BIBLE_BOOK_ORDER[alias_key] = BIBLE_BOOK_ORDER[target_key]
+
+def _verse_matches_title_query(verse, query_key):
+    if not query_key:
+        return True
+    book_name = verse.get("book") or _extract_book_from_reference(verse.get("ref"))
+    book_key = _normalize_bible_book_name(book_name)
+    ref_key = _normalize_bible_book_name(verse.get("ref"))
+    if book_key in _BIBLE_BOOK_ALIASES:
+        book_key = _normalize_bible_book_name(_BIBLE_BOOK_ALIASES[book_key])
+    return query_key in book_key or query_key in ref_key
+
+def _library_verse_sort_key(verse):
+    book_name = verse.get("book") or _extract_book_from_reference(verse.get("ref"))
+    book_key = _normalize_bible_book_name(book_name)
+    if book_key in _BIBLE_BOOK_ALIASES:
+        book_key = _normalize_bible_book_name(_BIBLE_BOOK_ALIASES[book_key])
+    book_index = BIBLE_BOOK_ORDER.get(book_key, 10**6)
+    chapter, verse_num = _reference_sort_parts(verse.get("ref"))
+    ref = str(verse.get("ref") or "").lower()
+    return (book_index, chapter, verse_num, ref)
+
 
 def get_public_url():
     base = os.environ.get('PUBLIC_URL') or os.environ.get('RENDER_EXTERNAL_URL')
@@ -5925,6 +5998,110 @@ def get_library():
         })
     except Exception as e:
         logger.error(f"Library error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/library/search')
+def search_library_verses():
+    raw_query = (request.args.get('q') or '').strip()
+    if not raw_query:
+        return jsonify({"query": "", "verses": [], "count": 0})
+
+    if 'user_id' not in session:
+        return jsonify({"query": raw_query, "verses": [], "count": 0})
+
+    is_banned, _, _ = check_ban_status(session['user_id'])
+    if is_banned:
+        return jsonify({"error": "banned"}), 403
+
+    query = raw_query[:80]
+    query_key = _normalize_bible_book_name(query)
+    query_lower = query.lower()
+    hint_lower = re.sub(r'^(?:1|2|3)\s*', '', query_lower).strip()
+    hint_lower = re.sub(r'^(?:first|second|third)\s+', '', hint_lower).strip()
+    if not hint_lower:
+        hint_lower = query_lower
+    like_query = f"%{query_lower}%"
+    like_hint = f"%{hint_lower}%"
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT v.id, v.reference, v.text, v.translation, v.source, v.book,
+                       l.timestamp AS liked_at, s.timestamp AS saved_at
+                FROM verses v
+                LEFT JOIN likes l ON v.id = l.verse_id AND l.user_id = %s
+                LEFT JOIN saves s ON v.id = s.verse_id AND s.user_id = %s
+                WHERE LOWER(COALESCE(v.book, '')) LIKE %s
+                   OR LOWER(COALESCE(v.reference, '')) LIKE %s
+                   OR LOWER(COALESCE(v.book, '')) LIKE %s
+                   OR LOWER(COALESCE(v.reference, '')) LIKE %s
+                LIMIT 500
+            """, (session['user_id'], session['user_id'], like_query, like_query, like_hint, like_hint))
+        else:
+            c.execute("""
+                SELECT v.id, v.reference, v.text, v.translation, v.source, v.book,
+                       l.timestamp AS liked_at, s.timestamp AS saved_at
+                FROM verses v
+                LEFT JOIN likes l ON v.id = l.verse_id AND l.user_id = ?
+                LEFT JOIN saves s ON v.id = s.verse_id AND s.user_id = ?
+                WHERE LOWER(IFNULL(v.book, '')) LIKE ?
+                   OR LOWER(IFNULL(v.reference, '')) LIKE ?
+                   OR LOWER(IFNULL(v.book, '')) LIKE ?
+                   OR LOWER(IFNULL(v.reference, '')) LIKE ?
+                LIMIT 500
+            """, (session['user_id'], session['user_id'], like_query, like_query, like_hint, like_hint))
+
+        verses = []
+        for row in c.fetchall():
+            try:
+                entry = {
+                    "id": row['id'],
+                    "ref": row['reference'],
+                    "text": row['text'],
+                    "trans": row['translation'],
+                    "source": row['source'],
+                    "book": row['book'],
+                    "liked_at": row['liked_at'],
+                    "saved_at": row['saved_at']
+                }
+            except (TypeError, KeyError):
+                entry = {
+                    "id": row[0],
+                    "ref": row[1],
+                    "text": row[2],
+                    "trans": row[3],
+                    "source": row[4],
+                    "book": row[5],
+                    "liked_at": row[6],
+                    "saved_at": row[7]
+                }
+            entry["is_active"] = bool(entry.get("liked_at"))
+            entry["is_stored"] = bool(entry.get("saved_at"))
+            verses.append(entry)
+
+        filtered = [v for v in verses if _verse_matches_title_query(v, query_key)]
+        deduped = []
+        seen_ids = set()
+        for verse in filtered:
+            verse_id = verse.get("id")
+            if verse_id in seen_ids:
+                continue
+            seen_ids.add(verse_id)
+            deduped.append(verse)
+
+        deduped.sort(key=_library_verse_sort_key)
+
+        return jsonify({
+            "query": query,
+            "verses": deduped,
+            "count": len(deduped)
+        })
+    except Exception as e:
+        logger.error(f"Library search error: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
