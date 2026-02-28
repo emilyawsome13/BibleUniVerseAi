@@ -3796,62 +3796,42 @@
         .shop-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         
         .shop-content { min-height: 400px; }
-        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
-        @media (min-width: 768px) { .shop-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
-        
-        .shop-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: all 0.2s; cursor: pointer; position: relative; overflow: hidden; }
-        .shop-item:hover { transform: translateY(-4px); box-shadow: 0 12px 32px var(--shadow); border-color: var(--primary); }
-        .shop-item.owned { border-color: var(--success); opacity: 0.7; }
-        .shop-item.equipped { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
-        .shop-item.legendary { border-color: #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.1), var(--surface)); }
-        .shop-item.epic { border-color: #BF5AF2; background: linear-gradient(135deg, rgba(191,90,242,0.1), var(--surface)); }
-        .shop-item.rare { border-color: #0A84FF; background: linear-gradient(135deg, rgba(10,132,255,0.1), var(--surface)); }
-        .shop-item.mythic { border-color: #FF1493; background: linear-gradient(135deg, rgba(255,20,147,0.15), var(--surface)); box-shadow: 0 0 30px rgba(255,20,147,0.2); }
-        
-        .shop-item-icon { font-size: 48px; margin-bottom: 12px; display: block; }
-        .shop-item-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--text-primary); }
-        .shop-item-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
-        .shop-item-rarity { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 10px; display: inline-block; margin-bottom: 10px; }
-        .shop-item-rarity.legendary { background: rgba(255,215,0,0.2); color: #FFD700; }
-        .shop-item-rarity.epic { background: rgba(191,90,242,0.2); color: #BF5AF2; }
-        .shop-item-rarity.rare { background: rgba(10,132,255,0.2); color: #0A84FF; }
-        .shop-item-rarity.common { background: rgba(142,142,147,0.2); color: var(--text-secondary); }
-        .shop-item-rarity.mythic { background: linear-gradient(135deg, rgba(255,20,147,0.3), rgba(138,43,226,0.3)); color: #FF1493; font-weight: 700; animation: mythicPulse 2s infinite; }
-        
-        .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
-        .shop-item-price.owned { color: var(--success); }
-        
-        .shop-item-btn { width: 100%; padding: 10px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .shop-item-btn:hover:not(:disabled) { background: var(--secondary); transform: scale(1.02); }
-        .shop-item-btn:disabled { background: var(--surface); color: var(--text-secondary); cursor: not-allowed; }
-        .shop-item-btn.equip { background: var(--success); }
-        .shop-item-btn.equip:hover { background: #2eb872; }
-        .shop-item-btn.unequip { background: var(--warning); }
-        .shop-item-actions { display: flex; gap: 8px; }
-        .shop-item-btn.tiny { width: auto; min-width: 62px; padding: 7px 8px; font-size: 12px; line-height: 1.1; border: 1px solid var(--glass-border); }
-        .shop-item-btn.use { background: var(--success); }
-        .shop-item-btn.use:hover:not(:disabled) { background: #2eb872; }
-        
-        .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
-        .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+        @media (min-width: 768px) { .shop-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
 
-        /* Rarity Visual Upgrade */
         .shop-item {
+            --rarity-a: rgba(160, 170, 200, 0.2);
+            --rarity-b: rgba(110, 120, 145, 0.14);
+            background: rgba(6, 10, 18, 0.24);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(170, 186, 220, 0.22);
+            border-radius: 18px;
+            padding: 16px;
+            text-align: center;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+            position: relative;
+            overflow: hidden;
             isolation: isolate;
-            border-color: rgba(255, 255, 255, 0.1);
-            background:
-                radial-gradient(140% 120% at 0% 0%, rgba(255,255,255,0.06), transparent 55%),
-                linear-gradient(165deg, rgba(8, 12, 24, 0.92), rgba(10, 15, 26, 0.72));
+        }
+        .shop-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 32px rgba(6, 12, 24, 0.38);
+            border-color: rgba(190, 210, 255, 0.42);
         }
         .shop-item::before {
             content: '';
             position: absolute;
-            inset: -1px;
+            inset: 0;
             border-radius: inherit;
             pointer-events: none;
-            background: linear-gradient(140deg, var(--rarity-a, rgba(255,255,255,0.12)), transparent 42%, var(--rarity-b, rgba(255,255,255,0.08)));
-            opacity: 0.32;
-            z-index: -1;
+            background:
+                radial-gradient(1px 1px at 14% 22%, rgba(255,255,255,0.65), transparent 55%),
+                radial-gradient(1.2px 1.2px at 82% 18%, rgba(255,255,255,0.52), transparent 58%),
+                radial-gradient(1px 1px at 30% 75%, rgba(255,255,255,0.48), transparent 56%),
+                radial-gradient(1.4px 1.4px at 70% 66%, rgba(255,255,255,0.45), transparent 62%),
+                linear-gradient(155deg, rgba(255,255,255,0.02), transparent 45%, rgba(255,255,255,0.03));
+            opacity: 0.7;
+            z-index: 0;
         }
         .shop-item::after {
             content: '';
@@ -3859,116 +3839,149 @@
             inset: 0;
             border-radius: inherit;
             pointer-events: none;
-            background: linear-gradient(115deg, transparent 18%, rgba(255,255,255,0.12) 40%, transparent 62%);
-            transform: translateX(-120%);
-            transition: transform 0.65s ease;
-            opacity: 0.55;
+            background: linear-gradient(140deg, var(--rarity-a), transparent 45%, var(--rarity-b));
+            opacity: 0.38;
+            z-index: 1;
         }
         .shop-item:hover::after {
-            transform: translateX(130%);
+            opacity: 0.6;
         }
-        .shop-item.owned {
-            opacity: 1;
-        }
+        .shop-item > * { position: relative; z-index: 2; }
+
+        .shop-item.owned { border-color: rgba(90, 230, 150, 0.45); }
+        .shop-item.equipped { box-shadow: 0 0 0 1px rgba(120, 194, 255, 0.52), 0 12px 28px rgba(12, 40, 78, 0.36); }
+
         .shop-item.common {
-            --rarity-a: rgba(152, 160, 180, 0.22);
-            --rarity-b: rgba(110, 118, 138, 0.2);
-            box-shadow: inset 0 0 0 1px rgba(150, 160, 185, 0.22);
+            --rarity-a: rgba(176, 186, 210, 0.2);
+            --rarity-b: rgba(90, 102, 126, 0.2);
         }
         .shop-item.rare {
-            --rarity-a: rgba(70, 170, 255, 0.48);
-            --rarity-b: rgba(16, 112, 255, 0.35);
-            box-shadow: 0 10px 26px rgba(10, 132, 255, 0.24), inset 0 0 0 1px rgba(64, 165, 255, 0.38);
-            animation: rarityPulseSoft 3.4s ease-in-out infinite;
+            --rarity-a: rgba(62, 165, 255, 0.42);
+            --rarity-b: rgba(10, 95, 235, 0.3);
+            border-color: rgba(70, 170, 255, 0.4);
+            box-shadow: 0 10px 26px rgba(24, 118, 255, 0.26);
+            animation: rarityPulseSoft 3.2s ease-in-out infinite;
         }
         .shop-item.epic {
-            --rarity-a: rgba(193, 95, 255, 0.5);
-            --rarity-b: rgba(120, 45, 215, 0.42);
-            box-shadow: 0 12px 30px rgba(163, 80, 250, 0.26), inset 0 0 0 1px rgba(188, 95, 255, 0.44);
+            --rarity-a: rgba(182, 92, 255, 0.48);
+            --rarity-b: rgba(110, 35, 210, 0.35);
+            border-color: rgba(188, 100, 255, 0.45);
+            box-shadow: 0 12px 30px rgba(158, 74, 250, 0.32);
             animation: rarityPulseSoft 2.8s ease-in-out infinite;
         }
         .shop-item.legendary {
-            --rarity-a: rgba(255, 225, 110, 0.58);
-            --rarity-b: rgba(255, 158, 35, 0.44);
-            box-shadow: 0 14px 36px rgba(255, 190, 40, 0.3), inset 0 0 0 1px rgba(255, 216, 128, 0.52);
+            --rarity-a: rgba(255, 214, 102, 0.56);
+            --rarity-b: rgba(255, 146, 30, 0.4);
+            border-color: rgba(255, 207, 106, 0.48);
+            box-shadow: 0 14px 34px rgba(255, 182, 44, 0.34);
             animation: rarityPulseSoft 2.4s ease-in-out infinite;
         }
         .shop-item.mythic {
-            --rarity-a: rgba(255, 65, 185, 0.65);
-            --rarity-b: rgba(72, 220, 255, 0.48);
-            background:
-                radial-gradient(130% 120% at 0% 0%, rgba(255, 80, 170, 0.2), transparent 55%),
-                radial-gradient(130% 100% at 100% 100%, rgba(80, 220, 255, 0.16), transparent 58%),
-                linear-gradient(155deg, rgba(24, 14, 34, 0.95), rgba(10, 12, 24, 0.9));
-            box-shadow: 0 16px 38px rgba(255, 45, 155, 0.34), 0 0 34px rgba(88, 210, 255, 0.22), inset 0 0 0 1px rgba(255, 120, 210, 0.5);
-            animation: mythicCardPulse 1.9s ease-in-out infinite, mythicSheenDrift 4.2s linear infinite;
-        }
-        .shop-item-rarity {
-            border: 1px solid rgba(255,255,255,0.15);
-            font-weight: 700;
-            letter-spacing: 0.85px;
-            backdrop-filter: blur(6px);
-        }
-        .shop-item-rarity.common {
-            background: rgba(148, 155, 175, 0.2);
-            color: #c6ccdc;
-        }
-        .shop-item-rarity.rare {
-            background: rgba(45, 142, 255, 0.22);
-            color: #6cc5ff;
-            box-shadow: 0 0 14px rgba(40, 145, 255, 0.22);
-        }
-        .shop-item-rarity.epic {
-            background: rgba(165, 85, 245, 0.26);
-            color: #dc9fff;
-            box-shadow: 0 0 16px rgba(185, 100, 255, 0.24);
-        }
-        .shop-item-rarity.legendary {
-            background: rgba(255, 185, 48, 0.24);
-            color: #ffd978;
-            box-shadow: 0 0 16px rgba(255, 195, 60, 0.24);
-        }
-        .shop-item-rarity.mythic {
-            background: linear-gradient(135deg, rgba(255, 65, 185, 0.28), rgba(88, 210, 255, 0.2));
-            color: #ffc9f0;
-            box-shadow: 0 0 18px rgba(255, 75, 180, 0.3);
-            animation: rarityPulseSoft 1.6s ease-in-out infinite;
+            --rarity-a: rgba(255, 70, 190, 0.64);
+            --rarity-b: rgba(86, 215, 255, 0.48);
+            border-color: rgba(255, 118, 215, 0.6);
+            box-shadow: 0 16px 40px rgba(255, 58, 178, 0.42), 0 0 30px rgba(82, 205, 255, 0.26);
+            animation: mythicCardPulse 1.8s ease-in-out infinite, mythicSheenDrift 4.2s linear infinite;
         }
 
-        /* Badge Polish */
+        .shop-item-icon { font-size: 46px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 8px rgba(255,255,255,0.16)); }
+        .shop-item-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text); }
+        .shop-item-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45; }
+
+        .shop-item-rarity {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            display: inline-block;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.22);
+            font-weight: 700;
+            background: rgba(7, 13, 26, 0.28);
+        }
+        .shop-item-rarity.common { color: #b8c1d7; border-color: rgba(185, 198, 230, 0.28); }
+        .shop-item-rarity.rare { color: #7ad5ff; border-color: rgba(94, 186, 255, 0.44); text-shadow: 0 0 10px rgba(80, 185, 255, 0.45); }
+        .shop-item-rarity.epic { color: #d9a8ff; border-color: rgba(191, 109, 255, 0.44); text-shadow: 0 0 10px rgba(191, 109, 255, 0.45); }
+        .shop-item-rarity.legendary { color: #ffd885; border-color: rgba(255, 207, 106, 0.46); text-shadow: 0 0 10px rgba(255, 210, 120, 0.48); }
+        .shop-item-rarity.mythic { color: #ffc8ef; border-color: rgba(255, 120, 220, 0.56); text-shadow: 0 0 12px rgba(255, 112, 210, 0.52); animation: rarityPulseSoft 1.8s ease-in-out infinite; }
+
+        .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
+        .shop-item-price.owned { color: #7de8b0; }
+
+        .shop-item-btn {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 11px;
+            border: 1px solid rgba(140, 185, 255, 0.3);
+            background: linear-gradient(145deg, rgba(20, 55, 110, 0.62), rgba(12, 30, 66, 0.58));
+            color: #dcedff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        }
+        .shop-item-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: linear-gradient(145deg, rgba(27, 72, 145, 0.72), rgba(13, 39, 88, 0.65));
+            border-color: rgba(140, 205, 255, 0.52);
+        }
+        .shop-item-btn:disabled {
+            background: rgba(20, 28, 44, 0.44);
+            border-color: rgba(120, 132, 154, 0.2);
+            color: rgba(195, 206, 228, 0.46);
+            cursor: not-allowed;
+        }
+        .shop-item-btn.equip,
+        .shop-item-btn.use {
+            border-color: rgba(100, 230, 170, 0.42);
+            background: linear-gradient(145deg, rgba(12, 94, 66, 0.72), rgba(8, 61, 45, 0.62));
+            color: #d7ffe9;
+        }
+        .shop-item-btn.equip:hover:not(:disabled),
+        .shop-item-btn.use:hover:not(:disabled) {
+            background: linear-gradient(145deg, rgba(15, 122, 84, 0.82), rgba(8, 74, 54, 0.7));
+            border-color: rgba(120, 246, 188, 0.58);
+        }
+        .shop-item-btn.unequip {
+            border-color: rgba(255, 190, 96, 0.42);
+            background: linear-gradient(145deg, rgba(118, 72, 18, 0.68), rgba(76, 45, 10, 0.62));
+            color: #ffe8be;
+        }
+        .shop-item-actions { display: flex; gap: 8px; }
+        .shop-item-actions .shop-item-btn { flex: 1 1 0; width: 0; }
+        .shop-item-btn.tiny { min-width: 0; padding: 9px 8px; font-size: 12px; line-height: 1.05; }
+
+        .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.45; }
+
+        /* Badge Styling (transparent/star-like, no bubbles) */
         .profile-badge,
         .user-badge-icon,
         .user-badge-small {
             --badge-color: var(--primary);
-            position: relative;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border: none;
-            background:
-                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.65), transparent 38%),
-                linear-gradient(160deg, var(--badge-color), rgba(7, 10, 16, 0.82));
-            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.08));
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: var(--badge-color);
+            filter: drop-shadow(0 0 6px var(--badge-color));
         }
         .profile-badge {
-            width: 26px;
-            height: 26px;
-            border-radius: 999px;
-            font-size: 13px;
+            font-size: 14px;
             margin-right: 6px;
             margin-bottom: 4px;
-            color: #fff;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+            text-shadow: 0 0 12px currentColor;
         }
         .user-badge-icon,
         .user-badge-small {
-            width: 20px;
-            height: 20px;
-            border-radius: 999px;
-            font-size: 11px;
-            color: #fff;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+            font-size: 12px;
+            min-width: 0;
+            min-height: 0;
+            width: auto;
+            height: auto;
+            text-shadow: 0 0 10px currentColor;
         }
         .user-badges {
             gap: 6px;
@@ -4165,8 +4178,8 @@
         .user-title.common { background: rgba(142,142,147,0.3); color: var(--text-secondary); }
         
         /* Badges */
-        .user-badges { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle; }
-        .user-badge-small { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+        .user-badges { display: inline-flex; gap: 6px; margin-left: 6px; vertical-align: middle; }
+        .user-badge-small { width: auto; height: auto; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: none; border-radius: 0; }
         
         /* Chat Effects */
         .chat-message.sparkle { position: relative; }
@@ -4287,7 +4300,7 @@
         .user-title-mythic { background: linear-gradient(135deg, #FF1493, #9400D3, #00CED1); color: #fff; box-shadow: 0 0 20px rgba(255,20,147,0.5); animation: mythicShine 3s linear infinite; }
         
         /* Shop Item Effects - Badges */
-        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 11px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 20px; min-height: 20px; border-radius: 999px; }
+        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 12px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 0; min-height: 0; border-radius: 0; }
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
@@ -12057,8 +12070,13 @@ async function checkAchievement(type, value) {
         
         function filterInventory(category) {
             currentInventoryCategory = category;
-            document.querySelectorAll('#inventory .shop-category-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            const root = document.getElementById('inventory');
+            if (root) {
+                root.querySelectorAll('.shop-category-btn').forEach(btn => btn.classList.remove('active'));
+            }
+            const clickedBtn = (typeof event !== 'undefined' && event && event.currentTarget) ? event.currentTarget : null;
+            const activeBtn = clickedBtn || (root ? root.querySelector(`.shop-category-btn[data-category="${category}"]`) : null);
+            if (activeBtn) activeBtn.classList.add('active');
             renderInventory();
         }
         
@@ -12072,7 +12090,9 @@ async function checkAchievement(type, value) {
         function filterShop(category) {
             currentCategory = category;
             document.querySelectorAll('.shop-category-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            const clickedBtn = (typeof event !== 'undefined' && event && event.currentTarget) ? event.currentTarget : null;
+            const activeBtn = clickedBtn || document.querySelector(`#shop .shop-category-btn[data-category="${category}"]`) || document.querySelector(`.shop-category-btn[data-category="${category}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
             renderShopItems();
         }
         
@@ -12090,6 +12110,7 @@ async function checkAchievement(type, value) {
             }
             
             container.innerHTML = items.map(item => {
+                if (!item || !item.item_id) return '';
                 const owned = userInventory.find(i => i.item_id === item.item_id);
                 const ownedQty = Number((owned && owned.quantity) || 0);
                 const isConsumable = item.category === 'consumable';
@@ -12097,18 +12118,19 @@ async function checkAchievement(type, value) {
                 const boostActive = isConsumable && activeBoostState && activeBoostState.item_id === item.item_id && getRemainingBoostSeconds() > 0;
                 const rarityClass = safeRarity(item.rarity);
                 const rarityLabel = String(item.rarity || rarityClass).toUpperCase();
+                const price = Math.max(0, Number(item.price || 0) || 0);
                 const priceLabel = isConsumable
-                    ? '⚡ ' + formatNumber(item.price) + ' XP'
-                    : (isOwned ? '✓ Owned' : '⚡ ' + formatNumber(item.price) + ' XP');
+                    ? '⚡ ' + formatNumber(price) + ' XP'
+                    : (isOwned ? '✓ Owned' : '⚡ ' + formatNumber(price) + ' XP');
                 const ownedLabel = isConsumable && ownedQty > 0
                     ? '<div class="shop-item-desc">Owned: x' + ownedQty + '</div>'
                     : '';
-                const canBuy = userXP.xp >= Number(item.price || 0);
+                const canBuy = Number(userXP.xp || 0) >= price;
                 const buttonDisabled = (!isConsumable && isOwned) || !canBuy;
                 const buttonText = (!isConsumable && isOwned) ? 'Owned' : 'Buy';
                 const useDisabled = !isConsumable || ownedQty <= 0;
                 const useText = boostActive ? 'Active' : 'Use';
-                const buyBtn = '<button class="shop-item-btn" ' + (buttonDisabled ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buttonText + '</button>';
+                const buyBtn = '<button class="shop-item-btn" ' + (buttonDisabled ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + price + ')">' + buttonText + '</button>';
                 const useBtn = '<button class="shop-item-btn tiny use" ' + (useDisabled ? 'disabled' : '') + ' onclick="useBooster(' + "'" + item.item_id + "'" + ')">' + useText + '</button>';
                 const actionButtons = isConsumable
                     ? ('<div class="shop-item-actions">' + buyBtn + useBtn + '</div>')
@@ -12140,6 +12162,7 @@ async function checkAchievement(type, value) {
             }
             
             container.innerHTML = items.map(item => {
+                if (!item || !item.item_id) return '';
                 const rarityClass = safeRarity(item.rarity);
                 const rarityLabel = String(item.rarity || rarityClass).toUpperCase();
                 const isEquipped = item.equipped;
