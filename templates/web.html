@@ -6175,11 +6175,12 @@
                         trackDailyAction('view', nextVerseKey);
                         
                         // Award XP and track stat for viewing
-                        awardXP(5, 'view');
+                        const verseAward = await awardXP(10, 'view');
                         trackStat('total_verses');
                         
-                        if (settings.notifications) {
-                            showToast('New verse discovered! +5 XP');
+                        if (settings.notifications && verseAward) {
+                            const gained = Number(verseAward.xp_awarded || 10);
+                            showToast('New verse discovered! +' + gained + ' XP');
                         }
                         if (currentTab === 'comments') loadComments();
                     }
@@ -11754,6 +11755,8 @@ async function checkAchievement(type, value) {
         let shopItems = [];
         let userInventory = [];
         let userXP = { xp: 0, level: 1 };
+        let activeBoostState = null;
+        let boostTicker = null;
         let currentShopTab = 'shop';
         let currentCategory = 'all';
         
@@ -11778,6 +11781,7 @@ async function checkAchievement(type, value) {
                 const xpData = await xpRes.json();
                 if (xpData.xp !== undefined) {
                     userXP = xpData;
+                    activeBoostState = xpData.active_boost || activeBoostState;
                     updateShopXPDisplay();
                 }
                 
@@ -11793,9 +11797,48 @@ async function checkAchievement(type, value) {
                 const res = await fetch('/api/shop/inventory');
                 const data = await res.json();
                 if (data.inventory) userInventory = data.inventory;
+                activeBoostState = data.active_boost || null;
+                startBoostTicker();
             } catch (e) {
                 console.error('Error loading inventory:', e);
             }
+        }
+
+        function formatDurationShort(totalSeconds) {
+            const sec = Math.max(0, Number(totalSeconds || 0));
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+
+        function getRemainingBoostSeconds() {
+            if (!activeBoostState || !activeBoostState.expires_at) return 0;
+            const end = new Date(activeBoostState.expires_at).getTime();
+            if (!Number.isFinite(end)) return Number(activeBoostState.remaining_seconds || 0);
+            return Math.max(0, Math.floor((end - Date.now()) / 1000));
+        }
+
+        function startBoostTicker() {
+            if (boostTicker) {
+                clearInterval(boostTicker);
+                boostTicker = null;
+            }
+            if (!activeBoostState) return;
+            boostTicker = setInterval(() => {
+                const remaining = getRemainingBoostSeconds();
+                activeBoostState.remaining_seconds = remaining;
+                if (remaining <= 0) {
+                    clearInterval(boostTicker);
+                    boostTicker = null;
+                    activeBoostState = null;
+                    if (currentTab === 'inventory') renderInventory();
+                    return;
+                }
+                if (currentTab === 'inventory') renderInventory();
+            }, 1000);
         }
         
         function updateShopXPDisplay() {
@@ -11843,15 +11886,28 @@ async function checkAchievement(type, value) {
             
             container.innerHTML = items.map(item => {
                 const owned = userInventory.find(i => i.item_id === item.item_id);
+                const ownedQty = Number((owned && owned.quantity) || 0);
+                const isConsumable = item.category === 'consumable';
+                const isOwned = !!owned && ownedQty > 0;
                 const rarityClass = item.rarity || 'common';
+                const priceLabel = isConsumable
+                    ? '⚡ ' + formatNumber(item.price) + ' XP'
+                    : (isOwned ? '✓ Owned' : '⚡ ' + formatNumber(item.price) + ' XP');
+                const ownedLabel = isConsumable && ownedQty > 0
+                    ? '<div class="shop-item-desc">Owned: x' + ownedQty + '</div>'
+                    : '';
+                const canBuy = userXP.xp >= Number(item.price || 0);
+                const buttonDisabled = (!isConsumable && isOwned) || !canBuy;
+                const buttonText = (!isConsumable && isOwned) ? 'Owned' : 'Buy';
                 
-                return '<div class="shop-item ' + rarityClass + ' ' + (owned ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
+                return '<div class="shop-item ' + rarityClass + ' ' + (isOwned && !isConsumable ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
+                    ownedLabel +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price ' + (owned ? 'owned' : '') + '">' + (owned ? '✓ Owned' : '⚡ ' + formatNumber(item.price) + ' XP') + '</div>' +
-                    '<button class="shop-item-btn" ' + (owned ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + (owned ? 'Owned' : 'Buy') + '</button>' +
+                    '<div class="shop-item-price ' + (isOwned && !isConsumable ? 'owned' : '') + '">' + priceLabel + '</div>' +
+                    '<button class="shop-item-btn" ' + (buttonDisabled ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + item.price + ')">' + buttonText + '</button>' +
                     '</div>';
             }).join('');
         }
@@ -11872,14 +11928,27 @@ async function checkAchievement(type, value) {
             container.innerHTML = items.map(item => {
                 const rarityClass = item.rarity || 'common';
                 const isEquipped = item.equipped;
-                
-                return '<div class="shop-item ' + rarityClass + ' ' + (isEquipped ? 'equipped' : '') + '" data-item-id="' + item.item_id + '">' +
+                const quantity = Math.max(0, Number(item.quantity || 0));
+                const isConsumable = item.category === 'consumable';
+                const boostActive = isConsumable && activeBoostState && activeBoostState.item_id === item.item_id && getRemainingBoostSeconds() > 0;
+                const boostRemaining = boostActive ? formatDurationShort(getRemainingBoostSeconds()) : '';
+                const statusLabel = isConsumable
+                    ? ('Owned x' + quantity + (boostActive ? ' • Active ' + boostRemaining : ''))
+                    : (isEquipped ? '✓ Equipped' : 'Owned');
+                const btnClass = isConsumable ? 'equip' : (isEquipped ? 'unequip' : 'equip');
+                const btnLabel = isConsumable ? (boostActive ? ('Active ' + boostRemaining) : 'Use') : (isEquipped ? 'Unequip' : 'Equip');
+                const btnDisabled = isConsumable ? (quantity <= 0 || boostActive) : false;
+                const btnOnClick = isConsumable
+                    ? ("useBooster('" + item.item_id + "')")
+                    : ("toggleEquipItem('" + item.item_id + "', " + (!isEquipped) + ")");
+
+                return '<div class="shop-item ' + rarityClass + ' ' + ((!isConsumable && isEquipped) ? 'equipped' : '') + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
                     '<span class="shop-item-rarity ' + rarityClass + '">' + item.rarity + '</span>' +
-                    '<div class="shop-item-price owned">' + (isEquipped ? '✓ Equipped' : 'Owned') + '</div>' +
-                    '<button class="shop-item-btn ' + (isEquipped ? 'unequip' : 'equip') + '" onclick="toggleEquipItem(' + "'" + item.item_id + "'" + ', ' + (!isEquipped) + ')">' + (isEquipped ? 'Unequip' : 'Equip') + '</button>' +
+                    '<div class="shop-item-price owned">' + statusLabel + '</div>' +
+                    '<button class="shop-item-btn ' + btnClass + '" ' + (btnDisabled ? 'disabled' : '') + ' onclick="' + btnOnClick + '">' + btnLabel + '</button>' +
                     '</div>';
             }).join('');
         }
@@ -11891,7 +11960,7 @@ async function checkAchievement(type, value) {
             comment: { min: 100, max: 100, cooldown: 5000, dailyMax: 50 },
             reply: { min: 15, max: 25, cooldown: 3000, dailyMax: 100 },
             share: { min: 25, max: 50, cooldown: 60000, dailyMax: 20 },
-            view: { min: 5, max: 10, cooldown: 500, dailyMax: 200 },
+            view: { min: 10, max: 10, cooldown: 500, dailyMax: 200 },
             streak: { min: 10, max: 60, cooldown: 86400000, dailyMax: 1 },
             trivia_correct: { min: 20, max: 50, cooldown: 0, dailyMax: 50 },
             prayer: { min: 75, max: 75, cooldown: 60000, dailyMax: 10 },
@@ -11973,7 +12042,7 @@ async function checkAchievement(type, value) {
                         { icon: '👍', actionKey: 'dailyActionLikeVerse', action: 'Like a verse', type: 'like', xp: '25-50', bonus: 'Streak bonus +50' },
                         { icon: '💾', actionKey: 'dailyActionSaveVerse', action: 'Save a verse', type: 'save', xp: '25-50', bonus: '' },
                         { icon: '💬', actionKey: 'dailyActionPostComment', action: 'Post a comment', type: 'comment', xp: '100', bonus: '' },
-                        { icon: '📖', actionKey: 'dailyActionReadVerse', action: 'Read verse (streak)', type: 'view', xp: '5-10', bonus: 'Per verse viewed' },
+                        { icon: '📖', actionKey: 'dailyActionReadVerse', action: 'Read verse (streak)', type: 'view', xp: '10', bonus: 'Per verse viewed' },
                         { icon: '🎯', actionKey: 'dailyActionDailyChallenge', action: 'Complete daily challenge', type: 'daily_challenge', xp: '800-14000', bonus: 'Auto-awarded' }
                     ]
                 },
@@ -12077,13 +12146,39 @@ async function checkAchievement(type, value) {
                     updateShopXPDisplay();
                     await loadInventory();
                     renderShopItems();
-                    showToast('✅ Purchased ' + data.name + '!');
+                    const qtyText = (data.category === 'consumable' && data.owned_quantity)
+                        ? ` (x${data.owned_quantity})`
+                        : '';
+                    showToast('✅ Purchased ' + data.name + qtyText + '!');
                     trackStat('purchases');
                 } else {
                     showToast('❌ ' + (data.error || 'Purchase failed'));
                 }
             } catch (e) {
                 showToast('❌ Purchase failed');
+            }
+        }
+
+        async function useBooster(itemId) {
+            try {
+                const res = await fetch('/api/shop/use', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: itemId })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showToast('❌ ' + (data.error || 'Failed to use booster'));
+                    return;
+                }
+
+                activeBoostState = data.active_boost || null;
+                startBoostTicker();
+                await loadInventory();
+                renderInventory();
+                showToast(`⚡ Booster active (${(activeBoostState && activeBoostState.multiplier) || 1}x XP)!`);
+            } catch (e) {
+                showToast('❌ Failed to use booster');
             }
         }
         
@@ -12113,6 +12208,12 @@ async function checkAchievement(type, value) {
         switchTab = function(tab, btn) {
             originalSwitchTab(tab, btn);
             if (tab === 'shop') loadShopData();
+            if (tab === 'inventory') {
+                loadInventory().then(() => {
+                    renderInventory();
+                    startBoostTicker();
+                });
+            }
         };
         
         async function awardXP(amount, action) {
@@ -12128,14 +12229,20 @@ async function checkAchievement(type, value) {
                 if (data.success) {
                     userXP.xp = data.new_total;
                     userXP.level = data.level;
+                    if (Object.prototype.hasOwnProperty.call(data, 'active_boost')) {
+                        activeBoostState = data.active_boost || null;
+                        startBoostTicker();
+                    }
                     updateShopXPDisplay();
                     updateInventoryXPDisplay();
                     if (data.leveled_up) showToast('Level Up! You are now level ' + data.level + '!');
                     return data;
                 }
+                console.error('Award XP failed:', data.error || data);
             } catch (e) {
                 console.error('Award XP error:', e);
             }
+            return null;
         }
         
         // Track stats for achievements

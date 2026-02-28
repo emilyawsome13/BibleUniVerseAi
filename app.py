@@ -724,6 +724,96 @@ def row_pick(row, key, index=None, default=None):
             return default
     return default
 
+def parse_duration_to_seconds(duration_value, default_seconds=3600):
+    """Parse duration values like '24h', '30m', '2d' into seconds."""
+    if duration_value is None:
+        return int(default_seconds)
+    if isinstance(duration_value, (int, float)):
+        seconds = int(duration_value)
+        return seconds if seconds > 0 else int(default_seconds)
+    text = str(duration_value).strip().lower()
+    if not text:
+        return int(default_seconds)
+    m = re.match(r'^(\d+)\s*([smhd])$', text)
+    if not m:
+        return int(default_seconds)
+    value = int(m.group(1))
+    unit = m.group(2)
+    factor = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.get(unit, 1)
+    seconds = value * factor
+    return seconds if seconds > 0 else int(default_seconds)
+
+def _coerce_datetime(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.endswith('Z'):
+        text = text[:-1] + '+00:00'
+    try:
+        return datetime.fromisoformat(text)
+    except Exception:
+        pass
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(text, fmt)
+        except Exception:
+            continue
+    return None
+
+def get_active_boost(c, db_type, user_id, cleanup_expired=True):
+    """Return active boost for user or None."""
+    if not user_id:
+        return None
+    try:
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT item_id, multiplier, started_at, expires_at
+                FROM user_active_boosts
+                WHERE user_id = %s
+                LIMIT 1
+            """, (user_id,))
+        else:
+            c.execute("""
+                SELECT item_id, multiplier, started_at, expires_at
+                FROM user_active_boosts
+                WHERE user_id = ?
+                LIMIT 1
+            """, (user_id,))
+        row = c.fetchone()
+        if not row:
+            return None
+
+        item_id = row_pick(row, 'item_id', 0)
+        multiplier = int(row_pick(row, 'multiplier', 1, 1) or 1)
+        started_at = _coerce_datetime(row_pick(row, 'started_at', 2))
+        expires_at = _coerce_datetime(row_pick(row, 'expires_at', 3))
+        if not expires_at:
+            return None
+
+        now = datetime.now(expires_at.tzinfo) if expires_at.tzinfo else datetime.now()
+        if expires_at <= now:
+            if cleanup_expired:
+                if db_type == 'postgres':
+                    c.execute("DELETE FROM user_active_boosts WHERE user_id = %s", (user_id,))
+                else:
+                    c.execute("DELETE FROM user_active_boosts WHERE user_id = ?", (user_id,))
+            return None
+
+        remaining = max(0, int((expires_at - now).total_seconds()))
+        return {
+            "item_id": item_id,
+            "multiplier": max(1, multiplier),
+            "started_at": started_at.isoformat() if started_at else None,
+            "expires_at": expires_at.isoformat(),
+            "remaining_seconds": remaining
+        }
+    except Exception:
+        return None
+
 def _redact_db_url(url):
     try:
         from urllib.parse import urlparse
@@ -1727,6 +1817,47 @@ def migrate_db():
                 logger.info("Created shop and XP tables")
             except Exception as e:
                 logger.warning(f"Shop tables may already exist: {e}")
+
+        # Ensure inventory supports stackable consumables and active boost tracking.
+        if db_type == 'postgres':
+            try:
+                c.execute("ALTER TABLE user_inventory ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1")
+                c.execute("UPDATE user_inventory SET quantity = 1 WHERE quantity IS NULL OR quantity < 1")
+            except Exception as e:
+                logger.warning(f"Could not migrate user_inventory quantity (postgres): {e}")
+            try:
+                c.execute('''
+                    CREATE TABLE IF NOT EXISTS user_active_boosts (
+                        user_id INTEGER PRIMARY KEY,
+                        item_id TEXT NOT NULL,
+                        multiplier INTEGER NOT NULL DEFAULT 1,
+                        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP NOT NULL
+                    )
+                ''')
+            except Exception as e:
+                logger.warning(f"Could not ensure user_active_boosts (postgres): {e}")
+        else:
+            try:
+                c.execute("PRAGMA table_info(user_inventory)")
+                inv_cols = {str(r[1]).lower() for r in c.fetchall()}
+                if 'quantity' not in inv_cols:
+                    c.execute("ALTER TABLE user_inventory ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1")
+                c.execute("UPDATE user_inventory SET quantity = 1 WHERE quantity IS NULL OR quantity < 1")
+            except Exception as e:
+                logger.warning(f"Could not migrate user_inventory quantity (sqlite): {e}")
+            try:
+                c.execute('''
+                    CREATE TABLE IF NOT EXISTS user_active_boosts (
+                        user_id INTEGER PRIMARY KEY,
+                        item_id TEXT NOT NULL,
+                        multiplier INTEGER NOT NULL DEFAULT 1,
+                        started_at TEXT,
+                        expires_at TEXT NOT NULL
+                    )
+                ''')
+            except Exception as e:
+                logger.warning(f"Could not ensure user_active_boosts (sqlite): {e}")
         
         conn.commit()
         logger.info("Database migrations completed")
@@ -4508,6 +4639,7 @@ def get_user_xp():
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = ?", (session['user_id'],))
         
         row = c.fetchone()
+        active_boost = get_active_boost(c, db_type, session['user_id'], cleanup_expired=True)
         conn.commit()
         
         if row:
@@ -4522,7 +4654,8 @@ def get_user_xp():
             "xp": xp,
             "total_xp_earned": total_earned,
             "level": level,
-            "next_level_xp": level * 1000
+            "next_level_xp": level * 1000,
+            "active_boost": active_boost
         })
     except Exception as e:
         logger.error(f"Error getting user XP: {e}")
@@ -4584,18 +4717,39 @@ def purchase_item():
         
         # Deduct XP
         new_xp = current_xp - price
+        owned_quantity = 1
         if db_type == 'postgres':
             c.execute("""
                 INSERT INTO user_xp (user_id, xp, total_xp_earned, level)
                 VALUES (%s, %s, 0, 1)
                 ON CONFLICT (user_id) DO UPDATE SET xp = EXCLUDED.xp
             """, (session['user_id'], new_xp))
-            
-            # Add to inventory
-            c.execute("""
-                INSERT INTO user_inventory (user_id, item_id, equipped)
-                VALUES (%s, %s, FALSE)
-            """, (session['user_id'], item_id))
+
+            # Add to inventory (consumables can stack).
+            if category == 'consumable':
+                c.execute("SELECT quantity FROM user_inventory WHERE user_id = %s AND item_id = %s",
+                          (session['user_id'], item_id))
+                inv_row = c.fetchone()
+                if inv_row:
+                    existing_qty = int(row_pick(inv_row, 'quantity', 0, 1) or 1)
+                    c.execute("""
+                        UPDATE user_inventory
+                        SET quantity = COALESCE(quantity, 1) + 1, equipped = FALSE
+                        WHERE user_id = %s AND item_id = %s
+                    """, (session['user_id'], item_id))
+                    owned_quantity = existing_qty + 1
+                else:
+                    c.execute("""
+                        INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
+                        VALUES (%s, %s, FALSE, 1)
+                    """, (session['user_id'], item_id))
+                    owned_quantity = 1
+            else:
+                c.execute("""
+                    INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
+                    VALUES (%s, %s, FALSE, 1)
+                """, (session['user_id'], item_id))
+                owned_quantity = 1
             
             # Log transaction
             c.execute("""
@@ -4608,11 +4762,31 @@ def purchase_item():
                 VALUES (?, ?, COALESCE((SELECT total_xp_earned FROM user_xp WHERE user_id = ?), 0), 
                         COALESCE((SELECT level FROM user_xp WHERE user_id = ?), 1))
             """, (session['user_id'], new_xp, session['user_id'], session['user_id']))
-            
-            c.execute("""
-                INSERT INTO user_inventory (user_id, item_id, equipped)
-                VALUES (?, ?, 0)
-            """, (session['user_id'], item_id))
+
+            if category == 'consumable':
+                c.execute("SELECT quantity FROM user_inventory WHERE user_id = ? AND item_id = ?",
+                          (session['user_id'], item_id))
+                inv_row = c.fetchone()
+                if inv_row:
+                    existing_qty = int(row_pick(inv_row, 'quantity', 0, 1) or 1)
+                    c.execute("""
+                        UPDATE user_inventory
+                        SET quantity = COALESCE(quantity, 1) + 1, equipped = 0
+                        WHERE user_id = ? AND item_id = ?
+                    """, (session['user_id'], item_id))
+                    owned_quantity = existing_qty + 1
+                else:
+                    c.execute("""
+                        INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
+                        VALUES (?, ?, 0, 1)
+                    """, (session['user_id'], item_id))
+                    owned_quantity = 1
+            else:
+                c.execute("""
+                    INSERT INTO user_inventory (user_id, item_id, equipped, quantity)
+                    VALUES (?, ?, 0, 1)
+                """, (session['user_id'], item_id))
+                owned_quantity = 1
             
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description)
@@ -4625,7 +4799,9 @@ def purchase_item():
             "success": True,
             "item_id": item_id,
             "name": item_name,
-            "remaining_xp": new_xp
+            "remaining_xp": new_xp,
+            "category": category,
+            "owned_quantity": owned_quantity
         })
     except Exception as e:
         logger.error(f"Error purchasing item: {e}")
@@ -4645,7 +4821,7 @@ def get_user_inventory():
     try:
         if db_type == 'postgres':
             c.execute("""
-                SELECT i.item_id, i.equipped, s.name, s.description, s.category, s.rarity, s.icon, s.effects
+                SELECT i.item_id, i.equipped, i.quantity, s.name, s.description, s.category, s.rarity, s.icon, s.effects
                 FROM user_inventory i
                 JOIN shop_items s ON i.item_id = s.item_id
                 WHERE i.user_id = %s
@@ -4653,7 +4829,7 @@ def get_user_inventory():
             """, (session['user_id'],))
         else:
             c.execute("""
-                SELECT i.item_id, i.equipped, s.name, s.description, s.category, s.rarity, s.icon, s.effects
+                SELECT i.item_id, i.equipped, COALESCE(i.quantity, 1), s.name, s.description, s.category, s.rarity, s.icon, s.effects
                 FROM user_inventory i
                 JOIN shop_items s ON i.item_id = s.item_id
                 WHERE i.user_id = ?
@@ -4666,15 +4842,18 @@ def get_user_inventory():
             items.append({
                 "item_id": row['item_id'] if hasattr(row, 'keys') else row[0],
                 "equipped": bool(row['equipped'] if hasattr(row, 'keys') else row[1]),
-                "name": row['name'] if hasattr(row, 'keys') else row[2],
-                "description": row['description'] if hasattr(row, 'keys') else row[3],
-                "category": row['category'] if hasattr(row, 'keys') else row[4],
-                "rarity": row['rarity'] if hasattr(row, 'keys') else row[5],
-                "icon": row['icon'] if hasattr(row, 'keys') else row[6],
+                "quantity": int(row_pick(row, 'quantity', 2, 1) or 1),
+                "name": row['name'] if hasattr(row, 'keys') else row[3],
+                "description": row['description'] if hasattr(row, 'keys') else row[4],
+                "category": row['category'] if hasattr(row, 'keys') else row[5],
+                "rarity": row['rarity'] if hasattr(row, 'keys') else row[6],
+                "icon": row['icon'] if hasattr(row, 'keys') else row[7],
                 "effects": effects
             })
-        
-        return jsonify({"inventory": items})
+
+        active_boost = get_active_boost(c, db_type, session['user_id'], cleanup_expired=True)
+        conn.commit()
+        return jsonify({"inventory": items, "active_boost": active_boost})
     except Exception as e:
         logger.error(f"Error getting inventory: {e}")
         return jsonify({"error": str(e)}), 500
@@ -4700,10 +4879,10 @@ def equip_item():
     try:
         # Verify user owns this item
         if db_type == 'postgres':
-            c.execute("SELECT category FROM user_inventory ui JOIN shop_items s ON ui.item_id = s.item_id WHERE ui.user_id = %s AND ui.item_id = %s", 
+            c.execute("SELECT category, COALESCE(ui.quantity, 1) AS quantity FROM user_inventory ui JOIN shop_items s ON ui.item_id = s.item_id WHERE ui.user_id = %s AND ui.item_id = %s", 
                       (session['user_id'], item_id))
         else:
-            c.execute("SELECT category FROM user_inventory ui JOIN shop_items s ON ui.item_id = s.item_id WHERE ui.user_id = ? AND ui.item_id = ?", 
+            c.execute("SELECT category, COALESCE(ui.quantity, 1) AS quantity FROM user_inventory ui JOIN shop_items s ON ui.item_id = s.item_id WHERE ui.user_id = ? AND ui.item_id = ?", 
                       (session['user_id'], item_id))
         
         row = c.fetchone()
@@ -4711,6 +4890,11 @@ def equip_item():
             return jsonify({"error": "Item not in inventory"}), 404
         
         category = row['category'] if hasattr(row, 'keys') else row[0]
+        quantity = int(row_pick(row, 'quantity', 1, 1) or 1)
+        if quantity <= 0:
+            return jsonify({"error": "Item quantity is zero"}), 400
+        if category == 'consumable':
+            return jsonify({"error": "Consumables must be used, not equipped"}), 400
         
         # If equipping, unequip other items in same category (except badges which can stack)
         if equip and category not in ['badge', 'consumable']:
@@ -4742,6 +4926,150 @@ def equip_item():
         return jsonify({"success": True, "equipped": equip, "item_id": item_id})
     except Exception as e:
         logger.error(f"Error equipping item: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/shop/use', methods=['POST'])
+def use_consumable():
+    """Use a consumable booster item."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json() or {}
+    item_id = str(data.get('item_id') or '').strip()
+    if not item_id:
+        return jsonify({"error": "Item ID required"}), 400
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+
+    try:
+        # Validate item and ensure it is consumable.
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT category, effects, name
+                FROM shop_items
+                WHERE item_id = %s AND available = TRUE
+            """, (item_id,))
+        else:
+            c.execute("""
+                SELECT category, effects, name
+                FROM shop_items
+                WHERE item_id = ? AND available = 1
+            """, (item_id,))
+        item_row = c.fetchone()
+        if not item_row:
+            return jsonify({"error": "Item not found"}), 404
+
+        category = row_pick(item_row, 'category', 0, '')
+        if category != 'consumable':
+            return jsonify({"error": "Only consumables can be used"}), 400
+
+        effects_raw = row_pick(item_row, 'effects', 1, {}) or {}
+        if isinstance(effects_raw, dict):
+            effects = effects_raw
+        else:
+            try:
+                effects = json.loads(effects_raw or '{}')
+            except Exception:
+                effects = {}
+
+        multiplier = max(1, int(effects.get('multiplier') or 1))
+        duration_seconds = parse_duration_to_seconds(effects.get('duration', '1h'), default_seconds=3600)
+
+        # Ensure user owns consumable quantity.
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT COALESCE(quantity, 1) AS quantity
+                FROM user_inventory
+                WHERE user_id = %s AND item_id = %s
+                LIMIT 1
+            """, (session['user_id'], item_id))
+        else:
+            c.execute("""
+                SELECT COALESCE(quantity, 1) AS quantity
+                FROM user_inventory
+                WHERE user_id = ? AND item_id = ?
+                LIMIT 1
+            """, (session['user_id'], item_id))
+
+        inv_row = c.fetchone()
+        current_qty = int(row_pick(inv_row, 'quantity', 0, 0) or 0) if inv_row else 0
+        if current_qty <= 0:
+            return jsonify({"error": "No boosters owned"}), 400
+
+        now = datetime.now()
+        expires_at = now + timedelta(seconds=duration_seconds)
+
+        # Consume one quantity.
+        remaining_qty = current_qty - 1
+        if remaining_qty > 0:
+            if db_type == 'postgres':
+                c.execute("""
+                    UPDATE user_inventory
+                    SET quantity = %s, equipped = FALSE
+                    WHERE user_id = %s AND item_id = %s
+                """, (remaining_qty, session['user_id'], item_id))
+            else:
+                c.execute("""
+                    UPDATE user_inventory
+                    SET quantity = ?, equipped = 0
+                    WHERE user_id = ? AND item_id = ?
+                """, (remaining_qty, session['user_id'], item_id))
+        else:
+            if db_type == 'postgres':
+                c.execute("DELETE FROM user_inventory WHERE user_id = %s AND item_id = %s",
+                          (session['user_id'], item_id))
+            else:
+                c.execute("DELETE FROM user_inventory WHERE user_id = ? AND item_id = ?",
+                          (session['user_id'], item_id))
+
+        # Set active boost (single active boost slot per user).
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO user_active_boosts (user_id, item_id, multiplier, started_at, expires_at)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    item_id = EXCLUDED.item_id,
+                    multiplier = EXCLUDED.multiplier,
+                    started_at = EXCLUDED.started_at,
+                    expires_at = EXCLUDED.expires_at
+            """, (session['user_id'], item_id, multiplier, now, expires_at))
+        else:
+            c.execute("""
+                INSERT OR REPLACE INTO user_active_boosts (user_id, item_id, multiplier, started_at, expires_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (session['user_id'], item_id, multiplier, now.isoformat(), expires_at.isoformat()))
+
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO xp_transactions (user_id, amount, type, description)
+                VALUES (%s, %s, 'consumable_use', %s)
+            """, (session['user_id'], 0, f"Used booster {item_id} ({multiplier}x for {duration_seconds}s)"))
+        else:
+            c.execute("""
+                INSERT INTO xp_transactions (user_id, amount, type, description)
+                VALUES (?, ?, 'consumable_use', ?)
+            """, (session['user_id'], 0, f"Used booster {item_id} ({multiplier}x for {duration_seconds}s)"))
+
+        active_boost = {
+            "item_id": item_id,
+            "multiplier": multiplier,
+            "started_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "remaining_seconds": duration_seconds
+        }
+
+        conn.commit()
+        return jsonify({
+            "success": True,
+            "item_id": item_id,
+            "remaining_quantity": remaining_qty,
+            "active_boost": active_boost
+        })
+    except Exception as e:
+        logger.error(f"Error using consumable: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -5487,7 +5815,19 @@ def award_xp_to_user(user_id, amount, description):
         except Exception:
             amount = 0
         if amount <= 0:
-            return {"success": True, "new_total": None, "level": None, "leveled_up": False}
+            return {
+                "success": True,
+                "new_total": None,
+                "level": None,
+                "leveled_up": False,
+                "base_amount": 0,
+                "awarded_amount": 0,
+                "multiplier": 1
+            }
+
+        active_boost = get_active_boost(c, db_type, user_id, cleanup_expired=True)
+        multiplier = max(1, int((active_boost or {}).get('multiplier', 1) or 1))
+        awarded_amount = amount * multiplier
 
         # Get current XP
         if db_type == 'postgres':
@@ -5505,8 +5845,8 @@ def award_xp_to_user(user_id, amount, description):
             total_earned = 0
             current_level = 1
         
-        new_xp = current_xp + amount
-        new_total = total_earned + amount
+        new_xp = current_xp + awarded_amount
+        new_total = total_earned + awarded_amount
         new_level = (new_total // 1000) + 1
         
         # Update user XP
@@ -5524,7 +5864,7 @@ def award_xp_to_user(user_id, amount, description):
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
                 VALUES (%s, %s, 'bible_learning', %s, CURRENT_TIMESTAMP)
-            """, (user_id, amount, description))
+            """, (user_id, awarded_amount, description))
         else:
             c.execute("""
                 INSERT OR REPLACE INTO user_xp (user_id, xp, total_xp_earned, level, updated_at)
@@ -5534,10 +5874,19 @@ def award_xp_to_user(user_id, amount, description):
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
                 VALUES (?, ?, 'bible_learning', ?, datetime('now'))
-            """, (user_id, amount, description))
+            """, (user_id, awarded_amount, description))
         
         conn.commit()
-        return {"success": True, "new_total": new_xp, "level": new_level, "leveled_up": new_level > current_level}
+        return {
+            "success": True,
+            "new_total": new_xp,
+            "level": new_level,
+            "leveled_up": new_level > current_level,
+            "base_amount": amount,
+            "awarded_amount": awarded_amount,
+            "multiplier": multiplier,
+            "active_boost": active_boost
+        }
     except Exception as e:
         logger.error(f"Error awarding XP: {e}")
         return {"success": False, "error": str(e)}
@@ -5550,75 +5899,33 @@ def award_xp():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
-    data = request.get_json()
-    amount = data.get('amount', 0)
-    action = data.get('action', 'unknown')
-    
+    data = request.get_json() or {}
+    try:
+        amount = int(data.get('amount', 0))
+    except Exception:
+        amount = 0
+    action = str(data.get('action', 'unknown') or 'unknown')
+
     if amount <= 0:
         return jsonify({"error": "Invalid amount"}), 400
-    
-    conn, db_type = get_db()
-    c = get_cursor(conn, db_type)
-    
+
     try:
-        # Get current XP and calculate new level
-        if db_type == 'postgres':
-            c.execute("SELECT xp, total_xp_earned FROM user_xp WHERE user_id = %s", (session['user_id'],))
-        else:
-            c.execute("SELECT xp, total_xp_earned FROM user_xp WHERE user_id = ?", (session['user_id'],))
-        
-        row = c.fetchone()
-        if row:
-            current_xp = row['xp'] if hasattr(row, 'keys') else row[0]
-            total_earned = row['total_xp_earned'] if hasattr(row, 'keys') else row[1]
-        else:
-            current_xp = 0
-            total_earned = 0
-        
-        new_xp = current_xp + amount
-        new_total = total_earned + amount
-        new_level = (new_total // 1000) + 1
-        
-        # Update user XP
-        if db_type == 'postgres':
-            c.execute("""
-                INSERT INTO user_xp (user_id, xp, total_xp_earned, level)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (user_id) DO UPDATE SET 
-                    xp = EXCLUDED.xp,
-                    total_xp_earned = EXCLUDED.total_xp_earned,
-                    level = EXCLUDED.level
-            """, (session['user_id'], new_xp, new_total, new_level))
-            
-            c.execute("""
-                INSERT INTO xp_transactions (user_id, amount, type, description)
-                VALUES (%s, %s, 'earned', %s)
-            """, (session['user_id'], amount, action))
-        else:
-            c.execute("""
-                INSERT OR REPLACE INTO user_xp (user_id, xp, total_xp_earned, level)
-                VALUES (?, ?, ?, ?)
-            """, (session['user_id'], new_xp, new_total, new_level))
-            
-            c.execute("""
-                INSERT INTO xp_transactions (user_id, amount, type, description)
-                VALUES (?, ?, 'earned', ?)
-            """, (session['user_id'], amount, action))
-        
-        conn.commit()
-        
+        result = award_xp_to_user(session['user_id'], amount, action)
+        if not result.get("success"):
+            return jsonify({"error": result.get("error", "Failed to award XP")}), 500
         return jsonify({
             "success": True,
-            "xp_awarded": amount,
-            "new_total": new_xp,
-            "level": new_level,
-            "leveled_up": new_level > ((total_earned // 1000) + 1)
+            "xp_awarded": int(result.get("awarded_amount", amount) or amount),
+            "base_amount": int(result.get("base_amount", amount) or amount),
+            "multiplier": int(result.get("multiplier", 1) or 1),
+            "new_total": result.get("new_total"),
+            "level": result.get("level"),
+            "leveled_up": bool(result.get("leveled_up", False)),
+            "active_boost": result.get("active_boost")
         })
     except Exception as e:
         logger.error(f"Error awarding XP: {e}")
         return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
 
 @app.route('/api/stats')
 def get_stats():
@@ -5787,7 +6094,7 @@ def get_profile_stats():
                       OR (r.parent_type = 'community' AND m.id IS NOT NULL)
                   )
             """, (uid,))
-            purchases = safe_count("SELECT COUNT(*) FROM user_inventory WHERE user_id = %s", (uid,))
+            purchases = safe_count("SELECT COALESCE(SUM(COALESCE(quantity, 1)), 0) FROM user_inventory WHERE user_id = %s", (uid,))
             viewed = safe_count("SELECT COALESCE(total_verses_read, 0) FROM verse_read_streak WHERE user_id = %s", (uid,))
             liked_comments = safe_count("""
                 SELECT COUNT(*)
@@ -5817,7 +6124,7 @@ def get_profile_stats():
                       OR (r.parent_type = 'community' AND m.id IS NOT NULL)
                   )
             """, (uid,))
-            purchases = safe_count("SELECT COUNT(*) FROM user_inventory WHERE user_id = ?", (uid,))
+            purchases = safe_count("SELECT COALESCE(SUM(COALESCE(quantity, 1)), 0) FROM user_inventory WHERE user_id = ?", (uid,))
             viewed = safe_count("SELECT COALESCE(total_verses_read, 0) FROM verse_read_streak WHERE user_id = ?", (uid,))
             liked_comments = safe_count("""
                 SELECT COUNT(*)
@@ -5961,7 +6268,8 @@ def unlock_achievement():
             "success": True,
             "awarded": True,
             "achievement_id": achievement_id,
-            "xp_awarded": xp_amount,
+            "xp_awarded": int(award_result.get("awarded_amount", xp_amount) or xp_amount),
+            "base_xp": xp_amount,
             "new_total": award_result.get("new_total"),
             "level": award_result.get("level"),
             "leveled_up": award_result.get("leveled_up", False)
@@ -6145,7 +6453,8 @@ def claim_daily_challenge():
         return jsonify({
             "success": True,
             "awarded": True,
-            "xp_reward": xp_reward,
+            "xp_reward": int(awarded.get("awarded_amount", xp_reward) or xp_reward),
+            "base_xp_reward": xp_reward,
             "new_total": awarded.get("new_total"),
             "level": awarded.get("level"),
             "leveled_up": awarded.get("leveled_up", False)
