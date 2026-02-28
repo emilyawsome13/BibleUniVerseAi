@@ -3848,6 +3848,9 @@
         .achievement-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
         .achievement-item.completed { background: linear-gradient(135deg, rgba(48,209,88,0.1), var(--surface)); border-color: var(--success); }
         .achievement-item.completed:hover { border-color: var(--success); box-shadow: 0 8px 24px rgba(48,209,88,0.2); }
+        .achievement-item.goal-complete { border-color: var(--success); background: linear-gradient(135deg, rgba(48,209,88,0.08), var(--surface)); }
+        .achievement-item.pulsing { animation: achievementCompletePulse 1.7s ease-in-out infinite; }
+        .achievement-item.goal-complete .achievement-icon { background: rgba(48,209,88,0.18); }
         .achievement-icon { font-size: 40px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--glass); border-radius: 12px; flex-shrink: 0; }
         .achievement-item.completed .achievement-icon { background: rgba(48,209,88,0.2); }
         .achievement-content { flex: 1; min-width: 0; }
@@ -3859,7 +3862,12 @@
         .achievement-progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s; }
         .achievement-progress-text { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
         .achievement-item.completed .achievement-progress-fill { background: var(--success); }
+        .achievement-item.goal-complete .achievement-progress-fill { background: var(--success); }
         .achievement-category-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--glass); color: var(--text-secondary); font-weight: 500; }
+        @keyframes achievementCompletePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(48,209,88,0.35); }
+            50% { box-shadow: 0 0 0 10px rgba(48,209,88,0); }
+        }
         /* Mobile click-to-expand progress */
         .achievement-detail-panel { 
             position: absolute; 
@@ -4320,30 +4328,34 @@
             <div id="recommendations" class="tab-view">
                 <!-- Smart Categories -->
                 <div class="rec-categories">
-                    <div class="rec-category active" onclick="filterRecs('all')">🎯 All</div>
-                    <div class="rec-category" onclick="filterRecs('favorites')">⭐ Favorites</div>
-                    <div class="rec-category" onclick="filterRecs('trending')">📈 Trending</div>
-                    <div class="rec-category" onclick="filterRecs('similar')">🔍 Similar</div>
-                    <div class="rec-category" onclick="filterRecs('random')">🎲 Surprise</div>
+                    <div class="rec-category active" id="recCatAll" onclick="filterRecs('all')">🎯 All</div>
+                    <div class="rec-category" id="recCatFavorites" onclick="filterRecs('favorites')">⭐ Favorites</div>
+                    <div class="rec-category" id="recCatTrending" onclick="filterRecs('trending')">📈 Trending</div>
+                    <div class="rec-category" id="recCatSimilar" onclick="filterRecs('similar')">🔍 Similar</div>
+                    <div class="rec-category" id="recCatSurprise" onclick="filterRecs('random')">🎲 Surprise</div>
                 </div>
 
                 <!-- Mood Selector -->
                 <div class="glass-card" style="margin-bottom: 16px;">
-                    <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">💭 How are you feeling?</div>
+                    <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;" id="moodPrompt">💭 How are you feeling?</div>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <button class="filter-chip" onclick="getMoodVerse('peace')">😌 Peaceful</button>
-                        <button class="filter-chip" onclick="getMoodVerse('strength')">💪 Need Strength</button>
-                        <button class="filter-chip" onclick="getMoodVerse('hope')">🌟 Hopeful</button>
-                        <button class="filter-chip" onclick="getMoodVerse('love')">❤️ Loved</button>
-                        <button class="filter-chip" onclick="getMoodVerse('gratitude')">🙏 Grateful</button>
-                        <button class="filter-chip" onclick="getMoodVerse('guidance')">🧭 Need Guidance</button>
+                        <button class="filter-chip" id="moodPeacefulBtn" onclick="getMoodVerse('peace')">😌 Peaceful</button>
+                        <button class="filter-chip" id="moodStrengthBtn" onclick="getMoodVerse('strength')">💪 Need Strength</button>
+                        <button class="filter-chip" id="moodHopefulBtn" onclick="getMoodVerse('hope')">🌟 Hopeful</button>
+                        <button class="filter-chip" id="moodLovedBtn" onclick="getMoodVerse('love')">❤️ Loved</button>
+                        <button class="filter-chip" id="moodGratefulBtn" onclick="getMoodVerse('gratitude')">🙏 Grateful</button>
+                        <button class="filter-chip" id="moodGuidanceBtn" onclick="getMoodVerse('guidance')">🧭 Need Guidance</button>
                     </div>
                 </div>
 
                 <div class="glass-card">
                     <button class="gen-btn" onclick="generateRec()">
                         <span>&#128276;</span>
-                        <span>Generate Smart Recommendation</span>
+                        <span id="generateRecLabel">Generate Smart Recommendation</span>
+                    </button>
+                    <button class="gen-btn" style="margin-top: 10px;" onclick="generateFortune()">
+                        <span>🔮</span>
+                        <span id="generateFortuneLabel">Your Fortune</span>
                     </button>
                     
                     <div id="recList"></div>
@@ -4352,8 +4364,8 @@
                 <!-- Recommendation History -->
                 <div class="rec-history">
                     <div class="rec-history-title">
-                        📜 Your Journey
-                        <span style="font-size: 12px; opacity: 0.6; font-weight: 400;">Recent recommendations</span>
+                        <span id="recHistoryTitle">📜 Your Journey</span>
+                        <span id="recHistorySubtitle" style="font-size: 12px; opacity: 0.6; font-weight: 400;">Recent recommendations</span>
                     </div>
                     <div id="recHistoryList"></div>
                 </div>
@@ -4738,21 +4750,21 @@
             <div id="achievements" class="tab-view">
                 <div class="achievements-container">
                     <div class="shop-header">
-                        <h2 class="shop-title">🏆 Achievements</h2>
+                        <h2 class="shop-title" id="achievementsHeaderTitle">🏆 Achievements</h2>
                         <div class="achievements-stats">
                             <span id="achievementsCompleted">0/0 Completed</span>
                             <span id="achievementsXP" class="achievement-xp-total">0 XP Earned</span>
                         </div>
                     </div>
                     <div class="achievement-categories">
-                        <button class="shop-category-btn active" onclick="filterAchievements('all')">📋 All</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('likes')">❤️ Likes</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('saves')">🔖 Saves</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('comments')">💬 Comments</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('replies')">🤝 Replies</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('streak')">🔥 Streaks</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('shares')">📢 Shares</button>
-                        <button class="shop-category-btn" onclick="filterAchievements('special')">⭐ Special</button>
+                        <button class="shop-category-btn active" id="achFilterAll" data-ach-filter="all" onclick="filterAchievements('all')">📋 All</button>
+                        <button class="shop-category-btn" id="achFilterLikes" data-ach-filter="likes" onclick="filterAchievements('likes')">❤️ Likes</button>
+                        <button class="shop-category-btn" id="achFilterSaves" data-ach-filter="saves" onclick="filterAchievements('saves')">🔖 Saves</button>
+                        <button class="shop-category-btn" id="achFilterComments" data-ach-filter="comments" onclick="filterAchievements('comments')">💬 Comments</button>
+                        <button class="shop-category-btn" id="achFilterReplies" data-ach-filter="replies" onclick="filterAchievements('replies')">🤝 Replies</button>
+                        <button class="shop-category-btn" id="achFilterStreaks" data-ach-filter="streak" onclick="filterAchievements('streak')">🔥 Streaks</button>
+                        <button class="shop-category-btn" id="achFilterShares" data-ach-filter="shares" onclick="filterAchievements('shares')">📢 Shares</button>
+                        <button class="shop-category-btn" id="achFilterSpecial" data-ach-filter="special" onclick="filterAchievements('special')">⭐ Special</button>
                     </div>
                     <div id="achievementsList" class="achievements-grid"></div>
                 </div>
@@ -4787,7 +4799,7 @@
                     <div id="profileEmail" style="font-size: 14px; opacity: 0.6;">{{ user.email }}</div>
                     <div id="profileUserId" style="font-size: 12px; opacity: 0.5; margin-top: 4px;">ID: {{ user.id }}</div>
                     <div style="margin-top: 10px;">
-                        <button class="btn btn-primary" onclick="switchTab('comments'); switchCommentsView('dm');">Open DMs</button>
+                        <button class="btn btn-primary" id="profileOpenDmBtn" onclick="switchTab('comments'); switchCommentsView('dm');">Open DMs</button>
                     </div>
                     <div id="roleTag" style="display: none; margin-top: 8px; font-weight: 700; font-size: 14px; text-transform: uppercase;"></div>
                 </div>
@@ -4795,15 +4807,15 @@
                 <!-- Usage Stats -->
                 <div class="profile-info-grid">
                     <div class="profile-info-card">
-                        <div class="profile-info-label">Member Since</div>
+                        <div class="profile-info-label" id="memberSinceLabel">Member Since</div>
                         <div class="profile-info-value" id="memberSince">Loading...</div>
                     </div>
                     <div class="profile-info-card">
-                        <div class="profile-info-label">Time on Site</div>
+                        <div class="profile-info-label" id="timeOnSiteLabel">Time on Site</div>
                         <div class="profile-info-value" id="timeOnSite" style="color: var(--success);">0m 0s</div>
                     </div>
                     <div class="profile-info-card">
-                        <div class="profile-info-label">XP</div>
+                        <div class="profile-info-label" id="xpLabel">XP</div>
                         <div class="profile-info-value" id="profileXp">0 XP</div>
                         <div class="profile-info-sub" id="profileLevel">Level 1</div>
                     </div>
@@ -4821,19 +4833,23 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="statLiked" style="color: var(--danger);">0</div>
-                        <div class="stat-label">Liked</div>
+                        <div class="stat-label" id="statLikedLabel">Liked</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="statSaved" style="color: var(--warning);">0</div>
-                        <div class="stat-label">Saved</div>
+                        <div class="stat-label" id="statSavedLabel">Saved</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="statComments" style="color: var(--success);">0</div>
-                        <div class="stat-label">Comments</div>
+                        <div class="stat-label" id="statCommentsLabel">Comments</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="statReplies" style="color: var(--secondary);">0</div>
-                        <div class="stat-label">Replies</div>
+                        <div class="stat-label" id="statRepliesLabel">Replies</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statAchievementsCompleted" style="color: var(--success);">0/0</div>
+                        <div class="stat-label" id="statAchievementsLabel">Achievements</div>
                     </div>
                 </div>
 
@@ -6392,7 +6408,108 @@
                 }
                 showRecommendation(recommendation);
                 addToRecHistory(recommendation);
-                if (!silent && settings.notifications) showToast('New recommendation!');
+                if (!silent && settings.notifications) showToast(tUi('newRecommendation', 'New recommendation!'));
+            }
+        }
+
+        function getFortuneTheme(text) {
+            const blob = String(text || '').toLowerCase();
+            const groups = {
+                strength: ['strong', 'courage', 'fear not', 'power', 'battle', 'warrior'],
+                peace: ['peace', 'rest', 'calm', 'quiet', 'still'],
+                wisdom: ['wisdom', 'understanding', 'teach', 'learn', 'knowledge'],
+                love: ['love', 'kindness', 'compassion', 'mercy', 'forgive'],
+                hope: ['hope', 'future', 'promise', 'tomorrow', 'waiting']
+            };
+            for (const [theme, words] of Object.entries(groups)) {
+                if (words.some((w) => blob.includes(w))) return theme;
+            }
+            return 'hope';
+        }
+
+        function buildFortuneText(theme, anchorRef, topBook) {
+            const pools = {
+                strength: [
+                    'You are entering a season where courage will open doors.',
+                    'A difficult moment becomes your breakthrough with steady faith.',
+                    'You will have strength exactly when you need it most.'
+                ],
+                peace: [
+                    'Peace will settle over choices that felt heavy.',
+                    'The next step becomes clear when you move in quiet trust.',
+                    'Rest is part of your progress, not a delay.'
+                ],
+                wisdom: [
+                    'A wise decision soon protects your future.',
+                    'Clarity grows as you stay consistent in the Word.',
+                    'Guidance will come through patience and small daily steps.'
+                ],
+                love: [
+                    'An act of kindness will return multiplied.',
+                    'Healing grows in places where you choose grace.',
+                    'Your compassion is planting long-term fruit.'
+                ],
+                hope: [
+                    'What feels delayed is still being prepared for good.',
+                    'A new opportunity is closer than it looks right now.',
+                    'Your next chapter carries more light than your last one.'
+                ]
+            };
+            const pick = pools[theme] || pools.hope;
+            const line = pick[Math.floor(Math.random() * pick.length)];
+            const bookHint = topBook ? ` ${tUi('fortuneBookHint', 'Your library points toward')}: ${topBook}.` : '';
+            return `${line} ${tUi('fortuneAnchorPrefix', 'Anchor this with')} ${anchorRef}.${bookHint}`;
+        }
+
+        async function generateFortune() {
+            try {
+                const res = await fetch('/api/library', { cache: 'no-store' });
+                const data = await res.json();
+                const liked = Array.isArray(data.liked) ? data.liked : [];
+                const saved = Array.isArray(data.saved) ? data.saved : [];
+                const pool = [...liked, ...saved];
+                const unique = [];
+                const seen = new Set();
+                pool.forEach((v) => {
+                    const key = String(v.id || `${v.ref}|${v.text || ''}`);
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    unique.push(v);
+                });
+
+                if (!unique.length) {
+                    showToast(tUi('fortuneNeedLibrary', 'Save or like verses first so I can read your library.'));
+                    return;
+                }
+
+                const byBook = {};
+                unique.forEach((v) => {
+                    const book = String(v.book || '').trim() || String(v.ref || '').split(' ')[0] || tUi('fortuneUnknownBook', 'Unknown');
+                    byBook[book] = (byBook[book] || 0) + 1;
+                });
+                const topBook = Object.keys(byBook).sort((a, b) => byBook[b] - byBook[a])[0] || '';
+                const anchor = unique[Math.floor(Math.random() * unique.length)];
+                const anchorRef = anchor.ref || anchor.reference || tUi('fortuneUnknownRef', 'a verse in your library');
+                const theme = getFortuneTheme(anchor.text || '');
+                const fortune = buildFortuneText(theme, anchorRef, topBook);
+
+                const recList = document.getElementById('recList');
+                if (!recList) return;
+                recList.innerHTML = `
+                    <div class="rec-card">
+                        <div class="rec-reason">🔮 ${tUi('fortuneTitle', 'Your Fortune')}</div>
+                        <div style="font-size: 15px; line-height: 1.5; margin-bottom: 10px;">${fortune}</div>
+                        <div style="font-size: 12px; opacity: 0.72; margin-bottom: 8px;">${tUi('fortuneBasedOn', 'Based on your library')}: ${unique.length} ${tUi('fortuneVerses', 'verses')}</div>
+                        <div style="font-size: 13px; opacity: 0.85; font-weight: 600; margin-bottom: 12px;">${anchorRef}</div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="verse-card-btn" style="flex: 1;" onclick="generateFortune()">${tUi('fortuneAgain', 'Generate Again')}</button>
+                            <button class="verse-card-btn" style="flex: 1;" onclick="generateRec(true)">${tUi('generateRecommendationLabel', 'Generate Recommendation')}</button>
+                        </div>
+                    </div>
+                `;
+                showToast(tUi('fortuneReady', 'Fortune generated from your library.'));
+            } catch (_) {
+                showToast(tUi('fortuneError', 'Unable to generate fortune right now.'));
             }
         }
 
@@ -6428,8 +6545,8 @@
                 <div style="font-size: 15px; line-height: 1.5; margin-bottom: 10px;">${rec.text}</div>
                 <div style="font-size: 13px; opacity: 0.7; font-weight: 600; margin-bottom: 12px;">${rec.ref}</div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">&#9825; Like</button>
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">&#128278; Save</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">&#9825; ${tUi('likeAction', 'Like')}</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">&#128278; ${tUi('saveAction', 'Save')}</button>
                 </div>
             `;
             return div;
@@ -8168,8 +8285,8 @@
             const displayCount = useDatabase ? dbCount : localCount;
 
             statValueEl.textContent = formatNumber(displayCount);
-            statLabelEl.textContent = useDatabase ? 'Database Verses' : 'Your Local Verses';
-            statSubEl.textContent = useDatabase ? 'Shared verse catalog count' : 'Generated on this device';
+            statLabelEl.textContent = useDatabase ? tUi('databaseVersesLabel', 'Database Verses') : tUi('localVersesLabel', 'Your Local Verses');
+            statSubEl.textContent = useDatabase ? tUi('databaseVersesSub', 'Shared verse catalog count') : tUi('localVersesSub', 'Generated on this device');
 
             const dbBtn = document.getElementById('profileVerseDbBtn');
             const localBtn = document.getElementById('profileVerseLocalBtn');
@@ -8887,12 +9004,27 @@ function getAchievementProgress(ach, stats, isUnlocked) {
     }
     if (isUnlocked) current = Math.max(current, goal);
     const pct = Math.max(0, Math.min(100, (current / goal) * 100));
-    const label = goal > 1 ? `${Math.min(current, goal)}/${goal}` : (isUnlocked ? 'Complete' : 'Locked');
+    const done = current >= goal;
+    const label = done ? tUi('completeWord', 'Complete') : (goal > 1 ? `${Math.min(current, goal)}/${goal}` : tUi('lockedWord', 'Locked'));
     return { pct, label };
 }
 
 let currentAchievementFilter = 'all';
 let currentAchievementStats = {};
+let achievementTotalXpEarned = 0;
+
+function updateAchievementSummary(totalXp = null) {
+    if (typeof totalXp === 'number') achievementTotalXpEarned = Math.max(0, Math.floor(totalXp));
+    const completedCount = Array.isArray(unlockedAchievementIds) ? unlockedAchievementIds.length : 0;
+    const totalCount = Array.isArray(ACHIEVEMENTS) ? ACHIEVEMENTS.length : 0;
+    const completedEl = document.getElementById('achievementsCompleted');
+    const xpEl = document.getElementById('achievementsXP');
+    const statCompletedEl = document.getElementById('statAchievementsCompleted');
+
+    if (completedEl) completedEl.textContent = `${completedCount}/${totalCount} ${tUi('completedWord', 'Completed')}`;
+    if (xpEl) xpEl.textContent = `+${achievementTotalXpEarned} ${tUi('xpEarnedWord', 'XP Earned')}`;
+    if (statCompletedEl) statCompletedEl.textContent = `${completedCount}/${totalCount}`;
+}
 
 async function loadAchievements(stats) {
     if (!stats) {
@@ -8933,7 +9065,7 @@ async function loadAchievements(stats) {
                 userAchievements = [...unlockedAchievementIds];
                 totalXPEarned += Number(data.xp_awarded || ach.xp || 0);
                 newUnlocks = true;
-                if (settings.notifications) showToast(`🏆 Unlocked: ${ach.name}! +${ach.xp || 0} XP`);
+                if (settings.notifications) showToast(`🏆 ${tUi('achievementUnlocked', 'Unlocked')}: ${ach.name}! +${ach.xp || 0} XP`);
                 if (typeof AudioSys !== 'undefined') AudioSys.playSuccess();
                 await updateXpDisplay();
             } else if (res.ok && data.success && !data.awarded) {
@@ -8945,11 +9077,7 @@ async function loadAchievements(stats) {
     }
 
     renderAchievementsList();
-
-    const completedEl = document.getElementById('achievementsCompleted');
-    const xpEl = document.getElementById('achievementsXP');
-    if (completedEl) completedEl.textContent = `${unlockedAchievementIds.length}/${ACHIEVEMENTS.length} Completed`;
-    if (xpEl) xpEl.textContent = `+${totalXPEarned} XP Earned`;
+    updateAchievementSummary(totalXPEarned);
 
     return newUnlocks;
 }
@@ -8981,13 +9109,19 @@ function renderAchievementsList() {
     container.innerHTML = achievementsToShow.map(ach => {
         const isUnlocked = unlocked.includes(ach.id);
         const progress = getAchievementProgress(ach, stats, isUnlocked);
+        const goalComplete = progress.pct >= 100;
         const categoryLabels = {
-            likes: 'Likes', saves: 'Saves', comments: 'Comments', 
-            replies: 'Replies', streak: 'Streaks', shares: 'Shares', special: 'Special'
+            likes: tUi('likesWord', 'Likes'),
+            saves: tUi('savesWord', 'Saves'),
+            comments: tUi('commentsWord', 'Comments'),
+            replies: tUi('repliesWord', 'Replies'),
+            streak: tUi('streaksWord', 'Streaks'),
+            shares: tUi('sharesWord', 'Shares'),
+            special: tUi('specialWord', 'Special')
         };
         
         return `
-            <div class="achievement-item ${isUnlocked ? 'completed' : ''}" 
+            <div class="achievement-item ${isUnlocked ? 'completed' : ''} ${goalComplete ? 'goal-complete pulsing' : ''}" 
                  onclick="showAchievementDetail('${ach.id}', ${isUnlocked})"
                  data-ach-id="${ach.id}">
                 <div class="achievement-icon">${ach.icon}</div>
@@ -8995,7 +9129,7 @@ function renderAchievementsList() {
                     <div class="achievement-name">
                         ${ach.name}
                         <span class="achievement-category-tag">${categoryLabels[ach.category] || ach.category}</span>
-                        ${isUnlocked ? '✓' : ''}
+                        ${goalComplete ? '✓' : ''}
                     </div>
                     <div class="achievement-desc">${ach.desc}</div>
                     <div class="achievement-reward">⚡ +${ach.xp || 50} XP</div>
@@ -9016,11 +9150,7 @@ function filterAchievements(category) {
     
     // Update active button
     document.querySelectorAll('.achievement-categories .shop-category-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.textContent.toLowerCase().includes(category) || 
-            (category === 'all' && btn.textContent.includes('All'))) {
-            btn.classList.add('active');
-        }
+        btn.classList.toggle('active', btn.dataset.achFilter === category);
     });
     
     renderAchievementsList();
@@ -9032,6 +9162,7 @@ function showAchievementDetail(achId, isUnlocked) {
     
     const stats = currentAchievementStats;
     const progress = getAchievementProgress(ach, stats, isUnlocked);
+    const goalComplete = progress.pct >= 100;
     
     // Remove existing detail panels
     document.querySelectorAll('.achievement-detail-panel, .achievement-detail-overlay').forEach(el => el.remove());
@@ -9062,25 +9193,25 @@ function showAchievementDetail(achId, isUnlocked) {
         </div>
         <div style="background: var(--glass); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Status:</span>
-                <span style="color: ${isUnlocked ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 600;">
-                    ${isUnlocked ? '✓ Completed' : 'Locked'}
+                <span>${tUi('statusWord', 'Status')}:</span>
+                <span style="color: ${goalComplete ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 600;">
+                    ${goalComplete ? `✓ ${tUi('completedWord', 'Completed')}` : tUi('lockedWord', 'Locked')}
                 </span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Reward:</span>
+                <span>${tUi('rewardWord', 'Reward')}:</span>
                 <span style="color: var(--primary); font-weight: 600;">⚡ ${ach.xp || 50} XP</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
-                <span>Progress:</span>
+                <span>${tUi('progressWord', 'Progress')}:</span>
                 <span>${progress.label}</span>
             </div>
         </div>
         <div class="achievement-progress-bar" style="margin-bottom: 8px;">
-            <div class="achievement-progress-fill" style="width: ${progress.pct}%; background: ${isUnlocked ? 'var(--success)' : 'var(--primary)'};"></div>
+            <div class="achievement-progress-fill" style="width: ${progress.pct}%; background: ${goalComplete ? 'var(--success)' : 'var(--primary)'};"></div>
         </div>
         <div style="text-align: center; font-size: 12px; color: var(--text-secondary);">
-            ${isUnlocked ? 'Great job! Keep going!' : 'Keep working to unlock this achievement!'}
+            ${goalComplete ? tUi('achievementCompleteHint', 'Great job! Keep going!') : tUi('achievementLockedHint', 'Keep working to unlock this achievement!')}
         </div>
     `;
     document.body.appendChild(panel);
@@ -9803,8 +9934,28 @@ async function checkAchievement(type, value) {
         function filterRecs(type) {
             currentRecFilter = type;
             document.querySelectorAll('.rec-category').forEach(cat => cat.classList.remove('active'));
-            event.target.classList.add('active');
-            showToast(`Recommendations: ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            const idMap = {
+                all: 'recCatAll',
+                favorites: 'recCatFavorites',
+                trending: 'recCatTrending',
+                similar: 'recCatSimilar',
+                random: 'recCatSurprise'
+            };
+            const target = document.getElementById(idMap[type] || '') || event?.target;
+            if (target) target.classList.add('active');
+            showToast(`${tUi('forYou', 'For You')}: ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        }
+
+        function getMoodLabel(mood) {
+            const map = {
+                peace: tUi('moodPeaceful', 'Peaceful'),
+                strength: tUi('moodStrength', 'Need Strength'),
+                hope: tUi('moodHopeful', 'Hopeful'),
+                love: tUi('moodLoved', 'Loved'),
+                gratitude: tUi('moodGrateful', 'Grateful'),
+                guidance: tUi('moodGuidance', 'Need Guidance')
+            };
+            return map[mood] || mood;
         }
 
         async function getMoodVerse(mood) {
@@ -9820,18 +9971,18 @@ async function checkAchievement(type, value) {
                 }
                 const verse = { ref: data.ref, text: data.text, id: data.id };
                 
-                addToRecHistory({ ...verse, reason: `For when you're feeling ${mood}` });
+                addToRecHistory({ ...verse, reason: `${tUi('moodPrompt', 'How are you feeling?')}: ${getMoodLabel(mood)}` });
                 
                 const recList = document.getElementById('recList');
                 recList.innerHTML = `
                     <div class="rec-card" style="animation: slideIn 0.3s ease;">
-                        <div class="rec-reason">💭 ${mood.charAt(0).toUpperCase() + mood.slice(1)}</div>
+                        <div class="rec-reason">💭 ${getMoodLabel(mood)}</div>
                         <div style="font-style: italic; margin-bottom: 8px;">${verse.text}</div>
                         <div style="font-weight: 700; color: var(--primary);">${verse.ref}</div>
                     </div>
                 `;
                 
-                showToast(`Verses for when you're feeling ${mood}`);
+                showToast(`${tUi('forYou', 'For You')}: ${getMoodLabel(mood)}`);
             } catch (e) {
                 showToast('Unable to fetch a new verse. Try again.');
             }
@@ -10520,22 +10671,57 @@ async function checkAchievement(type, value) {
         // Simulate online users updating
         setInterval(updateOnlineUsers, 30000);
 
-        const UI_LANGUAGE_PACKS = {
-            en: { settings: 'Settings', language: 'Language', languageDesc: 'Translate core interface labels', challenge: 'Daily Challenge', libAll: 'All', libCollections: 'Collections', libFavorites: 'Favorites', libResearch: 'Research', researchTools: 'Research Tools', discover: 'Discover', forYou: 'For You', library: 'Library', comments: 'Comments', shop: 'Shop', inventory: 'My Items', achievements: 'Achievements', xpGuide: 'XP Guide', profile: 'Profile', about: 'About Us', chat: 'Chat', awards: 'Awards' },
-            es: { settings: 'Configuracion', language: 'Idioma', languageDesc: 'Traduce etiquetas principales', challenge: 'Desafio Diario', libAll: 'Todo', libCollections: 'Colecciones', libFavorites: 'Favoritos', libResearch: 'Investigar', researchTools: 'Herramientas', discover: 'Descubrir', forYou: 'Para Ti', library: 'Biblioteca', comments: 'Comentarios', shop: 'Tienda', inventory: 'Mis Items', achievements: 'Logros', xpGuide: 'Guia XP', profile: 'Perfil', about: 'Acerca', chat: 'Chat', awards: 'Premios' },
-            fr: { settings: 'Parametres', language: 'Langue', languageDesc: 'Traduire les libelles principaux', challenge: 'Defi Quotidien', libAll: 'Tout', libCollections: 'Collections', libFavorites: 'Favoris', libResearch: 'Recherche', researchTools: 'Outils Recherche', discover: 'Decouvrir', forYou: 'Pour Vous', library: 'Bibliotheque', comments: 'Commentaires', shop: 'Boutique', inventory: 'Mes Objets', achievements: 'Succes', xpGuide: 'Guide XP', profile: 'Profil', about: 'A propos', chat: 'Chat', awards: 'Recompenses' },
-            de: { settings: 'Einstellungen', language: 'Sprache', languageDesc: 'Haupttexte uebersetzen', challenge: 'Tagesaufgabe', libAll: 'Alle', libCollections: 'Sammlungen', libFavorites: 'Favoriten', libResearch: 'Suche', researchTools: 'Recherche Werkzeuge', discover: 'Entdecken', forYou: 'Fuer Dich', library: 'Bibliothek', comments: 'Kommentare', shop: 'Shop', inventory: 'Meine Items', achievements: 'Erfolge', xpGuide: 'XP Guide', profile: 'Profil', about: 'Info', chat: 'Chat', awards: 'Auszeichnungen' },
-            pt: { settings: 'Configuracoes', language: 'Idioma', languageDesc: 'Traduzir rotulos principais', challenge: 'Desafio Diario', libAll: 'Tudo', libCollections: 'Colecoes', libFavorites: 'Favoritos', libResearch: 'Pesquisa', researchTools: 'Ferramentas', discover: 'Descobrir', forYou: 'Para Voce', library: 'Biblioteca', comments: 'Comentarios', shop: 'Loja', inventory: 'Meus Itens', achievements: 'Conquistas', xpGuide: 'Guia XP', profile: 'Perfil', about: 'Sobre', chat: 'Chat', awards: 'Premios' },
-            it: { settings: 'Impostazioni', language: 'Lingua', languageDesc: 'Traduci etichette principali', challenge: 'Sfida Giornaliera', libAll: 'Tutto', libCollections: 'Collezioni', libFavorites: 'Preferiti', libResearch: 'Ricerca', researchTools: 'Strumenti Ricerca', discover: 'Scopri', forYou: 'Per Te', library: 'Libreria', comments: 'Commenti', shop: 'Negozio', inventory: 'I Miei Oggetti', achievements: 'Obiettivi', xpGuide: 'Guida XP', profile: 'Profilo', about: 'Info', chat: 'Chat', awards: 'Premi' },
-            ru: { settings: 'Nastroiki', language: 'Yazyk', languageDesc: 'Perevod osnovnyh podpisey', challenge: 'Ezhednevnyy Challenge', libAll: 'Vse', libCollections: 'Kollekcii', libFavorites: 'Izbrannoe', libResearch: 'Poisk', researchTools: 'Issledovanie', discover: 'Otkryt', forYou: 'Dlya Vas', library: 'Biblioteka', comments: 'Kommentarii', shop: 'Magazin', inventory: 'Moi Predmety', achievements: 'Dostizheniya', xpGuide: 'XP Gid', profile: 'Profil', about: 'O nas', chat: 'Chat', awards: 'Nagrady' },
-            ar: { settings: 'Iidadat', language: 'Lugha', languageDesc: 'Tarjamat wasf alwajha', challenge: 'Tahaddi Yawmi', libAll: 'Alkul', libCollections: 'Majmuat', libFavorites: 'Mufaddal', libResearch: 'Bahth', researchTools: 'Adawat Bahth', discover: 'Iktishaf', forYou: 'Lak', library: 'Maktaba', comments: 'Taliqat', shop: 'Matjar', inventory: 'Anasirii', achievements: 'Injazat', xpGuide: 'Dalil XP', profile: 'Milaf', about: 'Hawl', chat: 'Chat', awards: 'Jawaaiz' },
-            hi: { settings: 'Settings Hindi', language: 'Bhasha', languageDesc: 'Mukhya labels ka anuvaad', challenge: 'Daily Chunauti', libAll: 'Sab', libCollections: 'Collections', libFavorites: 'Pasandida', libResearch: 'Khoj', researchTools: 'Research Tools', discover: 'Khoje', forYou: 'Aapke Liye', library: 'Pustakalay', comments: 'Tippani', shop: 'Dukaan', inventory: 'Mere Items', achievements: 'Uplabdhi', xpGuide: 'XP Guide', profile: 'Profile', about: 'Jankari', chat: 'Chat', awards: 'Awards' },
-            zh: { settings: 'Shezhi', language: 'Yuyan', languageDesc: 'Fanyi zhuyao biaoqian', challenge: 'Meiri Renwu', libAll: 'Quanbu', libCollections: 'Shoucang', libFavorites: 'Xihuan', libResearch: 'Yanjiu', researchTools: 'Yanjiu Gongju', discover: 'Faxian', forYou: 'Wei Ni', library: 'Tushuguan', comments: 'Pinglun', shop: 'Shangdian', inventory: 'Wo de Daoju', achievements: 'Chengjiu', xpGuide: 'XP Zhinan', profile: 'Geren', about: 'Guanyu', chat: 'Chat', awards: 'Jiangli' }
+        const UI_LANGUAGE_BASE = {
+            settings: 'Settings', language: 'Language', languageDesc: 'Translate core interface labels',
+            challenge: 'Daily Challenge', libAll: 'All', libCollections: 'Collections', libFavorites: 'Favorites', libResearch: 'Research', researchTools: 'Research Tools',
+            discover: 'Discover', forYou: 'For You', library: 'Library', comments: 'Comments', shop: 'Shop', inventory: 'My Items', achievements: 'Achievements', xpGuide: 'XP Guide', profile: 'Profile', about: 'About Us', chat: 'Chat', awards: 'Awards',
+            openDm: 'Open DMs', memberSince: 'Member Since', timeOnSite: 'Time on Site', xpLabelText: 'XP',
+            likedLabel: 'Liked', savedLabel: 'Saved', commentsLabel: 'Comments', repliesLabel: 'Replies', achievementsLabel: 'Achievements',
+            localTab: 'Local', databaseTab: 'Database',
+            localVersesLabel: 'Your Local Verses', databaseVersesLabel: 'Database Verses', localVersesSub: 'Generated on this device', databaseVersesSub: 'Shared verse catalog count',
+            recAll: 'All', recFavorites: 'Favorites', recTrending: 'Trending', recSimilar: 'Similar', recSurprise: 'Surprise',
+            moodPrompt: 'How are you feeling?', moodPeaceful: 'Peaceful', moodStrength: 'Need Strength', moodHopeful: 'Hopeful', moodLoved: 'Loved', moodGrateful: 'Grateful', moodGuidance: 'Need Guidance',
+            generateRecommendationLabel: 'Generate Smart Recommendation', generateFortuneLabel: 'Your Fortune', fortuneTitle: 'Your Fortune',
+            yourJourney: 'Your Journey', recentRecommendations: 'Recent recommendations',
+            achievementsTitle: 'Achievements', achAll: 'All', achLikes: 'Likes', achSaves: 'Saves', achComments: 'Comments', achReplies: 'Replies', achStreaks: 'Streaks', achShares: 'Shares', achSpecial: 'Special',
+            completedWord: 'Completed', xpEarnedWord: 'XP Earned', completeWord: 'Complete', lockedWord: 'Locked',
+            statusWord: 'Status', rewardWord: 'Reward', progressWord: 'Progress',
+            achievementUnlocked: 'Unlocked', achievementCompleteHint: 'Great job! Keep going!', achievementLockedHint: 'Keep working to unlock this achievement!',
+            likesWord: 'Likes', savesWord: 'Saves', commentsWord: 'Comments', repliesWord: 'Replies', streaksWord: 'Streaks', sharesWord: 'Shares', specialWord: 'Special',
+            likeAction: 'Like', saveAction: 'Save', newRecommendation: 'New recommendation!',
+            fortuneBasedOn: 'Based on your library', fortuneVerses: 'verses', fortuneAgain: 'Generate Again', fortuneReady: 'Fortune generated from your library.',
+            fortuneError: 'Unable to generate fortune right now.', fortuneNeedLibrary: 'Save or like verses first so I can read your library.',
+            fortuneBookHint: 'Your library points toward', fortuneAnchorPrefix: 'Anchor this with', fortuneUnknownBook: 'Unknown', fortuneUnknownRef: 'a verse in your library'
         };
+
+        const UI_LANGUAGE_PACKS = {
+            en: { ...UI_LANGUAGE_BASE },
+            es: { ...UI_LANGUAGE_BASE, settings: 'Configuracion', language: 'Idioma', languageDesc: 'Traduce etiquetas de la interfaz', challenge: 'Desafio Diario', libAll: 'Todo', libCollections: 'Colecciones', libFavorites: 'Favoritos', libResearch: 'Investigar', researchTools: 'Herramientas de estudio', discover: 'Descubrir', forYou: 'Para Ti', library: 'Biblioteca', comments: 'Comentarios', shop: 'Tienda', inventory: 'Mis Items', achievements: 'Logros', xpGuide: 'Guia XP', profile: 'Perfil', about: 'Acerca', awards: 'Premios', openDm: 'Abrir DMs', memberSince: 'Miembro Desde', timeOnSite: 'Tiempo en Sitio', recTrending: 'Tendencia', recSimilar: 'Similar', recSurprise: 'Sorpresa', moodPrompt: 'Como te sientes?', generateRecommendationLabel: 'Generar recomendacion inteligente', generateFortuneLabel: 'Tu Fortuna', fortuneTitle: 'Tu Fortuna', yourJourney: 'Tu Camino', recentRecommendations: 'Recomendaciones recientes', completedWord: 'Completado', xpEarnedWord: 'XP Ganado', lockedWord: 'Bloqueado', statusWord: 'Estado', rewardWord: 'Recompensa', progressWord: 'Progreso', achievementUnlocked: 'Desbloqueado', likeAction: 'Me gusta', saveAction: 'Guardar' },
+            fr: { ...UI_LANGUAGE_BASE, settings: 'Parametres', language: 'Langue', challenge: 'Defi Quotidien', libAll: 'Tout', libFavorites: 'Favoris', discover: 'Decouvrir', forYou: 'Pour Vous', library: 'Bibliotheque', comments: 'Commentaires', shop: 'Boutique', inventory: 'Mes Objets', achievements: 'Succes', profile: 'Profil', about: 'A propos', openDm: 'Ouvrir DM', memberSince: 'Membre Depuis', timeOnSite: 'Temps sur site', recTrending: 'Tendance', recSimilar: 'Similaire', recSurprise: 'Surprise', moodPrompt: 'Comment vous sentez-vous ?', generateFortuneLabel: 'Votre Fortune', fortuneTitle: 'Votre Fortune', yourJourney: 'Votre Parcours', recentRecommendations: 'Recommandations recentes', completedWord: 'Termine', lockedWord: 'Verrouille', statusWord: 'Statut', rewardWord: 'Recompense', progressWord: 'Progression' },
+            de: { ...UI_LANGUAGE_BASE, settings: 'Einstellungen', language: 'Sprache', challenge: 'Tagesaufgabe', libAll: 'Alle', libCollections: 'Sammlungen', libFavorites: 'Favoriten', discover: 'Entdecken', forYou: 'Fur Dich', library: 'Bibliothek', comments: 'Kommentare', inventory: 'Meine Items', achievements: 'Erfolge', profile: 'Profil', about: 'Info', openDm: 'DMs Offnen', memberSince: 'Mitglied Seit', timeOnSite: 'Zeit auf Seite', recTrending: 'Trend', recSimilar: 'Ahnlich', recSurprise: 'Uberraschung', moodPrompt: 'Wie fuhlst du dich?', generateFortuneLabel: 'Dein Schicksal', fortuneTitle: 'Dein Schicksal', yourJourney: 'Dein Weg', recentRecommendations: 'Letzte Empfehlungen', completedWord: 'Abgeschlossen', lockedWord: 'Gesperrt', statusWord: 'Status', rewardWord: 'Belohnung', progressWord: 'Fortschritt' },
+            pt: { ...UI_LANGUAGE_BASE, settings: 'Configuracoes', language: 'Idioma', challenge: 'Desafio Diario', libAll: 'Tudo', libCollections: 'Colecoes', libFavorites: 'Favoritos', discover: 'Descobrir', forYou: 'Para Voce', library: 'Biblioteca', comments: 'Comentarios', shop: 'Loja', inventory: 'Meus Itens', achievements: 'Conquistas', profile: 'Perfil', about: 'Sobre', openDm: 'Abrir DMs', memberSince: 'Membro Desde', timeOnSite: 'Tempo no Site', recTrending: 'Tendencia', recSimilar: 'Similar', recSurprise: 'Surpresa', moodPrompt: 'Como voce esta se sentindo?', generateFortuneLabel: 'Sua Fortuna', fortuneTitle: 'Sua Fortuna', yourJourney: 'Sua Jornada', recentRecommendations: 'Recomendacoes recentes', completedWord: 'Concluido', lockedWord: 'Bloqueado' },
+            it: { ...UI_LANGUAGE_BASE, settings: 'Impostazioni', language: 'Lingua', challenge: 'Sfida Giornaliera', libAll: 'Tutto', libCollections: 'Collezioni', libFavorites: 'Preferiti', discover: 'Scopri', forYou: 'Per Te', library: 'Libreria', comments: 'Commenti', shop: 'Negozio', inventory: 'I Miei Oggetti', achievements: 'Obiettivi', profile: 'Profilo', about: 'Info', openDm: 'Apri DM', memberSince: 'Membro Dal', timeOnSite: 'Tempo sul sito', recTrending: 'Tendenza', recSimilar: 'Simile', recSurprise: 'Sorpresa', moodPrompt: 'Come ti senti?', generateFortuneLabel: 'La Tua Fortuna', fortuneTitle: 'La Tua Fortuna', yourJourney: 'Il Tuo Percorso', recentRecommendations: 'Raccomandazioni recenti', completedWord: 'Completato', lockedWord: 'Bloccato' },
+            ru: { ...UI_LANGUAGE_BASE, settings: 'Nastroiki', language: 'Yazyk', challenge: 'Ezhednevnyy Chellendzh', libAll: 'Vse', libCollections: 'Kollekcii', libFavorites: 'Izbrannoe', discover: 'Otkryt', forYou: 'Dlya Vas', library: 'Biblioteka', comments: 'Kommentarii', shop: 'Magazin', inventory: 'Moi Predmety', achievements: 'Dostizheniya', profile: 'Profil', about: 'O nas', openDm: 'Otkryt DM', memberSince: 'S Nami S', timeOnSite: 'Vremya na Saite', recTrending: 'Trend', recSimilar: 'Pohozhee', recSurprise: 'Syurpriz', moodPrompt: 'Kak vy sebya chuvstvuete?', generateFortuneLabel: 'Vasha Sudba', fortuneTitle: 'Vasha Sudba' },
+            ar: { ...UI_LANGUAGE_BASE, settings: 'Iidadat', language: 'Lugha', challenge: 'Tahaddi Yawmi', libAll: 'Alkul', libCollections: 'Majmuat', libFavorites: 'Mufaddal', discover: 'Iktishaf', forYou: 'Lak', library: 'Maktaba', comments: 'Taliqat', shop: 'Matjar', inventory: 'Anasiri', achievements: 'Injazat', profile: 'Milaf', about: 'Hawl', openDm: 'Fath DM', memberSince: 'Mudhu', timeOnSite: 'Waqt Almawqie', recTrending: 'Raeij', recSimilar: 'Mushabih', recSurprise: 'Mufajaa', moodPrompt: 'Kayfa tashur?', generateFortuneLabel: 'Hazzuk', fortuneTitle: 'Hazzuk' },
+            hi: { ...UI_LANGUAGE_BASE, settings: 'Settings', language: 'Bhasha', challenge: 'Daily Chunauti', libAll: 'Sab', libCollections: 'Collections', libFavorites: 'Pasandida', discover: 'Khoje', forYou: 'Aapke Liye', library: 'Pustakalay', comments: 'Tippani', shop: 'Dukaan', inventory: 'Mere Items', achievements: 'Uplabdhi', profile: 'Profile', about: 'Jankari', openDm: 'DM Kholen', memberSince: 'Sadasya Since', timeOnSite: 'Site par Samay', recTrending: 'Trending', recSimilar: 'Similar', recSurprise: 'Surprise', moodPrompt: 'Aap kaisa mehsoos kar rahe hain?', generateFortuneLabel: 'Aapki Fortune', fortuneTitle: 'Aapki Fortune' },
+            zh: { ...UI_LANGUAGE_BASE, settings: 'Shezhi', language: 'Yuyan', challenge: 'Meiri Renwu', libAll: 'Quanbu', libCollections: 'Shoucang', libFavorites: 'Xihuan', libResearch: 'Yanjiu', discover: 'Faxian', forYou: 'Wei Ni', library: 'Tushuguan', comments: 'Pinglun', shop: 'Shangdian', inventory: 'Wo de Daoju', achievements: 'Chengjiu', profile: 'Geren', about: 'Guanyu', openDm: 'Dakailiao', memberSince: 'Jiaru Shijian', timeOnSite: 'Zaixian Shijian', recTrending: 'Remen', recSimilar: 'Xiangsi', recSurprise: 'Jingxi', moodPrompt: 'Ni xianzai ganjue zenmeyang?', generateFortuneLabel: 'Ni de Yuce', fortuneTitle: 'Ni de Yuce' }
+        };
+
+        function getLanguagePack(langOverride = null) {
+            const lang = UI_LANGUAGE_PACKS[langOverride || settings.language] ? (langOverride || settings.language) : 'en';
+            return UI_LANGUAGE_PACKS[lang] || UI_LANGUAGE_PACKS.en;
+        }
+
+        function tUi(key, fallback = '') {
+            const t = getLanguagePack();
+            if (t && Object.prototype.hasOwnProperty.call(t, key)) return t[key];
+            if (Object.prototype.hasOwnProperty.call(UI_LANGUAGE_BASE, key)) return UI_LANGUAGE_BASE[key];
+            return fallback || key;
+        }
 
         function applyLanguage() {
             const lang = UI_LANGUAGE_PACKS[settings.language] ? settings.language : 'en';
-            const t = UI_LANGUAGE_PACKS[lang];
+            const t = getLanguagePack(lang);
             const setText = (id, text) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = text;
@@ -10550,6 +10736,42 @@ async function checkAchievement(type, value) {
             setText('libraryTabFavorites', t.libFavorites);
             setText('libraryTabResearch', t.libResearch);
             setText('researchToolsTitle', t.researchTools);
+            setText('profileOpenDmBtn', t.openDm);
+            setText('memberSinceLabel', t.memberSince);
+            setText('timeOnSiteLabel', t.timeOnSite);
+            setText('xpLabel', t.xpLabelText);
+            setText('statLikedLabel', t.likedLabel);
+            setText('statSavedLabel', t.savedLabel);
+            setText('statCommentsLabel', t.commentsLabel);
+            setText('statRepliesLabel', t.repliesLabel);
+            setText('statAchievementsLabel', t.achievementsLabel);
+            setText('profileVerseLocalBtn', t.localTab);
+            setText('profileVerseDbBtn', t.databaseTab);
+            setText('recCatAll', `🎯 ${t.recAll}`);
+            setText('recCatFavorites', `⭐ ${t.recFavorites}`);
+            setText('recCatTrending', `📈 ${t.recTrending}`);
+            setText('recCatSimilar', `🔍 ${t.recSimilar}`);
+            setText('recCatSurprise', `🎲 ${t.recSurprise}`);
+            setText('moodPrompt', `💭 ${t.moodPrompt}`);
+            setText('moodPeacefulBtn', `😌 ${t.moodPeaceful}`);
+            setText('moodStrengthBtn', `💪 ${t.moodStrength}`);
+            setText('moodHopefulBtn', `🌟 ${t.moodHopeful}`);
+            setText('moodLovedBtn', `❤️ ${t.moodLoved}`);
+            setText('moodGratefulBtn', `🙏 ${t.moodGrateful}`);
+            setText('moodGuidanceBtn', `🧭 ${t.moodGuidance}`);
+            setText('generateRecLabel', t.generateRecommendationLabel);
+            setText('generateFortuneLabel', t.generateFortuneLabel);
+            setText('recHistoryTitle', `📜 ${t.yourJourney}`);
+            setText('recHistorySubtitle', t.recentRecommendations);
+            setText('achievementsHeaderTitle', `🏆 ${t.achievementsTitle}`);
+            setText('achFilterAll', `📋 ${t.achAll}`);
+            setText('achFilterLikes', `❤️ ${t.achLikes}`);
+            setText('achFilterSaves', `🔖 ${t.achSaves}`);
+            setText('achFilterComments', `💬 ${t.achComments}`);
+            setText('achFilterReplies', `🤝 ${t.achReplies}`);
+            setText('achFilterStreaks', `🔥 ${t.achStreaks}`);
+            setText('achFilterShares', `📢 ${t.achShares}`);
+            setText('achFilterSpecial', `⭐ ${t.achSpecial}`);
 
             const navLabelMap = {
                 discover: t.discover,
@@ -10577,6 +10799,10 @@ async function checkAchievement(type, value) {
             document.documentElement.lang = lang;
             const langSelect = document.getElementById('languageSelect');
             if (langSelect) langSelect.value = lang;
+
+            renderProfileVerseStat();
+            renderAchievementsList();
+            updateAchievementSummary();
         }
 
         function changeLanguage(lang) {
@@ -11586,8 +11812,3 @@ async function checkAchievement(type, value) {
     </script>
 </body>
 </html>
-
-
-
-
-
