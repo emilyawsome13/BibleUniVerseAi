@@ -4219,155 +4219,155 @@ def verify_role_code():
 DEFAULT_SHOP_ITEMS = [
     # ==================== AVATAR FRAMES ====================
     # Common Frames (200-500 XP)
-    {"item_id": "frame_wood", "name": "Wooden Frame", "description": "A simple wooden frame", "category": "frame", "price": 200, "rarity": "common", "icon": "ðŸªµ", "effects": {"frame_color": "#8B4513", "glow": False}},
-    {"item_id": "frame_stone", "name": "Stone Ring", "description": "Solid as a rock", "category": "frame", "price": 350, "rarity": "common", "icon": "ðŸª¨", "effects": {"frame_color": "#808080", "glow": False}},
+    {"item_id": "frame_wood", "name": "Wooden Frame", "description": "A simple wooden frame", "category": "frame", "price": 200, "rarity": "common", "icon": "🪵", "effects": {"frame_color": "#8B4513", "glow": False}},
+    {"item_id": "frame_stone", "name": "Stone Ring", "description": "Solid as a rock", "category": "frame", "price": 350, "rarity": "common", "icon": "🪨", "effects": {"frame_color": "#808080", "glow": False}},
     
     # Rare Frames (1k-3k XP)
-    {"item_id": "frame_bronze", "name": "Bronze Ring", "description": "A warm bronze frame", "category": "frame", "price": 1000, "rarity": "rare", "icon": "ðŸ¥‰", "effects": {"frame_color": "#CD7F32", "glow": False}},
-    {"item_id": "frame_heart", "name": "Love Heart", "description": "A loving heart frame", "category": "frame", "price": 1500, "rarity": "rare", "icon": "ðŸ’–", "effects": {"frame_style": "heart", "animation": "pulse"}},
-    {"item_id": "frame_cross", "name": "Holy Cross", "description": "A blessed cross frame", "category": "frame", "price": 2500, "rarity": "rare", "icon": "âœï¸", "effects": {"frame_style": "cross", "glow": True}},
+    {"item_id": "frame_bronze", "name": "Bronze Ring", "description": "A warm bronze frame", "category": "frame", "price": 1000, "rarity": "rare", "icon": "🥉", "effects": {"frame_color": "#CD7F32", "glow": False}},
+    {"item_id": "frame_heart", "name": "Love Heart", "description": "A loving heart frame", "category": "frame", "price": 1500, "rarity": "rare", "icon": "💖", "effects": {"frame_style": "heart", "animation": "pulse"}},
+    {"item_id": "frame_cross", "name": "Holy Cross", "description": "A blessed cross frame", "category": "frame", "price": 2500, "rarity": "rare", "icon": "✝️", "effects": {"frame_style": "cross", "glow": True}},
     
     # Epic Frames (5k-8k XP)
-    {"item_id": "frame_silver", "name": "Silver Crown", "description": "An elegant silver frame", "category": "frame", "price": 5000, "rarity": "epic", "icon": "ðŸ¥ˆ", "effects": {"frame_color": "#C0C0C0", "glow": True}},
-    {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "ðŸŒ¿", "effects": {"frame_style": "nature", "animation": "sway"}},
-    {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "â„ï¸", "effects": {"frame_color": "#00CED1", "glow": True}},
-    {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "ðŸ”¥", "effects": {"frame_style": "fire", "animation": "flicker"}},
+    {"item_id": "frame_silver", "name": "Silver Crown", "description": "An elegant silver frame", "category": "frame", "price": 5000, "rarity": "epic", "icon": "🥈", "effects": {"frame_color": "#C0C0C0", "glow": True}},
+    {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "🌿", "effects": {"frame_style": "nature", "animation": "sway"}},
+    {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "❄️", "effects": {"frame_color": "#00CED1", "glow": True}},
+    {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"frame_style": "fire", "animation": "flicker"}},
     
     # Legendary Frames (12k-20k XP)
-    {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "ðŸ‘‘", "effects": {"frame_color": "#FFD700", "glow": True}},
-    {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "âœ¨", "effects": {"frame_style": "stars", "animation": "twinkle"}},
-    {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "ðŸª½", "effects": {"frame_style": "wings", "animation": "float"}},
+    {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "👑", "effects": {"frame_color": "#FFD700", "glow": True}},
+    {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "✨", "effects": {"frame_style": "stars", "animation": "twinkle"}},
+    {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "🪽", "effects": {"frame_style": "wings", "animation": "float"}},
     
     # Mythic Frames (50k-100k XP) - ULTRA RARE
-    {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "ðŸ˜‡", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
-    {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "ðŸŒŒ", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
-    {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "â™¾ï¸", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
+    {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "😇", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
+    {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "🌌", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
+    {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
     
     # ==================== NAME COLORS ====================
     # Common Colors (100-500 XP)
-    {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "ðŸ”µ", "effects": {"color": "#0A84FF", "glow": False}},
-    {"item_id": "color_red", "name": "Ruby Red", "description": "Passionate red name", "category": "name_color", "price": 100, "rarity": "common", "icon": "ðŸ”´", "effects": {"color": "#FF375F", "glow": False}},
-    {"item_id": "color_pink", "name": "Pretty Pink", "description": "Sweet pink name", "category": "name_color", "price": 250, "rarity": "common", "icon": "ðŸ©·", "effects": {"color": "#FF69B4", "glow": False}},
-    {"item_id": "color_orange", "name": "Sunset Orange", "description": "Warm like the sunset", "category": "name_color", "price": 400, "rarity": "common", "icon": "ðŸŸ ", "effects": {"color": "#FF9500", "glow": False}},
-    {"item_id": "color_teal", "name": "Tropical Teal", "description": "Refreshing tropical color", "category": "name_color", "price": 500, "rarity": "common", "icon": "ðŸ©µ", "effects": {"color": "#00CED1", "glow": False}},
+    {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔵", "effects": {"color": "#0A84FF", "glow": False}},
+    {"item_id": "color_red", "name": "Ruby Red", "description": "Passionate red name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔴", "effects": {"color": "#FF375F", "glow": False}},
+    {"item_id": "color_pink", "name": "Pretty Pink", "description": "Sweet pink name", "category": "name_color", "price": 250, "rarity": "common", "icon": "🩷", "effects": {"color": "#FF69B4", "glow": False}},
+    {"item_id": "color_orange", "name": "Sunset Orange", "description": "Warm like the sunset", "category": "name_color", "price": 400, "rarity": "common", "icon": "🟠", "effects": {"color": "#FF9500", "glow": False}},
+    {"item_id": "color_teal", "name": "Tropical Teal", "description": "Refreshing tropical color", "category": "name_color", "price": 500, "rarity": "common", "icon": "🩵", "effects": {"color": "#00CED1", "glow": False}},
     
     # Rare Colors (1.5k-3k XP)
-    {"item_id": "color_purple", "name": "Royal Purple", "description": "Majestic purple name", "category": "name_color", "price": 1500, "rarity": "rare", "icon": "ðŸŸ£", "effects": {"color": "#BF5AF2", "glow": True}},
-    {"item_id": "color_green", "name": "Emerald Green", "description": "Rich emerald name", "category": "name_color", "price": 2000, "rarity": "rare", "icon": "ðŸŸ¢", "effects": {"color": "#30D158", "glow": True}},
-    {"item_id": "color_cyan", "name": "Cyber Cyan", "description": "Digital world cyan", "category": "name_color", "price": 2800, "rarity": "rare", "icon": "ðŸ’Ž", "effects": {"color": "#00FFFF", "glow": True}},
+    {"item_id": "color_purple", "name": "Royal Purple", "description": "Majestic purple name", "category": "name_color", "price": 1500, "rarity": "rare", "icon": "🟣", "effects": {"color": "#BF5AF2", "glow": True}},
+    {"item_id": "color_green", "name": "Emerald Green", "description": "Rich emerald name", "category": "name_color", "price": 2000, "rarity": "rare", "icon": "🟢", "effects": {"color": "#30D158", "glow": True}},
+    {"item_id": "color_cyan", "name": "Cyber Cyan", "description": "Digital world cyan", "category": "name_color", "price": 2800, "rarity": "rare", "icon": "💎", "effects": {"color": "#00FFFF", "glow": True}},
     
     # Epic Colors (5k-8k XP)
-    {"item_id": "color_neon", "name": "Neon Glow", "description": "Electric neon effect", "category": "name_color", "price": 5000, "rarity": "epic", "icon": "âš¡", "effects": {"color": "#39FF14", "glow": True, "animation": "pulse"}},
-    {"item_id": "color_plasma", "name": "Plasma Pink", "description": "Glowing plasma energy", "category": "name_color", "price": 6500, "rarity": "epic", "icon": "ðŸŒ¸", "effects": {"color": "#FF00FF", "glow": True, "animation": "pulse"}},
-    {"item_id": "color_gold", "name": "Golden Name", "description": "Shine with golden text", "category": "name_color", "price": 8000, "rarity": "epic", "icon": "ðŸŒŸ", "effects": {"color": "#FFD700", "glow": True}},
+    {"item_id": "color_neon", "name": "Neon Glow", "description": "Electric neon effect", "category": "name_color", "price": 5000, "rarity": "epic", "icon": "⚡", "effects": {"color": "#39FF14", "glow": True, "animation": "pulse"}},
+    {"item_id": "color_plasma", "name": "Plasma Pink", "description": "Glowing plasma energy", "category": "name_color", "price": 6500, "rarity": "epic", "icon": "🌸", "effects": {"color": "#FF00FF", "glow": True, "animation": "pulse"}},
+    {"item_id": "color_gold", "name": "Golden Name", "description": "Shine with golden text", "category": "name_color", "price": 8000, "rarity": "epic", "icon": "🌟", "effects": {"color": "#FFD700", "glow": True}},
     
     # Legendary Colors (12k-20k XP)
-    {"item_id": "color_rainbow", "name": "Rainbow Name", "description": "Cycle through all colors", "category": "name_color", "price": 15000, "rarity": "legendary", "icon": "ðŸŒˆ", "effects": {"gradient": True, "colors": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]}},
-    {"item_id": "color_aurora", "name": "Aurora Borealis", "description": "Dancing northern lights", "category": "name_color", "price": 18000, "rarity": "legendary", "icon": "ðŸŽ†", "effects": {"gradient": True, "colors": ["#00FF87", "#60EFFF", "#0061FF"], "animation": "shimmer"}},
+    {"item_id": "color_rainbow", "name": "Rainbow Name", "description": "Cycle through all colors", "category": "name_color", "price": 15000, "rarity": "legendary", "icon": "🌈", "effects": {"gradient": True, "colors": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]}},
+    {"item_id": "color_aurora", "name": "Aurora Borealis", "description": "Dancing northern lights", "category": "name_color", "price": 18000, "rarity": "legendary", "icon": "🎆", "effects": {"gradient": True, "colors": ["#00FF87", "#60EFFF", "#0061FF"], "animation": "shimmer"}},
     
     # Mythic Colors (50k-100k XP) - ULTRA RARE
-    {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "ðŸ”¥", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
-    {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "ðŸŒ‘", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
-    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 100000, "rarity": "mythic", "icon": "ðŸ‘‘", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
+    {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "🔥", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
+    {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "🌑", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
+    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 100000, "rarity": "mythic", "icon": "👑", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
     
     # ==================== TITLES ====================
     # Common Titles (500-1k XP)
-    {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "ðŸ”", "effects": {"title": "Seeker", "prefix": True}},
-    {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "âœ‰ï¸", "effects": {"title": "Messenger", "prefix": True}},
-    {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "ðŸ™", "effects": {"title": "Disciple", "prefix": True}},
+    {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "🔍", "effects": {"title": "Seeker", "prefix": True}},
+    {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "✉️", "effects": {"title": "Messenger", "prefix": True}},
+    {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "🙏", "effects": {"title": "Disciple", "prefix": True}},
     
     # Rare Titles (2k-4k XP)
-    {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "ðŸŽµ", "effects": {"title": "Worshiper", "prefix": True}},
-    {"item_id": "title_scholar", "name": "Bible Scholar", "description": "Show your dedication to study", "category": "title", "price": 3000, "rarity": "rare", "icon": "ðŸ“–", "effects": {"title": "Bible Scholar", "prefix": True}},
-    {"item_id": "title_warrior", "name": "Prayer Warrior", "description": "A warrior in prayer", "category": "title", "price": 4000, "rarity": "rare", "icon": "âš”ï¸", "effects": {"title": "Prayer Warrior", "prefix": True}},
+    {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "🎵", "effects": {"title": "Worshiper", "prefix": True}},
+    {"item_id": "title_scholar", "name": "Bible Scholar", "description": "Show your dedication to study", "category": "title", "price": 3000, "rarity": "rare", "icon": "📖", "effects": {"title": "Bible Scholar", "prefix": True}},
+    {"item_id": "title_warrior", "name": "Prayer Warrior", "description": "A warrior in prayer", "category": "title", "price": 4000, "rarity": "rare", "icon": "⚔️", "effects": {"title": "Prayer Warrior", "prefix": True}},
     
     # Epic Titles (8k-15k XP)
-    {"item_id": "title_pastor", "name": "Pastor", "description": "Shepherd of the flock", "category": "title", "price": 8000, "rarity": "epic", "icon": "ðŸ‘", "effects": {"title": "Pastor", "prefix": True}},
-    {"item_id": "title_evangelist", "name": "Evangelist", "description": "Bearer of good news", "category": "title", "price": 12000, "rarity": "epic", "icon": "ðŸ“¢", "effects": {"title": "Evangelist", "prefix": True}},
-    {"item_id": "title_reverend", "name": "Reverend", "description": "Worthy of respect", "category": "title", "price": 15000, "rarity": "epic", "icon": "â›ª", "effects": {"title": "Reverend", "prefix": True}},
+    {"item_id": "title_pastor", "name": "Pastor", "description": "Shepherd of the flock", "category": "title", "price": 8000, "rarity": "epic", "icon": "🐑", "effects": {"title": "Pastor", "prefix": True}},
+    {"item_id": "title_evangelist", "name": "Evangelist", "description": "Bearer of good news", "category": "title", "price": 12000, "rarity": "epic", "icon": "📢", "effects": {"title": "Evangelist", "prefix": True}},
+    {"item_id": "title_reverend", "name": "Reverend", "description": "Worthy of respect", "category": "title", "price": 15000, "rarity": "epic", "icon": "⛪", "effects": {"title": "Reverend", "prefix": True}},
     
     # Legendary Titles (20k-35k XP)
-    {"item_id": "title_prophet", "name": "Prophet", "description": "Speaker of truth", "category": "title", "price": 20000, "rarity": "legendary", "icon": "ðŸ”®", "effects": {"title": "Prophet", "prefix": True}},
-    {"item_id": "title_apostle", "name": "Apostle", "description": "One who is sent forth", "category": "title", "price": 28000, "rarity": "legendary", "icon": "ðŸ“œ", "effects": {"title": "Apostle", "prefix": True}},
-    {"item_id": "title_saint", "name": "Saint", "description": "Recognized for righteousness", "category": "title", "price": 35000, "rarity": "legendary", "icon": "ðŸ˜‡", "effects": {"title": "Saint", "prefix": True, "glow": True}},
+    {"item_id": "title_prophet", "name": "Prophet", "description": "Speaker of truth", "category": "title", "price": 20000, "rarity": "legendary", "icon": "🔮", "effects": {"title": "Prophet", "prefix": True}},
+    {"item_id": "title_apostle", "name": "Apostle", "description": "One who is sent forth", "category": "title", "price": 28000, "rarity": "legendary", "icon": "📜", "effects": {"title": "Apostle", "prefix": True}},
+    {"item_id": "title_saint", "name": "Saint", "description": "Recognized for righteousness", "category": "title", "price": 35000, "rarity": "legendary", "icon": "😇", "effects": {"title": "Saint", "prefix": True, "glow": True}},
     
     # Mythic Titles (60k-150k XP) - ULTRA RARE
-    {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "ðŸ—¡ï¸", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
-    {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "âœ¨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
-    {"item_id": "title_god", "name": "Creator", "description": "Supreme being", "category": "title", "price": 150000, "rarity": "mythic", "icon": "ðŸ‘‘", "effects": {"title": "Creator", "prefix": True, "glow": True}},
+    {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "🗡️", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
+    {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "✨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
+    {"item_id": "title_god", "name": "Creator", "description": "Supreme being", "category": "title", "price": 150000, "rarity": "mythic", "icon": "👑", "effects": {"title": "Creator", "prefix": True, "glow": True}},
     
     # ==================== BADGES ====================
     # Common Badges (200-800 XP)
-    {"item_id": "badge_seed", "name": "Seed Planter", "description": "Just starting to grow", "category": "badge", "price": 200, "rarity": "common", "icon": "ðŸŒ±", "effects": {"badge": "seed", "color": "#90EE90"}},
-    {"item_id": "badge_cross", "name": "Faithful", "description": "Steadfast in faith", "category": "badge", "price": 500, "rarity": "common", "icon": "âœï¸", "effects": {"badge": "cross", "color": "#8B4513"}},
-    {"item_id": "badge_verified", "name": "Verified", "description": "A verified member", "category": "badge", "price": 800, "rarity": "common", "icon": "âœ“", "effects": {"badge": "verified", "color": "#0A84FF"}},
+    {"item_id": "badge_seed", "name": "Seed Planter", "description": "Just starting to grow", "category": "badge", "price": 200, "rarity": "common", "icon": "🌱", "effects": {"badge": "seed", "color": "#90EE90"}},
+    {"item_id": "badge_cross", "name": "Faithful", "description": "Steadfast in faith", "category": "badge", "price": 500, "rarity": "common", "icon": "✝️", "effects": {"badge": "cross", "color": "#8B4513"}},
+    {"item_id": "badge_verified", "name": "Verified", "description": "A verified member", "category": "badge", "price": 800, "rarity": "common", "icon": "✓", "effects": {"badge": "verified", "color": "#0A84FF"}},
     
     # Rare Badges (2k-4k XP)
-    {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "ðŸ’", "effects": {"badge": "heart", "color": "#FF375F"}},
-    {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "â­", "effects": {"badge": "star", "color": "#FFD700"}},
-    {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "ðŸ™", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
+    {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "💝", "effects": {"badge": "heart", "color": "#FF375F"}},
+    {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "⭐", "effects": {"badge": "star", "color": "#FFD700"}},
+    {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "🙏", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
     
     # Epic Badges (6k-10k XP)
-    {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "ðŸ•Šï¸", "effects": {"badge": "dove", "color": "#FFFFFF"}},
-    {"item_id": "badge_bible", "name": "Scripture Master", "description": "Knows the Word", "category": "badge", "price": 8500, "rarity": "epic", "icon": "ðŸ“–", "effects": {"badge": "bible", "color": "#30D158"}},
-    {"item_id": "badge_guardian", "name": "Guardian", "description": "Protector of the faith", "category": "badge", "price": 10000, "rarity": "epic", "icon": "ðŸ›¡ï¸", "effects": {"badge": "guardian", "color": "#4169E1"}},
+    {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "🕊️", "effects": {"badge": "dove", "color": "#FFFFFF"}},
+    {"item_id": "badge_bible", "name": "Scripture Master", "description": "Knows the Word", "category": "badge", "price": 8500, "rarity": "epic", "icon": "📖", "effects": {"badge": "bible", "color": "#30D158"}},
+    {"item_id": "badge_guardian", "name": "Guardian", "description": "Protector of the faith", "category": "badge", "price": 10000, "rarity": "epic", "icon": "🛡️", "effects": {"badge": "guardian", "color": "#4169E1"}},
     
     # Legendary Badges (15k-25k XP)
-    {"item_id": "badge_crown", "name": "Crowned", "description": "Royal recognition", "category": "badge", "price": 15000, "rarity": "legendary", "icon": "ðŸ‘‘", "effects": {"badge": "crown", "color": "#FFD700"}},
-    {"item_id": "badge_lion", "name": "Lion of Judah", "description": "Strong and courageous", "category": "badge", "price": 22000, "rarity": "legendary", "icon": "ðŸ¦", "effects": {"badge": "lion", "color": "#FF8C00"}},
-    {"item_id": "badge_trinity", "name": "Holy Trinity", "description": "Father, Son, and Holy Spirit", "category": "badge", "price": 25000, "rarity": "legendary", "icon": "â˜˜ï¸", "effects": {"badge": "trinity", "color": "#00FF7F"}},
+    {"item_id": "badge_crown", "name": "Crowned", "description": "Royal recognition", "category": "badge", "price": 15000, "rarity": "legendary", "icon": "👑", "effects": {"badge": "crown", "color": "#FFD700"}},
+    {"item_id": "badge_lion", "name": "Lion of Judah", "description": "Strong and courageous", "category": "badge", "price": 22000, "rarity": "legendary", "icon": "🦁", "effects": {"badge": "lion", "color": "#FF8C00"}},
+    {"item_id": "badge_trinity", "name": "Holy Trinity", "description": "Father, Son, and Holy Spirit", "category": "badge", "price": 25000, "rarity": "legendary", "icon": "☘️", "effects": {"badge": "trinity", "color": "#00FF7F"}},
     
     # Mythic Badges (40k-80k XP) - ULTRA RARE
-    {"item_id": "badge_immortal", "name": "Immortal", "description": "Timeless in faith", "category": "badge", "price": 40000, "rarity": "mythic", "icon": "ðŸ”®", "effects": {"badge": "immortal", "color": "#9400D3"}},
-    {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "ðŸ‘ï¸", "effects": {"badge": "omniscient", "color": "#FF1493"}},
-    {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "âœ¨", "effects": {"badge": "divine", "color": "#FFD700"}},
+    {"item_id": "badge_immortal", "name": "Immortal", "description": "Timeless in faith", "category": "badge", "price": 40000, "rarity": "mythic", "icon": "🔮", "effects": {"badge": "immortal", "color": "#9400D3"}},
+    {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "👁️", "effects": {"badge": "omniscient", "color": "#FF1493"}},
+    {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "✨", "effects": {"badge": "divine", "color": "#FFD700"}},
     
     # ==================== CHAT EFFECTS ====================
     # Rare Chat Effects (3k-5k XP)
-    {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "ðŸ’«", "effects": {"effect": "glow", "color": "#FFD700"}},
-    {"item_id": "chat_shadow", "name": "Shadow Text", "description": "Dark mysterious messages", "category": "chat_effect", "price": 4500, "rarity": "rare", "icon": "ðŸŒ‘", "effects": {"effect": "shadow", "color": "#333333"}},
+    {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "💫", "effects": {"effect": "glow", "color": "#FFD700"}},
+    {"item_id": "chat_shadow", "name": "Shadow Text", "description": "Dark mysterious messages", "category": "chat_effect", "price": 4500, "rarity": "rare", "icon": "🌑", "effects": {"effect": "shadow", "color": "#333333"}},
     
     # Epic Chat Effects (8k-12k XP)
-    {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "ðŸ”¥", "effects": {"effect": "fire", "animation": "flicker"}},
-    {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "âœ¨", "effects": {"effect": "sparkle", "animation": "twinkle"}},
-    {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "â„ï¸", "effects": {"effect": "ice", "animation": "freeze"}},
+    {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"effect": "fire", "animation": "flicker"}},
+    {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "✨", "effects": {"effect": "sparkle", "animation": "twinkle"}},
+    {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "❄️", "effects": {"effect": "ice", "animation": "freeze"}},
     
     # Legendary Chat Effects (15k-25k XP)
-    {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "ðŸŒˆ", "effects": {"effect": "rainbow", "gradient": True}},
-    {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "ðŸ“œ", "effects": {"effect": "gold", "animation": "shimmer"}},
+    {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "🌈", "effects": {"effect": "rainbow", "gradient": True}},
+    {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "📜", "effects": {"effect": "gold", "animation": "shimmer"}},
     
     # Mythic Chat Effects (50k-100k XP) - ULTRA RARE
-    {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "ðŸŒŒ", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
-    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 100000, "rarity": "mythic", "icon": "âš¡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
+    {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "🌌", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
+    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 100000, "rarity": "mythic", "icon": "⚡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
     
     # ==================== PROFILE BACKGROUNDS ====================
     # Rare Backgrounds (3k-5k XP)
-    {"item_id": "bg_golden", "name": "Golden Hour", "description": "Warm golden background", "category": "profile_bg", "price": 3000, "rarity": "rare", "icon": "ðŸŒ…", "effects": {"bg_style": "gradient", "colors": ["#FFD700", "#FFA500"]}},
-    {"item_id": "bg_ocean", "name": "Ocean Waves", "description": "Calming ocean vibes", "category": "profile_bg", "price": 4500, "rarity": "rare", "icon": "ðŸŒŠ", "effects": {"bg_style": "waves", "animation": "flow"}},
-    {"item_id": "bg_nature", "name": "Garden of Eden", "description": "Lush paradise", "category": "profile_bg", "price": 5000, "rarity": "rare", "icon": "ðŸŒ³", "effects": {"bg_style": "nature", "colors": ["#228B22", "#90EE90"]}},
+    {"item_id": "bg_golden", "name": "Golden Hour", "description": "Warm golden background", "category": "profile_bg", "price": 3000, "rarity": "rare", "icon": "🌅", "effects": {"bg_style": "gradient", "colors": ["#FFD700", "#FFA500"]}},
+    {"item_id": "bg_ocean", "name": "Ocean Waves", "description": "Calming ocean vibes", "category": "profile_bg", "price": 4500, "rarity": "rare", "icon": "🌊", "effects": {"bg_style": "waves", "animation": "flow"}},
+    {"item_id": "bg_nature", "name": "Garden of Eden", "description": "Lush paradise", "category": "profile_bg", "price": 5000, "rarity": "rare", "icon": "🌳", "effects": {"bg_style": "nature", "colors": ["#228B22", "#90EE90"]}},
     
     # Epic Backgrounds (8k-12k XP)
-    {"item_id": "bg_clouds", "name": "Heavenly Clouds", "description": "Walk on clouds", "category": "profile_bg", "price": 8000, "rarity": "epic", "icon": "â˜ï¸", "effects": {"bg_style": "clouds", "animation": "float"}},
-    {"item_id": "bg_night", "name": "Starry Night", "description": "Beautiful night sky", "category": "profile_bg", "price": 10000, "rarity": "epic", "icon": "ðŸŒŒ", "effects": {"bg_style": "stars", "animation": "twinkle"}},
-    {"item_id": "bg_fire", "name": "Holy Fire", "description": "Divine flames", "category": "profile_bg", "price": 12000, "rarity": "epic", "icon": "ðŸ”¥", "effects": {"bg_style": "fire", "animation": "flicker"}},
+    {"item_id": "bg_clouds", "name": "Heavenly Clouds", "description": "Walk on clouds", "category": "profile_bg", "price": 8000, "rarity": "epic", "icon": "☁️", "effects": {"bg_style": "clouds", "animation": "float"}},
+    {"item_id": "bg_night", "name": "Starry Night", "description": "Beautiful night sky", "category": "profile_bg", "price": 10000, "rarity": "epic", "icon": "🌌", "effects": {"bg_style": "stars", "animation": "twinkle"}},
+    {"item_id": "bg_fire", "name": "Holy Fire", "description": "Divine flames", "category": "profile_bg", "price": 12000, "rarity": "epic", "icon": "🔥", "effects": {"bg_style": "fire", "animation": "flicker"}},
     
     # Legendary Backgrounds (18k-30k XP)
-    {"item_id": "bg_paradise", "name": "Paradise Lost", "description": "Eden before the fall", "category": "profile_bg", "price": 18000, "rarity": "legendary", "icon": "ðŸžï¸", "effects": {"bg_style": "paradise", "colors": ["#00FF87", "#60EFFF"]}},
-    {"item_id": "bg_celestial", "name": "Celestial Realm", "description": "Heaven on Earth", "category": "profile_bg", "price": 25000, "rarity": "legendary", "icon": "ðŸ›ï¸", "effects": {"bg_style": "celestial", "animation": "holy_light"}},
-    {"item_id": "bg_eternity", "name": "Eternal Void", "description": "Beyond time and space", "category": "profile_bg", "price": 30000, "rarity": "legendary", "icon": "ðŸ•³ï¸", "effects": {"bg_style": "void", "animation": "dark_matter"}},
+    {"item_id": "bg_paradise", "name": "Paradise Lost", "description": "Eden before the fall", "category": "profile_bg", "price": 18000, "rarity": "legendary", "icon": "🏞️", "effects": {"bg_style": "paradise", "colors": ["#00FF87", "#60EFFF"]}},
+    {"item_id": "bg_celestial", "name": "Celestial Realm", "description": "Heaven on Earth", "category": "profile_bg", "price": 25000, "rarity": "legendary", "icon": "🏛️", "effects": {"bg_style": "celestial", "animation": "holy_light"}},
+    {"item_id": "bg_eternity", "name": "Eternal Void", "description": "Beyond time and space", "category": "profile_bg", "price": 30000, "rarity": "legendary", "icon": "🕳️", "effects": {"bg_style": "void", "animation": "dark_matter"}},
     
     # Mythic Backgrounds (60k-120k XP) - ULTRA RARE
-    {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "ðŸª‘", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
-    {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "â™¾ï¸", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
-    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 120000, "rarity": "mythic", "icon": "ðŸ‘‘", "effects": {"bg_style": "godly", "animation": "omnipotence"}},
+    {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "🪑", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
+    {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
+    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 120000, "rarity": "mythic", "icon": "👑", "effects": {"bg_style": "godly", "animation": "omnipotence"}},
     
     # ==================== BOOSTS / CONSUMABLES ====================
     # Epic Boosts
-    {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "âš¡", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
-    {"item_id": "ability_triple_xp", "name": "Triple XP Boost", "description": "3x XP for 6 hours", "category": "consumable", "price": 8000, "rarity": "legendary", "icon": "ðŸš€", "effects": {"boost": "triple_xp", "duration": "6h", "multiplier": 3}},
+    {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "⚡", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
+    {"item_id": "ability_triple_xp", "name": "Triple XP Boost", "description": "3x XP for 6 hours", "category": "consumable", "price": 8000, "rarity": "legendary", "icon": "🚀", "effects": {"boost": "triple_xp", "duration": "6h", "multiplier": 3}},
     
     # Mythic Boosts
-    {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "ðŸ’«", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
+    {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "💫", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
 ]
 
 def init_shop_items():
@@ -4863,7 +4863,7 @@ def track_verse_read():
             "current_streak": current_streak,
             "longest_streak": longest_streak,
             "total_verses_read": total_read,
-            "message": f"ðŸ“– +{total_xp} XP! {current_streak} day streak!"
+            "message": f"📖 +{total_xp} XP! {current_streak} day streak!"
         })
     except Exception as e:
         logger.error(f"Error tracking verse read: {e}")
@@ -4926,7 +4926,7 @@ def memorize_verse():
             "success": True,
             "xp_earned": 100,
             "total_memorized": total_memorized,
-            "message": f"ðŸ§  +100 XP! Verse memorized! ({total_memorized} total)"
+            "message": f"🧠 +100 XP! Verse memorized! ({total_memorized} total)"
         })
     except Exception as e:
         logger.error(f"Error memorizing verse: {e}")
@@ -4976,7 +4976,7 @@ def add_study_note():
         return jsonify({
             "success": True,
             "xp_earned": xp,
-            "message": f"ðŸ“ +{xp} XP! Study note added!"
+            "message": f"📝 +{xp} XP! Study note added!"
         })
     except Exception as e:
         logger.error(f"Error adding study note: {e}")
@@ -5023,7 +5023,7 @@ def add_prayer_journal():
         return jsonify({
             "success": True,
             "xp_earned": 75,
-            "message": "ðŸ™ +75 XP! Prayer recorded!"
+            "message": "🙏 +75 XP! Prayer recorded!"
         })
     except Exception as e:
         logger.error(f"Error adding prayer: {e}")
@@ -5103,7 +5103,7 @@ def reading_progress():
                 "success": True,
                 "books_completed": len(books_completed),
                 "total_chapters": total_chapters,
-                "message": f"ðŸ“š Progress updated! {len(books_completed)} books completed!"
+                "message": f"📚 Progress updated! {len(books_completed)} books completed!"
             })
         
         else:  # GET
@@ -5193,9 +5193,9 @@ def submit_trivia_answer():
             streak_bonus = min(current_streak * 3, 30)
             total_xp = base_xp + streak_bonus
             award_xp_to_user(user_id, total_xp, f"Trivia correct (streak: {current_streak})")
-            message = f"âœ… +{total_xp} XP! Correct! Streak: {current_streak}"
+            message = f"✅ +{total_xp} XP! Correct! Streak: {current_streak}"
         else:
-            message = "âŒ Not quite! Try again!"
+            message = "❌ Not quite! Try again!"
             total_xp = 0
         
         conn.commit()
@@ -5352,7 +5352,7 @@ def track_topic_study():
             "total_verses_studied": total_verses,
             "total_study_time": total_time,
             "topic_completed": is_completed,
-            "message": f"ðŸ“š +{xp} XP! Studied {topic}!"
+            "message": f"📚 +{xp} XP! Studied {topic}!"
         })
     except Exception as e:
         logger.error(f"Error tracking topic study: {e}")
