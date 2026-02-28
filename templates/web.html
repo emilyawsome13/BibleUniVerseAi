@@ -5748,13 +5748,20 @@
                 const userInfoRole = data.role || 'user';
                 let effectiveRole = userInfoRole;
                 let adminSessionRole = null;
-                try {
-                    const adminRes = await fetch('/admin/api/check-session');
-                    if (adminRes.ok) {
-                        const adminData = await adminRes.json();
-                        if (adminData && adminData.role) adminSessionRole = adminData.role;
-                    }
-                } catch (_) {}
+                const canHaveAdminSession = Boolean(
+                    data.is_admin ||
+                    data.session_admin ||
+                    rolePriority(userInfoRole) > rolePriority('user')
+                );
+                if (canHaveAdminSession) {
+                    try {
+                        const adminRes = await fetch('/admin/api/check-session');
+                        if (adminRes.ok) {
+                            const adminData = await adminRes.json();
+                            if (adminData && adminData.role) adminSessionRole = adminData.role;
+                        }
+                    } catch (_) {}
+                }
                 if (adminSessionRole) {
                     effectiveRole = pickHigherRole(effectiveRole, adminSessionRole);
                 }
@@ -5765,6 +5772,10 @@
                     localStorage.setItem('bibleAppIsAdmin', 'true');
                     localStorage.setItem('bibleAppRole', effectiveRole);
                     updateAdminUI(effectiveRole);
+                } else {
+                    isAdmin = false;
+                    localStorage.removeItem('bibleAppIsAdmin');
+                    localStorage.setItem('bibleAppRole', effectiveRole);
                 }
                 
                 // Always update role badge

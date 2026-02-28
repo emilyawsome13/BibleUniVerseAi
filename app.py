@@ -2930,6 +2930,19 @@ def manifest():
         "icons": [{"src": "/static/icon.png", "sizes": "192x192"}]
     })
 
+@app.route('/favicon.ico')
+def favicon():
+    static_dir = os.path.join(app.root_path, 'static')
+    favicon_path = os.path.join(static_dir, 'favicon.ico')
+    if os.path.isfile(favicon_path):
+        return send_from_directory(static_dir, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+    icon_path = os.path.join(static_dir, 'icon.png')
+    if os.path.isfile(icon_path):
+        return send_from_directory(static_dir, 'icon.png', mimetype='image/png')
+
+    return ('', 204)
+
 @app.route('/')
 def index():
     if 'user_id' not in session:
