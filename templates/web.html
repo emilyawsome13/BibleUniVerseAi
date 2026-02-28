@@ -3848,9 +3848,23 @@
         .achievement-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
         .achievement-item.completed { background: linear-gradient(135deg, rgba(48,209,88,0.1), var(--surface)); border-color: var(--success); }
         .achievement-item.completed:hover { border-color: var(--success); box-shadow: 0 8px 24px rgba(48,209,88,0.2); }
-        .achievement-item.goal-complete { border-color: var(--success); background: linear-gradient(135deg, rgba(48,209,88,0.08), var(--surface)); }
-        .achievement-item.pulsing { animation: achievementCompletePulse 1.7s ease-in-out infinite; }
-        .achievement-item.goal-complete .achievement-icon { background: rgba(48,209,88,0.18); }
+        .achievement-item.goal-complete {
+            background: linear-gradient(135deg, rgba(48,209,88,0.13), var(--surface));
+            border-color: rgba(48,209,88,0.85);
+            box-shadow: 0 0 0 1px rgba(48,209,88,0.15) inset;
+        }
+        .achievement-item.goal-complete .achievement-icon { background: rgba(48,209,88,0.22); }
+        .achievement-item.goal-complete .achievement-progress-fill {
+            background: linear-gradient(90deg, #30d158, #7be495);
+        }
+        .achievement-item.pulsing {
+            animation: achievementCompletePulse 1.8s ease-in-out infinite;
+        }
+        @keyframes achievementCompletePulse {
+            0% { box-shadow: 0 0 0 0 rgba(48,209,88,0.28); }
+            70% { box-shadow: 0 0 0 10px rgba(48,209,88,0); }
+            100% { box-shadow: 0 0 0 0 rgba(48,209,88,0); }
+        }
         .achievement-icon { font-size: 40px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--glass); border-radius: 12px; flex-shrink: 0; }
         .achievement-item.completed .achievement-icon { background: rgba(48,209,88,0.2); }
         .achievement-content { flex: 1; min-width: 0; }
@@ -3862,12 +3876,7 @@
         .achievement-progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s; }
         .achievement-progress-text { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
         .achievement-item.completed .achievement-progress-fill { background: var(--success); }
-        .achievement-item.goal-complete .achievement-progress-fill { background: var(--success); }
         .achievement-category-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--glass); color: var(--text-secondary); font-weight: 500; }
-        @keyframes achievementCompletePulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(48,209,88,0.35); }
-            50% { box-shadow: 0 0 0 10px rgba(48,209,88,0); }
-        }
         /* Mobile click-to-expand progress */
         .achievement-detail-panel { 
             position: absolute; 
@@ -4259,11 +4268,11 @@
 
                 <!-- Quick Filters -->
                 <div class="quick-filters">
-                    <div class="filter-chip active" onclick="filterDiscover('all')">✨ All</div>
-                    <div class="filter-chip" onclick="filterDiscover('liked')">❤️ Liked</div>
-                    <div class="filter-chip" onclick="filterDiscover('saved')">🔖 Saved</div>
-                    <div class="filter-chip" onclick="filterDiscover('popular')">🔥 Popular</div>
-                    <div class="filter-chip" onclick="filterDiscover('recent')">🕐 Recent</div>
+                    <div class="filter-chip active" id="discoverFilterAll" data-discover-filter="all" onclick="filterDiscover('all')">✨ All</div>
+                    <div class="filter-chip" id="discoverFilterLiked" data-discover-filter="liked" onclick="filterDiscover('liked')">❤️ Liked</div>
+                    <div class="filter-chip" id="discoverFilterSaved" data-discover-filter="saved" onclick="filterDiscover('saved')">🔖 Saved</div>
+                    <div class="filter-chip" id="discoverFilterPopular" data-discover-filter="popular" onclick="filterDiscover('popular')">🔥 Popular</div>
+                    <div class="filter-chip" id="discoverFilterRecent" data-discover-filter="recent" onclick="filterDiscover('recent')">🕐 Recent</div>
                 </div>
 
                 <div class="glass-card verse-container" onclick="toggleFullscreen()">
@@ -4285,19 +4294,19 @@
                     <div class="action-grid">
                         <button class="action-btn" id="likeBtn" onclick="toggleLike()">
                             <span class="action-icon like" id="likeIcon" aria-hidden="true"></span>
-                            <span>Like</span>
+                            <span id="actionLikeLabel">Like</span>
                         </button>
                         <button class="action-btn" id="saveBtn" onclick="toggleSave()">
                             <span class="action-icon save" id="saveIcon" aria-hidden="true"></span>
-                            <span>Save</span>
+                            <span id="actionSaveLabel">Save</span>
                         </button>
                         <button class="action-btn" onclick="copyVerse()">
                             <span class="action-icon">&#128203;</span>
-                            <span>Copy</span>
+                            <span id="actionCopyLabel">Copy</span>
                         </button>
                         <button class="action-btn" onclick="shareVerse()">
                             <span class="action-icon">&#128228;</span>
-                            <span>Share</span>
+                            <span id="actionShareLabel">Share</span>
                         </button>
                     </div>
 
@@ -4306,7 +4315,7 @@
                             <div class="timer-progress" id="timerBar" style="width: 100%"></div>
                         </div>
                         <div class="timer-text">
-                            <span>Next Verse</span>
+                            <span id="nextVerseLabel">Next Verse</span>
                             <span id="timerText">01:00</span>
                         </div>
                     </div>
@@ -4315,7 +4324,7 @@
                 <!-- Verse of the Day -->
                 <div class="glass-card" id="verseOfDayCard" style="margin-top: 16px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📖 Verse of the Day</div>
+                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);" id="verseOfDayTitle">📖 Verse of the Day</div>
                         <div style="font-size: 12px; opacity: 0.6;" id="vodDate">Today</div>
                     </div>
                     <div id="verseOfDayContent" style="font-style: italic; opacity: 0.9;">Loading...</div>
@@ -4328,11 +4337,11 @@
             <div id="recommendations" class="tab-view">
                 <!-- Smart Categories -->
                 <div class="rec-categories">
-                    <div class="rec-category active" id="recCatAll" onclick="filterRecs('all')">🎯 All</div>
-                    <div class="rec-category" id="recCatFavorites" onclick="filterRecs('favorites')">⭐ Favorites</div>
-                    <div class="rec-category" id="recCatTrending" onclick="filterRecs('trending')">📈 Trending</div>
-                    <div class="rec-category" id="recCatSimilar" onclick="filterRecs('similar')">🔍 Similar</div>
-                    <div class="rec-category" id="recCatSurprise" onclick="filterRecs('random')">🎲 Surprise</div>
+                    <div class="rec-category active" id="recCatAll" data-rec-filter="all" onclick="filterRecs('all')">🎯 All</div>
+                    <div class="rec-category" id="recCatFavorites" data-rec-filter="favorites" onclick="filterRecs('favorites')">⭐ Favorites</div>
+                    <div class="rec-category" id="recCatTrending" data-rec-filter="trending" onclick="filterRecs('trending')">📈 Trending</div>
+                    <div class="rec-category" id="recCatSimilar" data-rec-filter="similar" onclick="filterRecs('similar')">🔍 Similar</div>
+                    <div class="rec-category" id="recCatSurprise" data-rec-filter="random" onclick="filterRecs('random')">🎲 Surprise</div>
                 </div>
 
                 <!-- Mood Selector -->
@@ -4349,11 +4358,11 @@
                 </div>
 
                 <div class="glass-card">
-                    <button class="gen-btn" onclick="generateRec()">
-                        <span>&#128276;</span>
+                    <button class="gen-btn" id="generateRecBtn" onclick="generateRec()">
+                        <span>🔔</span>
                         <span id="generateRecLabel">Generate Smart Recommendation</span>
                     </button>
-                    <button class="gen-btn" style="margin-top: 10px;" onclick="generateFortune()">
+                    <button class="gen-btn" id="generateFortuneBtn" style="margin-top: 10px; background: linear-gradient(135deg, #f59e0b, #f97316);" onclick="generateFortune()">
                         <span>🔮</span>
                         <span id="generateFortuneLabel">Your Fortune</span>
                     </button>
@@ -4365,7 +4374,7 @@
                 <div class="rec-history">
                     <div class="rec-history-title">
                         <span id="recHistoryTitle">📜 Your Journey</span>
-                        <span id="recHistorySubtitle" style="font-size: 12px; opacity: 0.6; font-weight: 400;">Recent recommendations</span>
+                        <span style="font-size: 12px; opacity: 0.6; font-weight: 400;" id="recHistorySubtitle">Recent recommendations</span>
                     </div>
                     <div id="recHistoryList"></div>
                 </div>
@@ -4385,7 +4394,7 @@
                 <input type="text" class="library-search" id="librarySearch" placeholder="🔍 Search visible verses..." onkeyup="searchLibrary()">
                 <div class="library-search-row" id="libraryBibleSearchWrap" style="display: none;">
                     <input type="text" class="library-search" style="margin-bottom: 0;" id="libraryBibleSearch" placeholder="📖 Search Bible title (e.g. 1 Peter, 1 John)" onkeyup="searchBibleLibraryDebounced()">
-                    <button class="library-search-btn" type="button" onclick="clearBibleLibrarySearch()">Clear</button>
+                    <button class="library-search-btn" id="libraryBibleSearchClearBtn" type="button" onclick="clearBibleLibrarySearch()">Clear</button>
                 </div>
                 <div class="library-search-meta" id="librarySearchMeta" style="display: none;"></div>
 
@@ -4848,7 +4857,7 @@
                         <div class="stat-label" id="statRepliesLabel">Replies</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="statAchievementsCompleted" style="color: var(--success);">0/0</div>
+                        <div class="stat-value" id="statAchievementsCompleted" style="color: var(--success);">0</div>
                         <div class="stat-label" id="statAchievementsLabel">Achievements</div>
                     </div>
                 </div>
@@ -5470,6 +5479,7 @@
         let challengeClaimInFlight = false;
         let notificationPollInterval = null;
         let researchAdvancedVisible = false;
+        const ACHIEVEMENT_STATE_CACHE_KEY = 'achievementStateCacheV1';
         let unlockedAchievementIds = [];
         let userAchievements = [];
         let userStats = {
@@ -6382,9 +6392,11 @@
         }
 
         async function generateRec(silent = false) {
-            const btn = document.querySelector('.gen-btn');
-            btn.style.transform = 'scale(0.97)';
-            setTimeout(() => btn.style.transform = '', 100);
+            const btn = document.getElementById('generateRecBtn');
+            if (btn) {
+                btn.style.transform = 'scale(0.97)';
+                setTimeout(() => btn.style.transform = '', 100);
+            }
             
             const excludeIds = getRecentRecIds(20);
             const res = await fetch('/api/generate-recommendation', {
@@ -6408,108 +6420,102 @@
                 }
                 showRecommendation(recommendation);
                 addToRecHistory(recommendation);
-                if (!silent && settings.notifications) showToast(tUi('newRecommendation', 'New recommendation!'));
+                if (!silent && settings.notifications) showToast('New recommendation!');
             }
         }
 
         function getFortuneTheme(text) {
-            const blob = String(text || '').toLowerCase();
-            const groups = {
-                strength: ['strong', 'courage', 'fear not', 'power', 'battle', 'warrior'],
-                peace: ['peace', 'rest', 'calm', 'quiet', 'still'],
-                wisdom: ['wisdom', 'understanding', 'teach', 'learn', 'knowledge'],
-                love: ['love', 'kindness', 'compassion', 'mercy', 'forgive'],
-                hope: ['hope', 'future', 'promise', 'tomorrow', 'waiting']
-            };
-            for (const [theme, words] of Object.entries(groups)) {
-                if (words.some((w) => blob.includes(w))) return theme;
-            }
-            return 'hope';
+            const source = String(text || '').toLowerCase();
+            if (/(fear|afraid|anxious|worry|dark|storm|danger)/.test(source)) return 'courage';
+            if (/(love|mercy|grace|kind|forgive|compassion)/.test(source)) return 'love';
+            if (/(wait|patience|season|journey|endure|timing)/.test(source)) return 'patience';
+            if (/(dream|future|hope|plan|purpose|path)/.test(source)) return 'purpose';
+            if (/(strength|battle|fight|war|tired|weak)/.test(source)) return 'strength';
+            return 'peace';
         }
 
         function buildFortuneText(theme, anchorRef, topBook) {
-            const pools = {
-                strength: [
-                    'You are entering a season where courage will open doors.',
-                    'A difficult moment becomes your breakthrough with steady faith.',
-                    'You will have strength exactly when you need it most.'
-                ],
+            const fortunes = {
                 peace: [
-                    'Peace will settle over choices that felt heavy.',
-                    'The next step becomes clear when you move in quiet trust.',
-                    'Rest is part of your progress, not a delay.'
+                    `Your fortune: quiet confidence is growing inside you. Keep moving one faithful step at a time. (${anchorRef})`,
+                    `Your fortune: peace will guard your next decisions; avoid rushing and trust steady wisdom from ${topBook}. (${anchorRef})`
                 ],
-                wisdom: [
-                    'A wise decision soon protects your future.',
-                    'Clarity grows as you stay consistent in the Word.',
-                    'Guidance will come through patience and small daily steps.'
+                courage: [
+                    `Your fortune: what feels heavy now will become your testimony. Courage will rise when you take the first step. (${anchorRef})`,
+                    `Your fortune: fear is loud, but not final. A brave choice this week opens new clarity. (${anchorRef})`
                 ],
                 love: [
-                    'An act of kindness will return multiplied.',
-                    'Healing grows in places where you choose grace.',
-                    'Your compassion is planting long-term fruit.'
+                    `Your fortune: kindness you give returns multiplied. Lead with grace and watch relationships soften. (${anchorRef})`,
+                    `Your fortune: you are not overlooked. Love is already working behind the scenes in your favor. (${anchorRef})`
                 ],
-                hope: [
-                    'What feels delayed is still being prepared for good.',
-                    'A new opportunity is closer than it looks right now.',
-                    'Your next chapter carries more light than your last one.'
+                patience: [
+                    `Your fortune: delay is not denial. The next season forms depth before the reward appears. (${anchorRef})`,
+                    `Your fortune: stay faithful in small routines. Consistency this week unlocks long-term fruit. (${anchorRef})`
+                ],
+                purpose: [
+                    `Your fortune: your direction is sharpening. A new opportunity aligns with your deeper calling soon. (${anchorRef})`,
+                    `Your fortune: doors that match your purpose open as you keep your focus clean and simple. (${anchorRef})`
+                ],
+                strength: [
+                    `Your fortune: your strength is being renewed. You are stronger than this moment suggests. (${anchorRef})`,
+                    `Your fortune: resistance is training, not punishment. You will finish this stretch with greater authority. (${anchorRef})`
                 ]
             };
-            const pick = pools[theme] || pools.hope;
-            const line = pick[Math.floor(Math.random() * pick.length)];
-            const bookHint = topBook ? ` ${tUi('fortuneBookHint', 'Your library points toward')}: ${topBook}.` : '';
-            return `${line} ${tUi('fortuneAnchorPrefix', 'Anchor this with')} ${anchorRef}.${bookHint}`;
+            const set = fortunes[theme] || fortunes.peace;
+            return set[Math.floor(Math.random() * set.length)];
         }
 
         async function generateFortune() {
+            const list = document.getElementById('recList');
+            if (!list) return;
+            const fortuneBtn = document.getElementById('generateFortuneBtn');
+            if (fortuneBtn) {
+                fortuneBtn.style.transform = 'scale(0.97)';
+                setTimeout(() => { fortuneBtn.style.transform = ''; }, 100);
+            }
             try {
                 const res = await fetch('/api/library', { cache: 'no-store' });
                 const data = await res.json();
                 const liked = Array.isArray(data.liked) ? data.liked : [];
                 const saved = Array.isArray(data.saved) ? data.saved : [];
-                const pool = [...liked, ...saved];
-                const unique = [];
-                const seen = new Set();
-                pool.forEach((v) => {
-                    const key = String(v.id || `${v.ref}|${v.text || ''}`);
-                    if (seen.has(key)) return;
-                    seen.add(key);
-                    unique.push(v);
-                });
+                const pool = [...liked, ...saved].filter(v => v && (v.text || v.ref));
 
-                if (!unique.length) {
-                    showToast(tUi('fortuneNeedLibrary', 'Save or like verses first so I can read your library.'));
+                if (!pool.length) {
+                    showToast('Save or like verses first to generate your fortune.');
                     return;
                 }
 
-                const byBook = {};
-                unique.forEach((v) => {
-                    const book = String(v.book || '').trim() || String(v.ref || '').split(' ')[0] || tUi('fortuneUnknownBook', 'Unknown');
-                    byBook[book] = (byBook[book] || 0) + 1;
+                const bookCounts = {};
+                pool.forEach((v) => {
+                    const rawBook = (v.book || (v.ref || '').split(' ')[0] || 'Scripture').trim();
+                    if (!rawBook) return;
+                    bookCounts[rawBook] = (bookCounts[rawBook] || 0) + 1;
                 });
-                const topBook = Object.keys(byBook).sort((a, b) => byBook[b] - byBook[a])[0] || '';
-                const anchor = unique[Math.floor(Math.random() * unique.length)];
-                const anchorRef = anchor.ref || anchor.reference || tUi('fortuneUnknownRef', 'a verse in your library');
+                const topBook = Object.entries(bookCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Scripture';
+                const anchor = pool[Math.floor(Math.random() * pool.length)];
+                const anchorRef = anchor.ref || 'Your Library';
                 const theme = getFortuneTheme(anchor.text || '');
-                const fortune = buildFortuneText(theme, anchorRef, topBook);
+                const fortuneText = buildFortuneText(theme, anchorRef, topBook);
 
-                const recList = document.getElementById('recList');
-                if (!recList) return;
-                recList.innerHTML = `
-                    <div class="rec-card">
-                        <div class="rec-reason">🔮 ${tUi('fortuneTitle', 'Your Fortune')}</div>
-                        <div style="font-size: 15px; line-height: 1.5; margin-bottom: 10px;">${fortune}</div>
-                        <div style="font-size: 12px; opacity: 0.72; margin-bottom: 8px;">${tUi('fortuneBasedOn', 'Based on your library')}: ${unique.length} ${tUi('fortuneVerses', 'verses')}</div>
-                        <div style="font-size: 13px; opacity: 0.85; font-weight: 600; margin-bottom: 12px;">${anchorRef}</div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="verse-card-btn" style="flex: 1;" onclick="generateFortune()">${tUi('fortuneAgain', 'Generate Again')}</button>
-                            <button class="verse-card-btn" style="flex: 1;" onclick="generateRec(true)">${tUi('generateRecommendationLabel', 'Generate Recommendation')}</button>
-                        </div>
+                const fortune = {
+                    id: `fortune-${Date.now()}`,
+                    reason: 'Your Fortune',
+                    text: fortuneText,
+                    ref: `Inspired by ${anchorRef}`,
+                    source: 'fortune'
+                };
+                list.innerHTML = `
+                    <div class="rec-card" style="animation: slideIn 0.25s ease;">
+                        <div class="rec-reason">🔮 ${fortune.reason}</div>
+                        <div style="font-style: italic; margin-bottom: 10px;">${fortune.text}</div>
+                        <div style="font-weight: 700; color: var(--primary);">${fortune.ref}</div>
+                        <div style="font-size: 12px; opacity: 0.65; margin-top: 8px;">Primary source in your library: ${topBook}</div>
                     </div>
                 `;
-                showToast(tUi('fortuneReady', 'Fortune generated from your library.'));
+                addToRecHistory(fortune);
+                showToast('Your fortune is ready.');
             } catch (_) {
-                showToast(tUi('fortuneError', 'Unable to generate fortune right now.'));
+                showToast('Unable to generate fortune right now.');
             }
         }
 
@@ -6539,14 +6545,14 @@
             div.dataset.rec = JSON.stringify(rec || {});
             div.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primary);">
-                    <span>&#10024;</span>
+                    <span>✨</span>
                     <span>${rec.reason}</span>
                 </div>
                 <div style="font-size: 15px; line-height: 1.5; margin-bottom: 10px;">${rec.text}</div>
                 <div style="font-size: 13px; opacity: 0.7; font-weight: 600; margin-bottom: 12px;">${rec.ref}</div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">&#9825; ${tUi('likeAction', 'Like')}</button>
-                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">&#128278; ${tUi('saveAction', 'Save')}</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recLike(${rec.id}, this)">♡ ${tUi('likeAction', 'Like')}</button>
+                    <button class="verse-card-btn" style="flex: 1;" onclick="recSave(${rec.id}, this)">🔖 ${tUi('saveAction', 'Save')}</button>
                 </div>
             `;
             return div;
@@ -6572,7 +6578,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            btn.innerHTML = '&#9829; Liked';
+            btn.innerHTML = `♥ ${tUi('liked', 'Liked')}`;
             btn.classList.add('liked');
             btn.classList.add('pop-success');
             setTimeout(() => btn.classList.remove('pop-success'), 420);
@@ -6599,7 +6605,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            btn.innerHTML = '&#128209; Saved';
+            btn.innerHTML = `📑 ${tUi('saved', 'Saved')}`;
             btn.classList.add('saved');
             btn.classList.add('pop-success');
             setTimeout(() => btn.classList.remove('pop-success'), 420);
@@ -6639,7 +6645,7 @@
                 libraryViewMode = 'bible-search';
                 librarySearchResults = [];
                 document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
-                setLibrarySearchMeta('Search by Bible title to browse verses already in your database.');
+                setLibrarySearchMeta(tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
                 renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
                 return;
             }
@@ -6647,7 +6653,7 @@
             libraryViewMode = 'personal';
             librarySearchResults = [];
             setLibrarySearchMeta('');
-            document.getElementById('libraryListTitle').textContent = 'My Verses';
+            document.getElementById('libraryListTitle').textContent = tUi('myVerses', 'My Verses');
             renderLibraryVerses();
         }
 
@@ -6690,7 +6696,7 @@
             });
 
             const btn = document.getElementById('researchAdvancedToggleBtn');
-            if (btn) btn.textContent = researchAdvancedVisible ? 'Hide Advanced' : 'Show Advanced';
+            if (btn) btn.textContent = researchAdvancedVisible ? tUi('hideAdvanced', 'Hide Advanced') : tUi('showAdvanced', 'Show Advanced');
         }
 
         function toggleResearchAdvanced() {
@@ -6893,11 +6899,11 @@
                     libraryViewMode = 'bible-search';
                     document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
                     setLibrarySearchMeta('Type at least 2 characters. Example: "1 Peter", "Genesis", "John".');
-                    renderVerseCards([], 'Search by Bible title to browse verses already in your database.');
+                    renderVerseCards([], tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
                 } else {
                     libraryViewMode = 'personal';
                     setLibrarySearchMeta('');
-                    document.getElementById('libraryListTitle').textContent = 'My Verses';
+                    document.getElementById('libraryListTitle').textContent = tUi('myVerses', 'My Verses');
                     renderLibraryVerses();
                 }
                 return;
@@ -7340,13 +7346,13 @@
             if (currentLibraryTab === 'dbsearch') {
                 libraryViewMode = 'bible-search';
                 document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
-                setLibrarySearchMeta('Search by Bible title to browse verses already in your database.');
+                setLibrarySearchMeta(tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
                 renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
                 return;
             }
             libraryViewMode = 'personal';
             setLibrarySearchMeta('');
-            document.getElementById('libraryListTitle').textContent = 'My Verses';
+            document.getElementById('libraryListTitle').textContent = tUi('myVerses', 'My Verses');
             renderLibraryVerses();
         }
 
@@ -8285,8 +8291,8 @@
             const displayCount = useDatabase ? dbCount : localCount;
 
             statValueEl.textContent = formatNumber(displayCount);
-            statLabelEl.textContent = useDatabase ? tUi('databaseVersesLabel', 'Database Verses') : tUi('localVersesLabel', 'Your Local Verses');
-            statSubEl.textContent = useDatabase ? tUi('databaseVersesSub', 'Shared verse catalog count') : tUi('localVersesSub', 'Generated on this device');
+            statLabelEl.textContent = useDatabase ? 'Database Verses' : 'Your Local Verses';
+            statSubEl.textContent = useDatabase ? 'Shared verse catalog count' : 'Generated on this device';
 
             const dbBtn = document.getElementById('profileVerseDbBtn');
             const localBtn = document.getElementById('profileVerseLocalBtn');
@@ -8413,7 +8419,7 @@
             
             // Load new profile features
             loadStreak();
-            loadAchievements(safeStats);
+            await loadAchievements(safeStats);
             loadFavoriteBooks();
             loadVerseHistory();
             updateXpDisplay();
@@ -9004,8 +9010,8 @@ function getAchievementProgress(ach, stats, isUnlocked) {
     }
     if (isUnlocked) current = Math.max(current, goal);
     const pct = Math.max(0, Math.min(100, (current / goal) * 100));
-    const done = current >= goal;
-    const label = done ? tUi('completeWord', 'Complete') : (goal > 1 ? `${Math.min(current, goal)}/${goal}` : tUi('lockedWord', 'Locked'));
+    const goalComplete = pct >= 100;
+    const label = goal > 1 ? `${Math.min(current, goal)}/${goal}` : (goalComplete ? 'Complete' : 'Locked');
     return { pct, label };
 }
 
@@ -9013,17 +9019,52 @@ let currentAchievementFilter = 'all';
 let currentAchievementStats = {};
 let achievementTotalXpEarned = 0;
 
+function readAchievementStateCache() {
+    try {
+        const raw = localStorage.getItem(ACHIEVEMENT_STATE_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.unlocked)) return null;
+        return {
+            unlocked: parsed.unlocked.filter((x) => typeof x === 'string' && x.trim()),
+            total_xp: Number(parsed.total_xp || 0)
+        };
+    } catch (_) {
+        return null;
+    }
+}
+
+function writeAchievementStateCache(state) {
+    try {
+        if (!state || !Array.isArray(state.unlocked)) return;
+        localStorage.setItem(ACHIEVEMENT_STATE_CACHE_KEY, JSON.stringify({
+            unlocked: state.unlocked,
+            total_xp: Number(state.total_xp || 0),
+            ts: Date.now()
+        }));
+    } catch (_) {}
+}
+
 function updateAchievementSummary(totalXp = null) {
-    if (typeof totalXp === 'number') achievementTotalXpEarned = Math.max(0, Math.floor(totalXp));
-    const completedCount = Array.isArray(unlockedAchievementIds) ? unlockedAchievementIds.length : 0;
-    const totalCount = Array.isArray(ACHIEVEMENTS) ? ACHIEVEMENTS.length : 0;
+    if (totalXp !== null && totalXp !== undefined) {
+        achievementTotalXpEarned = Number(totalXp || 0);
+    }
+    const unlockedSet = new Set(Array.isArray(unlockedAchievementIds) ? unlockedAchievementIds : []);
+    const completedByProgress = ACHIEVEMENTS.filter((ach) => {
+        const isUnlocked = unlockedSet.has(ach.id);
+        const progress = getAchievementProgress(ach, currentAchievementStats, isUnlocked);
+        return progress.pct >= 100;
+    }).length;
+    const completedCount = Math.max(unlockedSet.size, completedByProgress);
+    const completedDisplay = `${completedCount}/${ACHIEVEMENTS.length} ${tUi('completedWord', 'Completed')}`;
+
     const completedEl = document.getElementById('achievementsCompleted');
     const xpEl = document.getElementById('achievementsXP');
-    const statCompletedEl = document.getElementById('statAchievementsCompleted');
-
-    if (completedEl) completedEl.textContent = `${completedCount}/${totalCount} ${tUi('completedWord', 'Completed')}`;
+    if (completedEl) completedEl.textContent = completedDisplay;
     if (xpEl) xpEl.textContent = `+${achievementTotalXpEarned} ${tUi('xpEarnedWord', 'XP Earned')}`;
-    if (statCompletedEl) statCompletedEl.textContent = `${completedCount}/${totalCount}`;
+
+    const profileCompletedEl = document.getElementById('statAchievementsCompleted');
+    if (profileCompletedEl) profileCompletedEl.textContent = String(completedCount);
 }
 
 async function loadAchievements(stats) {
@@ -9033,10 +9074,20 @@ async function loadAchievements(stats) {
     currentAchievementStats = { ...(stats || {}) };
     userStats = { ...userStats, ...currentAchievementStats };
 
-    let achievementState = { unlocked: [], total_xp: 0 };
+    const cachedState = readAchievementStateCache();
+    let achievementState = cachedState || {
+        unlocked: Array.isArray(unlockedAchievementIds) ? [...unlockedAchievementIds] : [],
+        total_xp: Number(achievementTotalXpEarned || 0)
+    };
     try {
         const res = await fetch('/api/achievements', { cache: 'no-store' });
-        if (res.ok) achievementState = await res.json();
+        if (res.ok) {
+            const liveState = await res.json();
+            if (liveState && Array.isArray(liveState.unlocked)) {
+                achievementState = liveState;
+                writeAchievementStateCache(achievementState);
+            }
+        }
     } catch (_) {}
 
     unlockedAchievementIds = Array.isArray(achievementState.unlocked) ? [...achievementState.unlocked] : [];
@@ -9065,7 +9116,7 @@ async function loadAchievements(stats) {
                 userAchievements = [...unlockedAchievementIds];
                 totalXPEarned += Number(data.xp_awarded || ach.xp || 0);
                 newUnlocks = true;
-                if (settings.notifications) showToast(`🏆 ${tUi('achievementUnlocked', 'Unlocked')}: ${ach.name}! +${ach.xp || 0} XP`);
+                if (settings.notifications) showToast(`🏆 Unlocked: ${ach.name}! +${ach.xp || 0} XP`);
                 if (typeof AudioSys !== 'undefined') AudioSys.playSuccess();
                 await updateXpDisplay();
             } else if (res.ok && data.success && !data.awarded) {
@@ -9111,13 +9162,8 @@ function renderAchievementsList() {
         const progress = getAchievementProgress(ach, stats, isUnlocked);
         const goalComplete = progress.pct >= 100;
         const categoryLabels = {
-            likes: tUi('likesWord', 'Likes'),
-            saves: tUi('savesWord', 'Saves'),
-            comments: tUi('commentsWord', 'Comments'),
-            replies: tUi('repliesWord', 'Replies'),
-            streak: tUi('streaksWord', 'Streaks'),
-            shares: tUi('sharesWord', 'Shares'),
-            special: tUi('specialWord', 'Special')
+            likes: 'Likes', saves: 'Saves', comments: 'Comments', 
+            replies: 'Replies', streak: 'Streaks', shares: 'Shares', special: 'Special'
         };
         
         return `
@@ -9129,7 +9175,7 @@ function renderAchievementsList() {
                     <div class="achievement-name">
                         ${ach.name}
                         <span class="achievement-category-tag">${categoryLabels[ach.category] || ach.category}</span>
-                        ${goalComplete ? '✓' : ''}
+                        ${goalComplete ? '✅' : ''}
                     </div>
                     <div class="achievement-desc">${ach.desc}</div>
                     <div class="achievement-reward">⚡ +${ach.xp || 50} XP</div>
@@ -9150,7 +9196,10 @@ function filterAchievements(category) {
     
     // Update active button
     document.querySelectorAll('.achievement-categories .shop-category-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.achFilter === category);
+        btn.classList.remove('active');
+        if ((btn.dataset.achFilter || '') === category) {
+            btn.classList.add('active');
+        }
     });
     
     renderAchievementsList();
@@ -9193,17 +9242,17 @@ function showAchievementDetail(achId, isUnlocked) {
         </div>
         <div style="background: var(--glass); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>${tUi('statusWord', 'Status')}:</span>
+                <span>Status:</span>
                 <span style="color: ${goalComplete ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 600;">
-                    ${goalComplete ? `✓ ${tUi('completedWord', 'Completed')}` : tUi('lockedWord', 'Locked')}
+                    ${goalComplete ? '✅ Completed' : 'Locked'}
                 </span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>${tUi('rewardWord', 'Reward')}:</span>
+                <span>Reward:</span>
                 <span style="color: var(--primary); font-weight: 600;">⚡ ${ach.xp || 50} XP</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
-                <span>${tUi('progressWord', 'Progress')}:</span>
+                <span>Progress:</span>
                 <span>${progress.label}</span>
             </div>
         </div>
@@ -9211,7 +9260,7 @@ function showAchievementDetail(achId, isUnlocked) {
             <div class="achievement-progress-fill" style="width: ${progress.pct}%; background: ${goalComplete ? 'var(--success)' : 'var(--primary)'};"></div>
         </div>
         <div style="text-align: center; font-size: 12px; color: var(--text-secondary);">
-            ${goalComplete ? tUi('achievementCompleteHint', 'Great job! Keep going!') : tUi('achievementLockedHint', 'Keep working to unlock this achievement!')}
+            ${goalComplete ? 'Great job! Keep going!' : 'Keep working to unlock this achievement!'}
         </div>
     `;
     document.body.appendChild(panel);
@@ -9901,12 +9950,9 @@ async function checkAchievement(type, value) {
         function filterDiscover(type) {
             currentFilter = type;
             document.querySelectorAll('.quick-filters .filter-chip').forEach(chip => {
-                chip.classList.remove('active');
-                if (chip.textContent.toLowerCase().includes(type === 'all' ? 'all' : type)) {
-                    chip.classList.add('active');
-                }
+                chip.classList.toggle('active', (chip.dataset.discoverFilter || '') === type);
             });
-            showToast(`Filtered: ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            showToast(`${tUi('filteredWord', 'Filtered')}: ${type.charAt(0).toUpperCase() + type.slice(1)}`);
         }
 
         // Verse of the Day
@@ -9933,29 +9979,10 @@ async function checkAchievement(type, value) {
         let currentRecFilter = 'all';
         function filterRecs(type) {
             currentRecFilter = type;
-            document.querySelectorAll('.rec-category').forEach(cat => cat.classList.remove('active'));
-            const idMap = {
-                all: 'recCatAll',
-                favorites: 'recCatFavorites',
-                trending: 'recCatTrending',
-                similar: 'recCatSimilar',
-                random: 'recCatSurprise'
-            };
-            const target = document.getElementById(idMap[type] || '') || event?.target;
-            if (target) target.classList.add('active');
-            showToast(`${tUi('forYou', 'For You')}: ${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        }
-
-        function getMoodLabel(mood) {
-            const map = {
-                peace: tUi('moodPeaceful', 'Peaceful'),
-                strength: tUi('moodStrength', 'Need Strength'),
-                hope: tUi('moodHopeful', 'Hopeful'),
-                love: tUi('moodLoved', 'Loved'),
-                gratitude: tUi('moodGrateful', 'Grateful'),
-                guidance: tUi('moodGuidance', 'Need Guidance')
-            };
-            return map[mood] || mood;
+            document.querySelectorAll('.rec-category').forEach((cat) => {
+                cat.classList.toggle('active', (cat.dataset.recFilter || '') === type);
+            });
+            showToast(`${tUi('recommendationsWord', 'Recommendations')}: ${type.charAt(0).toUpperCase() + type.slice(1)}`);
         }
 
         async function getMoodVerse(mood) {
@@ -9971,18 +9998,18 @@ async function checkAchievement(type, value) {
                 }
                 const verse = { ref: data.ref, text: data.text, id: data.id };
                 
-                addToRecHistory({ ...verse, reason: `${tUi('moodPrompt', 'How are you feeling?')}: ${getMoodLabel(mood)}` });
+                addToRecHistory({ ...verse, reason: `For when you're feeling ${mood}` });
                 
                 const recList = document.getElementById('recList');
                 recList.innerHTML = `
                     <div class="rec-card" style="animation: slideIn 0.3s ease;">
-                        <div class="rec-reason">💭 ${getMoodLabel(mood)}</div>
+                        <div class="rec-reason">💭 ${mood.charAt(0).toUpperCase() + mood.slice(1)}</div>
                         <div style="font-style: italic; margin-bottom: 8px;">${verse.text}</div>
                         <div style="font-weight: 700; color: var(--primary);">${verse.ref}</div>
                     </div>
                 `;
                 
-                showToast(`${tUi('forYou', 'For You')}: ${getMoodLabel(mood)}`);
+                showToast(`Verses for when you're feeling ${mood}`);
             } catch (e) {
                 showToast('Unable to fetch a new verse. Try again.');
             }
@@ -10011,7 +10038,7 @@ async function checkAchievement(type, value) {
             const container = document.getElementById('recHistoryList');
             
             if (history.length === 0) {
-                container.innerHTML = '<div style="opacity: 0.6; text-align: center; padding: 20px;">Your recommendations will appear here</div>';
+                container.innerHTML = `<div style="opacity: 0.6; text-align: center; padding: 20px;">${tUi('recommendationsAppearHere', 'Your recommendations will appear here')}</div>`;
                 return;
             }
             
@@ -10672,106 +10699,338 @@ async function checkAchievement(type, value) {
         setInterval(updateOnlineUsers, 30000);
 
         const UI_LANGUAGE_BASE = {
-            settings: 'Settings', language: 'Language', languageDesc: 'Translate core interface labels',
-            challenge: 'Daily Challenge', libAll: 'All', libCollections: 'Collections', libFavorites: 'Favorites', libResearch: 'Research', researchTools: 'Research Tools',
-            discover: 'Discover', forYou: 'For You', library: 'Library', comments: 'Comments', shop: 'Shop', inventory: 'My Items', achievements: 'Achievements', xpGuide: 'XP Guide', profile: 'Profile', about: 'About Us', chat: 'Chat', awards: 'Awards',
-            openDm: 'Open DMs', memberSince: 'Member Since', timeOnSite: 'Time on Site', xpLabelText: 'XP',
-            likedLabel: 'Liked', savedLabel: 'Saved', commentsLabel: 'Comments', repliesLabel: 'Replies', achievementsLabel: 'Achievements',
-            localTab: 'Local', databaseTab: 'Database',
-            localVersesLabel: 'Your Local Verses', databaseVersesLabel: 'Database Verses', localVersesSub: 'Generated on this device', databaseVersesSub: 'Shared verse catalog count',
-            recAll: 'All', recFavorites: 'Favorites', recTrending: 'Trending', recSimilar: 'Similar', recSurprise: 'Surprise',
-            moodPrompt: 'How are you feeling?', moodPeaceful: 'Peaceful', moodStrength: 'Need Strength', moodHopeful: 'Hopeful', moodLoved: 'Loved', moodGrateful: 'Grateful', moodGuidance: 'Need Guidance',
-            generateRecommendationLabel: 'Generate Smart Recommendation', generateFortuneLabel: 'Your Fortune', fortuneTitle: 'Your Fortune',
-            yourJourney: 'Your Journey', recentRecommendations: 'Recent recommendations',
-            achievementsTitle: 'Achievements', achAll: 'All', achLikes: 'Likes', achSaves: 'Saves', achComments: 'Comments', achReplies: 'Replies', achStreaks: 'Streaks', achShares: 'Shares', achSpecial: 'Special',
-            completedWord: 'Completed', xpEarnedWord: 'XP Earned', completeWord: 'Complete', lockedWord: 'Locked',
-            statusWord: 'Status', rewardWord: 'Reward', progressWord: 'Progress',
-            achievementUnlocked: 'Unlocked', achievementCompleteHint: 'Great job! Keep going!', achievementLockedHint: 'Keep working to unlock this achievement!',
-            likesWord: 'Likes', savesWord: 'Saves', commentsWord: 'Comments', repliesWord: 'Replies', streaksWord: 'Streaks', sharesWord: 'Shares', specialWord: 'Special',
-            likeAction: 'Like', saveAction: 'Save', newRecommendation: 'New recommendation!',
-            fortuneBasedOn: 'Based on your library', fortuneVerses: 'verses', fortuneAgain: 'Generate Again', fortuneReady: 'Fortune generated from your library.',
-            fortuneError: 'Unable to generate fortune right now.', fortuneNeedLibrary: 'Save or like verses first so I can read your library.',
-            fortuneBookHint: 'Your library points toward', fortuneAnchorPrefix: 'Anchor this with', fortuneUnknownBook: 'Unknown', fortuneUnknownRef: 'a verse in your library'
+            settings: 'Settings',
+            language: 'Language',
+            languageDesc: 'Translate all visible interface text',
+            challenge: 'Daily Challenge',
+            libAll: 'All',
+            libCollections: 'Collections',
+            libFavorites: 'Favorites',
+            libResearch: 'Research',
+            researchTools: 'Research Tools',
+            discover: 'Discover',
+            forYou: 'For You',
+            library: 'Library',
+            comments: 'Comments',
+            shop: 'Shop',
+            inventory: 'My Items',
+            achievements: 'Achievements',
+            xpGuide: 'XP Guide',
+            profile: 'Profile',
+            about: 'About Us',
+            chat: 'Chat',
+            awards: 'Awards',
+            memberSince: 'Member Since',
+            timeOnSite: 'Time on Site',
+            xp: 'XP',
+            openDms: 'Open DMs',
+            liked: 'Liked',
+            saved: 'Saved',
+            likeAction: 'Like',
+            saveAction: 'Save',
+            copyAction: 'Copy',
+            shareAction: 'Share',
+            commentsLabel: 'Comments',
+            replies: 'Replies',
+            achievementsShort: 'Achievements',
+            achAll: '📋 All',
+            achLikes: '❤️ Likes',
+            achSaves: '🔖 Saves',
+            achComments: '💬 Comments',
+            achReplies: '🤝 Replies',
+            achStreaks: '🔥 Streaks',
+            achShares: '📢 Shares',
+            achSpecial: '⭐ Special',
+            achTitle: '🏆 Achievements',
+            moodPrompt: '💭 How are you feeling?',
+            moodPeaceful: '😌 Peaceful',
+            moodStrength: '💪 Need Strength',
+            moodHopeful: '🌟 Hopeful',
+            moodLoved: '❤️ Loved',
+            moodGrateful: '🙏 Grateful',
+            moodGuidance: '🧭 Need Guidance',
+            recGenerate: 'Generate Smart Recommendation',
+            recFortune: 'Your Fortune',
+            recJourney: '📜 Your Journey',
+            recRecent: 'Recent recommendations',
+            completedWord: 'Completed',
+            xpEarnedWord: 'XP Earned',
+            discoverAll: '✨ All',
+            discoverLiked: '❤️ Liked',
+            discoverSaved: '🔖 Saved',
+            discoverPopular: '🔥 Popular',
+            discoverRecent: '🕐 Recent',
+            nextVerse: 'Next Verse',
+            verseOfDay: '📖 Verse of the Day',
+            todayWord: 'Today',
+            recAll: '🎯 All',
+            recFavorites: '⭐ Favorites',
+            recTrending: '📈 Trending',
+            recSimilar: '🔍 Similar',
+            recSurprise: '🎲 Surprise',
+            librarySearchPlaceholder: '🔍 Search visible verses...',
+            libraryBibleSearchPlaceholder: '📖 Search Bible title (e.g. 1 Peter, 1 John)',
+            clearWord: 'Clear',
+            myVerses: 'My Verses',
+            showAdvanced: 'Show Advanced',
+            hideAdvanced: 'Hide Advanced',
+            libraryBrowseHint: 'Search by Bible title to browse verses already in your database.',
+            filteredWord: 'Filtered',
+            recommendationsWord: 'Recommendations',
+            recommendationsAppearHere: 'Your recommendations will appear here'
         };
 
         const UI_LANGUAGE_PACKS = {
-            en: { ...UI_LANGUAGE_BASE },
-            es: { ...UI_LANGUAGE_BASE, settings: 'Configuracion', language: 'Idioma', languageDesc: 'Traduce etiquetas de la interfaz', challenge: 'Desafio Diario', libAll: 'Todo', libCollections: 'Colecciones', libFavorites: 'Favoritos', libResearch: 'Investigar', researchTools: 'Herramientas de estudio', discover: 'Descubrir', forYou: 'Para Ti', library: 'Biblioteca', comments: 'Comentarios', shop: 'Tienda', inventory: 'Mis Items', achievements: 'Logros', xpGuide: 'Guia XP', profile: 'Perfil', about: 'Acerca', awards: 'Premios', openDm: 'Abrir DMs', memberSince: 'Miembro Desde', timeOnSite: 'Tiempo en Sitio', recTrending: 'Tendencia', recSimilar: 'Similar', recSurprise: 'Sorpresa', moodPrompt: 'Como te sientes?', generateRecommendationLabel: 'Generar recomendacion inteligente', generateFortuneLabel: 'Tu Fortuna', fortuneTitle: 'Tu Fortuna', yourJourney: 'Tu Camino', recentRecommendations: 'Recomendaciones recientes', completedWord: 'Completado', xpEarnedWord: 'XP Ganado', lockedWord: 'Bloqueado', statusWord: 'Estado', rewardWord: 'Recompensa', progressWord: 'Progreso', achievementUnlocked: 'Desbloqueado', likeAction: 'Me gusta', saveAction: 'Guardar' },
-            fr: { ...UI_LANGUAGE_BASE, settings: 'Parametres', language: 'Langue', challenge: 'Defi Quotidien', libAll: 'Tout', libFavorites: 'Favoris', discover: 'Decouvrir', forYou: 'Pour Vous', library: 'Bibliotheque', comments: 'Commentaires', shop: 'Boutique', inventory: 'Mes Objets', achievements: 'Succes', profile: 'Profil', about: 'A propos', openDm: 'Ouvrir DM', memberSince: 'Membre Depuis', timeOnSite: 'Temps sur site', recTrending: 'Tendance', recSimilar: 'Similaire', recSurprise: 'Surprise', moodPrompt: 'Comment vous sentez-vous ?', generateFortuneLabel: 'Votre Fortune', fortuneTitle: 'Votre Fortune', yourJourney: 'Votre Parcours', recentRecommendations: 'Recommandations recentes', completedWord: 'Termine', lockedWord: 'Verrouille', statusWord: 'Statut', rewardWord: 'Recompense', progressWord: 'Progression' },
-            de: { ...UI_LANGUAGE_BASE, settings: 'Einstellungen', language: 'Sprache', challenge: 'Tagesaufgabe', libAll: 'Alle', libCollections: 'Sammlungen', libFavorites: 'Favoriten', discover: 'Entdecken', forYou: 'Fur Dich', library: 'Bibliothek', comments: 'Kommentare', inventory: 'Meine Items', achievements: 'Erfolge', profile: 'Profil', about: 'Info', openDm: 'DMs Offnen', memberSince: 'Mitglied Seit', timeOnSite: 'Zeit auf Seite', recTrending: 'Trend', recSimilar: 'Ahnlich', recSurprise: 'Uberraschung', moodPrompt: 'Wie fuhlst du dich?', generateFortuneLabel: 'Dein Schicksal', fortuneTitle: 'Dein Schicksal', yourJourney: 'Dein Weg', recentRecommendations: 'Letzte Empfehlungen', completedWord: 'Abgeschlossen', lockedWord: 'Gesperrt', statusWord: 'Status', rewardWord: 'Belohnung', progressWord: 'Fortschritt' },
-            pt: { ...UI_LANGUAGE_BASE, settings: 'Configuracoes', language: 'Idioma', challenge: 'Desafio Diario', libAll: 'Tudo', libCollections: 'Colecoes', libFavorites: 'Favoritos', discover: 'Descobrir', forYou: 'Para Voce', library: 'Biblioteca', comments: 'Comentarios', shop: 'Loja', inventory: 'Meus Itens', achievements: 'Conquistas', profile: 'Perfil', about: 'Sobre', openDm: 'Abrir DMs', memberSince: 'Membro Desde', timeOnSite: 'Tempo no Site', recTrending: 'Tendencia', recSimilar: 'Similar', recSurprise: 'Surpresa', moodPrompt: 'Como voce esta se sentindo?', generateFortuneLabel: 'Sua Fortuna', fortuneTitle: 'Sua Fortuna', yourJourney: 'Sua Jornada', recentRecommendations: 'Recomendacoes recentes', completedWord: 'Concluido', lockedWord: 'Bloqueado' },
-            it: { ...UI_LANGUAGE_BASE, settings: 'Impostazioni', language: 'Lingua', challenge: 'Sfida Giornaliera', libAll: 'Tutto', libCollections: 'Collezioni', libFavorites: 'Preferiti', discover: 'Scopri', forYou: 'Per Te', library: 'Libreria', comments: 'Commenti', shop: 'Negozio', inventory: 'I Miei Oggetti', achievements: 'Obiettivi', profile: 'Profilo', about: 'Info', openDm: 'Apri DM', memberSince: 'Membro Dal', timeOnSite: 'Tempo sul sito', recTrending: 'Tendenza', recSimilar: 'Simile', recSurprise: 'Sorpresa', moodPrompt: 'Come ti senti?', generateFortuneLabel: 'La Tua Fortuna', fortuneTitle: 'La Tua Fortuna', yourJourney: 'Il Tuo Percorso', recentRecommendations: 'Raccomandazioni recenti', completedWord: 'Completato', lockedWord: 'Bloccato' },
-            ru: { ...UI_LANGUAGE_BASE, settings: 'Nastroiki', language: 'Yazyk', challenge: 'Ezhednevnyy Chellendzh', libAll: 'Vse', libCollections: 'Kollekcii', libFavorites: 'Izbrannoe', discover: 'Otkryt', forYou: 'Dlya Vas', library: 'Biblioteka', comments: 'Kommentarii', shop: 'Magazin', inventory: 'Moi Predmety', achievements: 'Dostizheniya', profile: 'Profil', about: 'O nas', openDm: 'Otkryt DM', memberSince: 'S Nami S', timeOnSite: 'Vremya na Saite', recTrending: 'Trend', recSimilar: 'Pohozhee', recSurprise: 'Syurpriz', moodPrompt: 'Kak vy sebya chuvstvuete?', generateFortuneLabel: 'Vasha Sudba', fortuneTitle: 'Vasha Sudba' },
-            ar: { ...UI_LANGUAGE_BASE, settings: 'Iidadat', language: 'Lugha', challenge: 'Tahaddi Yawmi', libAll: 'Alkul', libCollections: 'Majmuat', libFavorites: 'Mufaddal', discover: 'Iktishaf', forYou: 'Lak', library: 'Maktaba', comments: 'Taliqat', shop: 'Matjar', inventory: 'Anasiri', achievements: 'Injazat', profile: 'Milaf', about: 'Hawl', openDm: 'Fath DM', memberSince: 'Mudhu', timeOnSite: 'Waqt Almawqie', recTrending: 'Raeij', recSimilar: 'Mushabih', recSurprise: 'Mufajaa', moodPrompt: 'Kayfa tashur?', generateFortuneLabel: 'Hazzuk', fortuneTitle: 'Hazzuk' },
-            hi: { ...UI_LANGUAGE_BASE, settings: 'Settings', language: 'Bhasha', challenge: 'Daily Chunauti', libAll: 'Sab', libCollections: 'Collections', libFavorites: 'Pasandida', discover: 'Khoje', forYou: 'Aapke Liye', library: 'Pustakalay', comments: 'Tippani', shop: 'Dukaan', inventory: 'Mere Items', achievements: 'Uplabdhi', profile: 'Profile', about: 'Jankari', openDm: 'DM Kholen', memberSince: 'Sadasya Since', timeOnSite: 'Site par Samay', recTrending: 'Trending', recSimilar: 'Similar', recSurprise: 'Surprise', moodPrompt: 'Aap kaisa mehsoos kar rahe hain?', generateFortuneLabel: 'Aapki Fortune', fortuneTitle: 'Aapki Fortune' },
-            zh: { ...UI_LANGUAGE_BASE, settings: 'Shezhi', language: 'Yuyan', challenge: 'Meiri Renwu', libAll: 'Quanbu', libCollections: 'Shoucang', libFavorites: 'Xihuan', libResearch: 'Yanjiu', discover: 'Faxian', forYou: 'Wei Ni', library: 'Tushuguan', comments: 'Pinglun', shop: 'Shangdian', inventory: 'Wo de Daoju', achievements: 'Chengjiu', profile: 'Geren', about: 'Guanyu', openDm: 'Dakailiao', memberSince: 'Jiaru Shijian', timeOnSite: 'Zaixian Shijian', recTrending: 'Remen', recSimilar: 'Xiangsi', recSurprise: 'Jingxi', moodPrompt: 'Ni xianzai ganjue zenmeyang?', generateFortuneLabel: 'Ni de Yuce', fortuneTitle: 'Ni de Yuce' }
+            en: {},
+            es: { settings: 'Configuración', language: 'Idioma', languageDesc: 'Traducir todo el texto visible de la interfaz', challenge: 'Desafío Diario', libAll: 'Todo', libCollections: 'Colecciones', libFavorites: 'Favoritos', libResearch: 'Investigación', researchTools: 'Herramientas de investigación', discover: 'Descubrir', forYou: 'Para ti', library: 'Biblioteca', comments: 'Comentarios', shop: 'Tienda', inventory: 'Mis artículos', achievements: 'Logros', xpGuide: 'Guía XP', profile: 'Perfil', about: 'Acerca de', memberSince: 'Miembro desde', timeOnSite: 'Tiempo en el sitio', openDms: 'Abrir MD', liked: 'Me gustó', saved: 'Guardado', replies: 'Respuestas', achievementsShort: 'Logros', recFortune: 'Tu Fortuna', discoverLiked: '❤️ Gustados', discoverPopular: '🔥 Popular', discoverRecent: '🕐 Reciente', verseOfDay: '📖 Versículo del Día', nextVerse: 'Próximo Versículo', recTrending: '📈 Tendencia', recSimilar: '🔍 Similar', recSurprise: '🎲 Sorpresa', clearWord: 'Limpiar', myVerses: 'Mis Versículos', showAdvanced: 'Mostrar Avanzado', hideAdvanced: 'Ocultar Avanzado' },
+            fr: { settings: 'Paramètres', language: 'Langue', languageDesc: 'Traduire tout le texte visible de l’interface', challenge: 'Défi quotidien', libAll: 'Tout', libCollections: 'Collections', libFavorites: 'Favoris', libResearch: 'Recherche', researchTools: 'Outils de recherche', discover: 'Découvrir', forYou: 'Pour vous', library: 'Bibliothèque', comments: 'Commentaires', shop: 'Boutique', inventory: 'Mes articles', achievements: 'Succès', xpGuide: 'Guide XP', profile: 'Profil', about: 'À propos', memberSince: 'Membre depuis', timeOnSite: 'Temps sur le site', openDms: 'Ouvrir les MP', liked: 'Aimé', saved: 'Sauvegardé', replies: 'Réponses', achievementsShort: 'Succès', recFortune: 'Votre Fortune', discoverLiked: '❤️ Aimés', discoverPopular: '🔥 Populaire', discoverRecent: '🕐 Récent', verseOfDay: '📖 Verset du jour', nextVerse: 'Verset suivant', recTrending: '📈 Tendance', recSimilar: '🔍 Similaire', recSurprise: '🎲 Surprise', clearWord: 'Effacer', myVerses: 'Mes Versets', showAdvanced: 'Afficher avancé', hideAdvanced: 'Masquer avancé' },
+            de: { settings: 'Einstellungen', language: 'Sprache', languageDesc: 'Allen sichtbaren Oberflächentext übersetzen', challenge: 'Tägliche Herausforderung', libAll: 'Alle', libCollections: 'Sammlungen', libFavorites: 'Favoriten', libResearch: 'Recherche', researchTools: 'Recherche-Tools', discover: 'Entdecken', forYou: 'Für dich', library: 'Bibliothek', comments: 'Kommentare', shop: 'Shop', inventory: 'Meine Artikel', achievements: 'Erfolge', xpGuide: 'XP-Leitfaden', profile: 'Profil', about: 'Über uns', memberSince: 'Mitglied seit', timeOnSite: 'Zeit auf der Seite', openDms: 'DMs öffnen', liked: 'Gefällt mir', saved: 'Gespeichert', replies: 'Antworten', achievementsShort: 'Erfolge', recFortune: 'Dein Schicksal', discoverLiked: '❤️ Geliked', discoverPopular: '🔥 Beliebt', discoverRecent: '🕐 Neu', verseOfDay: '📖 Vers des Tages', nextVerse: 'Nächster Vers', recTrending: '📈 Trend', recSimilar: '🔍 Ähnlich', recSurprise: '🎲 Überraschung', clearWord: 'Löschen', myVerses: 'Meine Verse', showAdvanced: 'Erweitert anzeigen', hideAdvanced: 'Erweitert ausblenden' },
+            pt: { settings: 'Configurações', language: 'Idioma', languageDesc: 'Traduzir todo o texto visível da interface', challenge: 'Desafio Diário', libAll: 'Tudo', libCollections: 'Coleções', libFavorites: 'Favoritos', libResearch: 'Pesquisa', researchTools: 'Ferramentas de pesquisa', discover: 'Descobrir', forYou: 'Para você', library: 'Biblioteca', comments: 'Comentários', shop: 'Loja', inventory: 'Meus itens', achievements: 'Conquistas', xpGuide: 'Guia XP', profile: 'Perfil', about: 'Sobre', memberSince: 'Membro desde', timeOnSite: 'Tempo no site', openDms: 'Abrir DMs', liked: 'Curtidos', saved: 'Salvos', replies: 'Respostas', achievementsShort: 'Conquistas', recFortune: 'Sua Fortuna', discoverLiked: '❤️ Curtidos', discoverPopular: '🔥 Popular', discoverRecent: '🕐 Recente', verseOfDay: '📖 Verso do Dia', nextVerse: 'Próximo Verso', recTrending: '📈 Tendências', recSimilar: '🔍 Similar', recSurprise: '🎲 Surpresa', clearWord: 'Limpar', myVerses: 'Meus Versos', showAdvanced: 'Mostrar avançado', hideAdvanced: 'Ocultar avançado' },
+            it: { settings: 'Impostazioni', language: 'Lingua', languageDesc: 'Traduci tutto il testo visibile dell’interfaccia', challenge: 'Sfida Giornaliera', libAll: 'Tutto', libCollections: 'Collezioni', libFavorites: 'Preferiti', libResearch: 'Ricerca', researchTools: 'Strumenti di ricerca', discover: 'Scopri', forYou: 'Per te', library: 'Libreria', comments: 'Commenti', shop: 'Negozio', inventory: 'I miei articoli', achievements: 'Obiettivi', xpGuide: 'Guida XP', profile: 'Profilo', about: 'Informazioni', memberSince: 'Membro dal', timeOnSite: 'Tempo sul sito', openDms: 'Apri DM', liked: 'Piaciuti', saved: 'Salvati', replies: 'Risposte', achievementsShort: 'Obiettivi', recFortune: 'La Tua Fortuna', discoverLiked: '❤️ Piaciuti', discoverPopular: '🔥 Popolare', discoverRecent: '🕐 Recenti', verseOfDay: '📖 Versetto del Giorno', nextVerse: 'Versetto successivo', recTrending: '📈 Tendenza', recSimilar: '🔍 Simile', recSurprise: '🎲 Sorpresa', clearWord: 'Cancella', myVerses: 'I Miei Versetti', showAdvanced: 'Mostra avanzato', hideAdvanced: 'Nascondi avanzato' },
+            ru: { settings: 'Настройки', language: 'Язык', languageDesc: 'Перевести весь видимый текст интерфейса', challenge: 'Ежедневный вызов', libAll: 'Все', libCollections: 'Коллекции', libFavorites: 'Избранное', libResearch: 'Исследование', researchTools: 'Инструменты исследования', discover: 'Открыть', forYou: 'Для вас', library: 'Библиотека', comments: 'Комментарии', shop: 'Магазин', inventory: 'Мои предметы', achievements: 'Достижения', xpGuide: 'Гид XP', profile: 'Профиль', about: 'О нас', memberSince: 'С нами с', timeOnSite: 'Время на сайте', openDms: 'Открыть ЛС', liked: 'Лайки', saved: 'Сохранено', replies: 'Ответы', achievementsShort: 'Достижения', recFortune: 'Твоя Судьба', discoverLiked: '❤️ Нравится', discoverPopular: '🔥 Популярное', discoverRecent: '🕐 Новое', verseOfDay: '📖 Стих дня', nextVerse: 'Следующий стих', recTrending: '📈 Тренды', recSimilar: '🔍 Похожее', recSurprise: '🎲 Сюрприз', clearWord: 'Очистить', myVerses: 'Мои стихи', showAdvanced: 'Показать расширенное', hideAdvanced: 'Скрыть расширенное' },
+            ar: { settings: 'الإعدادات', language: 'اللغة', languageDesc: 'ترجمة كل النص الظاهر في الواجهة', challenge: 'تحدي يومي', libAll: 'الكل', libCollections: 'المجموعات', libFavorites: 'المفضلة', libResearch: 'بحث', researchTools: 'أدوات البحث', discover: 'اكتشف', forYou: 'لك', library: 'المكتبة', comments: 'التعليقات', shop: 'المتجر', inventory: 'عناصري', achievements: 'الإنجازات', xpGuide: 'دليل XP', profile: 'الملف الشخصي', about: 'حول', memberSince: 'عضو منذ', timeOnSite: 'الوقت في الموقع', openDms: 'فتح الرسائل', liked: 'إعجابات', saved: 'محفوظ', replies: 'الردود', achievementsShort: 'الإنجازات', recFortune: 'حظك', discoverLiked: '❤️ معجب به', discoverPopular: '🔥 شائع', discoverRecent: '🕐 حديث', verseOfDay: '📖 آية اليوم', nextVerse: 'الآية التالية', recTrending: '📈 الرائج', recSimilar: '🔍 مشابه', recSurprise: '🎲 مفاجأة', clearWord: 'مسح', myVerses: 'آياتي', showAdvanced: 'إظهار المتقدم', hideAdvanced: 'إخفاء المتقدم' },
+            hi: { settings: 'सेटिंग्स', language: 'भाषा', languageDesc: 'इंटरफ़ेस का पूरा दिखने वाला टेक्स्ट अनुवाद करें', challenge: 'दैनिक चुनौती', libAll: 'सभी', libCollections: 'कलेक्शन', libFavorites: 'पसंदीदा', libResearch: 'रिसर्च', researchTools: 'रिसर्च टूल्स', discover: 'खोजें', forYou: 'आपके लिए', library: 'लाइब्रेरी', comments: 'टिप्पणियाँ', shop: 'दुकान', inventory: 'मेरे आइटम', achievements: 'उपलब्धियाँ', xpGuide: 'XP गाइड', profile: 'प्रोफ़ाइल', about: 'हमारे बारे में', memberSince: 'सदस्य बने', timeOnSite: 'साइट पर समय', openDms: 'DM खोलें', liked: 'पसंद', saved: 'सेव', replies: 'जवाब', achievementsShort: 'उपलब्धियाँ', recFortune: 'आपका भाग्य', discoverLiked: '❤️ पसंद', discoverPopular: '🔥 लोकप्रिय', discoverRecent: '🕐 हाल का', verseOfDay: '📖 आज का पद', nextVerse: 'अगला पद', recTrending: '📈 ट्रेंडिंग', recSimilar: '🔍 समान', recSurprise: '🎲 सरप्राइज़', clearWord: 'साफ़ करें', myVerses: 'मेरे पद', showAdvanced: 'एडवांस दिखाएँ', hideAdvanced: 'एडवांस छुपाएँ' },
+            zh: { settings: '设置', language: '语言', languageDesc: '翻译界面中所有可见文本', challenge: '每日挑战', libAll: '全部', libCollections: '合集', libFavorites: '收藏', libResearch: '研究', researchTools: '研究工具', discover: '发现', forYou: '为你推荐', library: '资料库', comments: '评论', shop: '商店', inventory: '我的物品', achievements: '成就', xpGuide: 'XP 指南', profile: '个人资料', about: '关于我们', memberSince: '加入时间', timeOnSite: '站内时长', openDms: '打开私信', liked: '点赞', saved: '已保存', replies: '回复', achievementsShort: '成就', recFortune: '你的运势', discoverLiked: '❤️ 已点赞', discoverPopular: '🔥 热门', discoverRecent: '🕐 最近', verseOfDay: '📖 今日经文', nextVerse: '下一节经文', recTrending: '📈 趋势', recSimilar: '🔍 相似', recSurprise: '🎲 惊喜', clearWord: '清除', myVerses: '我的经文', showAdvanced: '显示高级', hideAdvanced: '隐藏高级' }
         };
 
+        Object.keys(UI_LANGUAGE_PACKS).forEach((langCode) => {
+            UI_LANGUAGE_PACKS[langCode] = { ...UI_LANGUAGE_BASE, ...UI_LANGUAGE_PACKS[langCode] };
+        });
+
+        const UI_TRANSLATE_CODES = { en: 'en', es: 'es', fr: 'fr', de: 'de', pt: 'pt', it: 'it', ru: 'ru', ar: 'ar', hi: 'hi', zh: 'zh-CN' };
+        const UI_AUTO_TRANSLATE_CACHE = {};
+        let languageRevision = 0;
+        let languageObserver = null;
+        let languageObserverTimer = null;
+        let isAutoTranslatingUi = false;
+
         function getLanguagePack(langOverride = null) {
-            const lang = UI_LANGUAGE_PACKS[langOverride || settings.language] ? (langOverride || settings.language) : 'en';
+            const lang = langOverride || settings.language || 'en';
             return UI_LANGUAGE_PACKS[lang] || UI_LANGUAGE_PACKS.en;
         }
 
         function tUi(key, fallback = '') {
-            const t = getLanguagePack();
-            if (t && Object.prototype.hasOwnProperty.call(t, key)) return t[key];
-            if (Object.prototype.hasOwnProperty.call(UI_LANGUAGE_BASE, key)) return UI_LANGUAGE_BASE[key];
+            const pack = getLanguagePack();
+            if (Object.prototype.hasOwnProperty.call(pack, key)) return pack[key];
             return fallback || key;
+        }
+
+        function setUiText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function collectTranslatableNodes() {
+            const root = document.body;
+            if (!root) return [];
+            const nodes = [];
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    const parent = node.parentElement;
+                    if (!parent) return NodeFilter.FILTER_REJECT;
+                    if (parent.closest('script,style,noscript,svg')) return NodeFilter.FILTER_REJECT;
+                    if (parent.closest('[data-no-auto-translate="1"]')) return NodeFilter.FILTER_REJECT;
+                    const raw = node.nodeValue || '';
+                    const trimmed = raw.trim();
+                    if (!trimmed) return NodeFilter.FILTER_REJECT;
+                    if (/^[\d\s.,:/()+\-_%]+$/.test(trimmed)) return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                if (node.__i18nBaseText === undefined) node.__i18nBaseText = node.nodeValue;
+                nodes.push(node);
+            }
+            return nodes;
+        }
+
+        function collectTranslatableAttrs() {
+            const root = document.body;
+            if (!root) return [];
+            const attrs = [];
+            root.querySelectorAll('[placeholder], [title], [aria-label]').forEach((el) => {
+                if (el.hasAttribute('placeholder')) {
+                    if (!el.dataset.i18nPlaceholderBase) {
+                        el.dataset.i18nPlaceholderBase = el.getAttribute('placeholder') || '';
+                    }
+                    attrs.push({ el, attr: 'placeholder', base: el.dataset.i18nPlaceholderBase || '' });
+                }
+                if (el.hasAttribute('title')) {
+                    if (!el.dataset.i18nTitleBase) {
+                        el.dataset.i18nTitleBase = el.getAttribute('title') || '';
+                    }
+                    attrs.push({ el, attr: 'title', base: el.dataset.i18nTitleBase || '' });
+                }
+                if (el.hasAttribute('aria-label')) {
+                    if (!el.dataset.i18nAriaLabelBase) {
+                        el.dataset.i18nAriaLabelBase = el.getAttribute('aria-label') || '';
+                    }
+                    attrs.push({ el, attr: 'aria-label', base: el.dataset.i18nAriaLabelBase || '' });
+                }
+            });
+            return attrs;
+        }
+
+        function restoreUiLanguageBase() {
+            collectTranslatableNodes().forEach((node) => {
+                if (node.__i18nBaseText !== undefined && node.nodeValue !== node.__i18nBaseText) {
+                    node.nodeValue = node.__i18nBaseText;
+                }
+            });
+            collectTranslatableAttrs().forEach((entry) => {
+                if (!entry.el || !entry.el.isConnected) return;
+                entry.el.setAttribute(entry.attr, entry.base);
+            });
+        }
+
+        async function translateUiText(text, targetLang) {
+            const source = String(text || '');
+            const trimmed = source.trim();
+            if (!trimmed || targetLang === 'en') return source;
+            const cacheKey = `${targetLang}::${trimmed}`;
+            if (UI_AUTO_TRANSLATE_CACHE[cacheKey]) {
+                return source.replace(trimmed, UI_AUTO_TRANSLATE_CACHE[cacheKey]);
+            }
+            if (trimmed.length > 1200) return source;
+            try {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
+                const res = await fetch(url);
+                if (!res.ok) return source;
+                const payload = await res.json();
+                const translated = Array.isArray(payload?.[0]) ? payload[0].map((part) => part?.[0] || '').join('') : trimmed;
+                UI_AUTO_TRANSLATE_CACHE[cacheKey] = translated || trimmed;
+                return source.replace(trimmed, UI_AUTO_TRANSLATE_CACHE[cacheKey]);
+            } catch (_) {
+                return source;
+            }
+        }
+
+        async function autoTranslateUi(lang, revision) {
+            if (revision !== languageRevision) return;
+            const targetLang = UI_TRANSLATE_CODES[lang] || 'en';
+            if (targetLang === 'en') {
+                restoreUiLanguageBase();
+                return;
+            }
+
+            const nodes = collectTranslatableNodes();
+            const attrs = collectTranslatableAttrs();
+            isAutoTranslatingUi = true;
+            try {
+                for (const node of nodes) {
+                    if (revision !== languageRevision) return;
+                    if (!node || !node.isConnected) continue;
+                    const base = node.__i18nBaseText !== undefined ? node.__i18nBaseText : node.nodeValue;
+                    const translated = await translateUiText(base, targetLang);
+                    if (revision !== languageRevision) return;
+                    if (translated && node.nodeValue !== translated) node.nodeValue = translated;
+                }
+                for (const entry of attrs) {
+                    if (revision !== languageRevision) return;
+                    if (!entry.el || !entry.el.isConnected) continue;
+                    const translated = await translateUiText(entry.base, targetLang);
+                    if (revision !== languageRevision) return;
+                    if (translated) entry.el.setAttribute(entry.attr, translated);
+                }
+            } finally {
+                isAutoTranslatingUi = false;
+            }
+        }
+
+        function setupLanguageObserver() {
+            if (languageObserver || !document.body) return;
+            languageObserver = new MutationObserver(() => {
+                if (isAutoTranslatingUi) return;
+                if ((settings.language || 'en') === 'en') return;
+                clearTimeout(languageObserverTimer);
+                languageObserverTimer = setTimeout(() => {
+                    autoTranslateUi(settings.language, languageRevision);
+                }, 120);
+            });
+            languageObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+                characterData: true,
+                attributes: true,
+                attributeFilter: ['placeholder', 'title', 'aria-label']
+            });
         }
 
         function applyLanguage() {
             const lang = UI_LANGUAGE_PACKS[settings.language] ? settings.language : 'en';
+            if (languageRevision === 0) {
+                // Capture original page text once so we can always restore to the baseline language.
+                collectTranslatableNodes();
+                collectTranslatableAttrs();
+            }
             const t = getLanguagePack(lang);
-            const setText = (id, text) => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = text;
-            };
 
-            setText('settingsModalTitle', t.settings);
-            setText('languageSettingLabel', t.language);
-            setText('languageSettingDesc', t.languageDesc);
-            setText('challengeTitle', t.challenge);
-            setText('libraryTabAll', t.libAll);
-            setText('libraryTabCollections', t.libCollections);
-            setText('libraryTabFavorites', t.libFavorites);
-            setText('libraryTabResearch', t.libResearch);
-            setText('researchToolsTitle', t.researchTools);
-            setText('profileOpenDmBtn', t.openDm);
-            setText('memberSinceLabel', t.memberSince);
-            setText('timeOnSiteLabel', t.timeOnSite);
-            setText('xpLabel', t.xpLabelText);
-            setText('statLikedLabel', t.likedLabel);
-            setText('statSavedLabel', t.savedLabel);
-            setText('statCommentsLabel', t.commentsLabel);
-            setText('statRepliesLabel', t.repliesLabel);
-            setText('statAchievementsLabel', t.achievementsLabel);
-            setText('profileVerseLocalBtn', t.localTab);
-            setText('profileVerseDbBtn', t.databaseTab);
-            setText('recCatAll', `🎯 ${t.recAll}`);
-            setText('recCatFavorites', `⭐ ${t.recFavorites}`);
-            setText('recCatTrending', `📈 ${t.recTrending}`);
-            setText('recCatSimilar', `🔍 ${t.recSimilar}`);
-            setText('recCatSurprise', `🎲 ${t.recSurprise}`);
-            setText('moodPrompt', `💭 ${t.moodPrompt}`);
-            setText('moodPeacefulBtn', `😌 ${t.moodPeaceful}`);
-            setText('moodStrengthBtn', `💪 ${t.moodStrength}`);
-            setText('moodHopefulBtn', `🌟 ${t.moodHopeful}`);
-            setText('moodLovedBtn', `❤️ ${t.moodLoved}`);
-            setText('moodGratefulBtn', `🙏 ${t.moodGrateful}`);
-            setText('moodGuidanceBtn', `🧭 ${t.moodGuidance}`);
-            setText('generateRecLabel', t.generateRecommendationLabel);
-            setText('generateFortuneLabel', t.generateFortuneLabel);
-            setText('recHistoryTitle', `📜 ${t.yourJourney}`);
-            setText('recHistorySubtitle', t.recentRecommendations);
-            setText('achievementsHeaderTitle', `🏆 ${t.achievementsTitle}`);
-            setText('achFilterAll', `📋 ${t.achAll}`);
-            setText('achFilterLikes', `❤️ ${t.achLikes}`);
-            setText('achFilterSaves', `🔖 ${t.achSaves}`);
-            setText('achFilterComments', `💬 ${t.achComments}`);
-            setText('achFilterReplies', `🤝 ${t.achReplies}`);
-            setText('achFilterStreaks', `🔥 ${t.achStreaks}`);
-            setText('achFilterShares', `📢 ${t.achShares}`);
-            setText('achFilterSpecial', `⭐ ${t.achSpecial}`);
+            setUiText('settingsModalTitle', t.settings);
+            setUiText('languageSettingLabel', t.language);
+            setUiText('languageSettingDesc', t.languageDesc);
+            setUiText('challengeTitle', t.challenge);
+            setUiText('libraryTabAll', t.libAll);
+            setUiText('libraryTabCollections', t.libCollections);
+            setUiText('libraryTabFavorites', t.libFavorites);
+            setUiText('libraryTabResearch', t.libResearch);
+            setUiText('researchToolsTitle', t.researchTools);
+            setUiText('achievementsHeaderTitle', t.achTitle);
+            setUiText('achFilterAll', t.achAll);
+            setUiText('achFilterLikes', t.achLikes);
+            setUiText('achFilterSaves', t.achSaves);
+            setUiText('achFilterComments', t.achComments);
+            setUiText('achFilterReplies', t.achReplies);
+            setUiText('achFilterStreaks', t.achStreaks);
+            setUiText('achFilterShares', t.achShares);
+            setUiText('achFilterSpecial', t.achSpecial);
+            setUiText('memberSinceLabel', t.memberSince);
+            setUiText('timeOnSiteLabel', t.timeOnSite);
+            setUiText('xpLabel', t.xp);
+            setUiText('profileOpenDmBtn', t.openDms);
+            setUiText('statLikedLabel', t.liked);
+            setUiText('statSavedLabel', t.saved);
+            setUiText('statCommentsLabel', t.commentsLabel);
+            setUiText('statRepliesLabel', t.replies);
+            setUiText('statAchievementsLabel', t.achievementsShort);
+            setUiText('discoverFilterAll', `✨ ${t.libAll}`);
+            setUiText('discoverFilterLiked', `❤️ ${t.liked}`);
+            setUiText('discoverFilterSaved', `🔖 ${t.saved}`);
+            setUiText('discoverFilterPopular', t.discoverPopular);
+            setUiText('discoverFilterRecent', t.discoverRecent);
+            setUiText('nextVerseLabel', t.nextVerse);
+            setUiText('verseOfDayTitle', t.verseOfDay);
+            setUiText('moodPrompt', t.moodPrompt);
+            setUiText('moodPeacefulBtn', t.moodPeaceful);
+            setUiText('moodStrengthBtn', t.moodStrength);
+            setUiText('moodHopefulBtn', t.moodHopeful);
+            setUiText('moodLovedBtn', t.moodLoved);
+            setUiText('moodGratefulBtn', t.moodGrateful);
+            setUiText('moodGuidanceBtn', t.moodGuidance);
+            setUiText('recCatAll', `🎯 ${t.libAll}`);
+            setUiText('recCatFavorites', `⭐ ${t.libFavorites}`);
+            setUiText('recCatTrending', t.recTrending);
+            setUiText('recCatSimilar', t.recSimilar);
+            setUiText('recCatSurprise', t.recSurprise);
+            setUiText('generateRecLabel', t.recGenerate);
+            setUiText('generateFortuneLabel', t.recFortune);
+            setUiText('recHistoryTitle', t.recJourney);
+            setUiText('recHistorySubtitle', t.recRecent);
+            setUiText('actionLikeLabel', t.likeAction || t.liked);
+            setUiText('actionSaveLabel', t.saveAction || t.saved);
+            setUiText('actionCopyLabel', t.copyAction || 'Copy');
+            setUiText('actionShareLabel', t.shareAction || 'Share');
+            setUiText('libraryListTitle', t.myVerses);
+            setUiText('libraryBibleSearchClearBtn', t.clearWord);
+
+            const librarySearch = document.getElementById('librarySearch');
+            if (librarySearch) librarySearch.placeholder = t.librarySearchPlaceholder;
+            const bibleTitleSearch = document.getElementById('libraryBibleSearch');
+            if (bibleTitleSearch) bibleTitleSearch.placeholder = t.libraryBibleSearchPlaceholder;
+            const todayLabel = document.getElementById('vodDate');
+            if (todayLabel && (todayLabel.textContent || '').trim().toLowerCase() === 'today') {
+                todayLabel.textContent = t.todayWord;
+            }
 
             const navLabelMap = {
                 discover: t.discover,
@@ -10800,9 +11059,16 @@ async function checkAchievement(type, value) {
             const langSelect = document.getElementById('languageSelect');
             if (langSelect) langSelect.value = lang;
 
-            renderProfileVerseStat();
-            renderAchievementsList();
-            updateAchievementSummary();
+            if (typeof renderProfileVerseStat === 'function') renderProfileVerseStat();
+            if (typeof renderAchievementsList === 'function') renderAchievementsList();
+            if (typeof updateAchievementSummary === 'function') updateAchievementSummary();
+            if (typeof setResearchAdvancedMode === 'function') {
+                setResearchAdvancedMode(researchAdvancedVisible);
+            }
+
+            setupLanguageObserver();
+            languageRevision += 1;
+            autoTranslateUi(lang, languageRevision);
         }
 
         function changeLanguage(lang) {
@@ -11812,3 +12078,8 @@ async function checkAchievement(type, value) {
     </script>
 </body>
 </html>
+
+
+
+
+
