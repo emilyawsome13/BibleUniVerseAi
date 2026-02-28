@@ -5825,9 +5825,12 @@
         // State
         let currentVerse = null;
         let currentTab = 'discover';
-                let librarySearchResults = [];
+        let libraryData = { liked: [], saved: [], collections: [] };
+        let librarySearchResults = [];
         let libraryViewMode = 'personal';
         let bibleLibrarySearchTimer = null;
+        let librarySearchAbortController = null;
+        let librarySearchToken = 0;
         let settings = {
             darkMode: false,
             fontSize: 'medium',
@@ -7164,6 +7167,11 @@
         async function searchBibleLibrary() {
             const query = (document.getElementById('libraryBibleSearch')?.value || '').trim();
             if (!query) {
+                if (librarySearchAbortController) {
+                    librarySearchAbortController.abort();
+                    librarySearchAbortController = null;
+                }
+                librarySearchToken += 1;
                 librarySearchResults = [];
                 if (currentLibraryTab === 'dbsearch') {
                     libraryViewMode = 'bible-search';
@@ -7178,10 +7186,25 @@
                 }
                 return;
             }
+            if (query.length < 2) {
+                librarySearchResults = [];
+                setLibrarySearchMeta('Type at least 2 characters to search.');
+                renderVerseCards([], 'Enter a fuller Bible title like "Genesis" or "1 Peter".');
+                return;
+            }
 
             setLibrarySearchMeta('Searching verses database...');
+            const requestToken = ++librarySearchToken;
+            if (librarySearchAbortController) {
+                librarySearchAbortController.abort();
+            }
+            librarySearchAbortController = new AbortController();
             try {
-                const res = await fetch(`/api/library/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
+                const res = await fetch(`/api/library/search?q=${encodeURIComponent(query)}`, {
+                    cache: 'no-store',
+                    signal: librarySearchAbortController.signal
+                });
+                if (requestToken !== librarySearchToken) return;
                 const data = await res.json();
                 if (!res.ok || data.error) {
                     const err = data?.error || 'Search failed';
@@ -7195,7 +7218,12 @@
                 setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found - ordered by book/chapter/verse`);
                 renderVerseCards(librarySearchResults, `No verses found in database for "${query}".`);
             } catch (e) {
+                if (e && e.name === 'AbortError') return;
                 setLibrarySearchMeta('Network error while searching.');
+            } finally {
+                if (requestToken === librarySearchToken) {
+                    librarySearchAbortController = null;
+                }
             }
         }
 

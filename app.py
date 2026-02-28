@@ -6031,10 +6031,17 @@ def search_library_verses():
         if db_type == 'postgres':
             c.execute("""
                 SELECT v.id, v.reference, v.text, v.translation, v.source, v.book,
-                       l.timestamp AS liked_at, s.timestamp AS saved_at
+                       (
+                           SELECT MAX(l.timestamp)
+                           FROM likes l
+                           WHERE l.user_id = %s AND l.verse_id = v.id
+                       ) AS liked_at,
+                       (
+                           SELECT MAX(s.timestamp)
+                           FROM saves s
+                           WHERE s.user_id = %s AND s.verse_id = v.id
+                       ) AS saved_at
                 FROM verses v
-                LEFT JOIN likes l ON v.id = l.verse_id AND l.user_id = %s
-                LEFT JOIN saves s ON v.id = s.verse_id AND s.user_id = %s
                 WHERE LOWER(COALESCE(v.book, '')) LIKE %s
                    OR LOWER(COALESCE(v.reference, '')) LIKE %s
                    OR LOWER(COALESCE(v.book, '')) LIKE %s
@@ -6044,10 +6051,17 @@ def search_library_verses():
         else:
             c.execute("""
                 SELECT v.id, v.reference, v.text, v.translation, v.source, v.book,
-                       l.timestamp AS liked_at, s.timestamp AS saved_at
+                       (
+                           SELECT MAX(l.timestamp)
+                           FROM likes l
+                           WHERE l.user_id = ? AND l.verse_id = v.id
+                       ) AS liked_at,
+                       (
+                           SELECT MAX(s.timestamp)
+                           FROM saves s
+                           WHERE s.user_id = ? AND s.verse_id = v.id
+                       ) AS saved_at
                 FROM verses v
-                LEFT JOIN likes l ON v.id = l.verse_id AND l.user_id = ?
-                LEFT JOIN saves s ON v.id = s.verse_id AND s.user_id = ?
                 WHERE LOWER(IFNULL(v.book, '')) LIKE ?
                    OR LOWER(IFNULL(v.reference, '')) LIKE ?
                    OR LOWER(IFNULL(v.book, '')) LIKE ?
@@ -6086,11 +6100,28 @@ def search_library_verses():
         filtered = [v for v in verses if _verse_matches_title_query(v, query_key)]
         deduped = []
         seen_ids = set()
+        seen_content = {}
         for verse in filtered:
             verse_id = verse.get("id")
             if verse_id in seen_ids:
                 continue
             seen_ids.add(verse_id)
+
+            # Hide content duplicates even if they are different verse row IDs.
+            ref_key = str(verse.get("ref") or "").strip().lower()
+            text_key = str(verse.get("text") or "").strip().lower()
+            content_key = (ref_key, text_key)
+            if content_key in seen_content:
+                existing = seen_content[content_key]
+                if verse.get("liked_at") and not existing.get("liked_at"):
+                    existing["liked_at"] = verse.get("liked_at")
+                    existing["is_active"] = True
+                if verse.get("saved_at") and not existing.get("saved_at"):
+                    existing["saved_at"] = verse.get("saved_at")
+                    existing["is_stored"] = True
+                continue
+
+            seen_content[content_key] = verse
             deduped.append(verse)
 
         deduped.sort(key=_library_verse_sort_key)
