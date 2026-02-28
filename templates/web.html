@@ -2145,6 +2145,9 @@
             border: 1px solid var(--glass-border);
             animation: fadeIn 0.3s ease-out;
             position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            background-clip: padding-box;
         }
 
         .comment-header {
@@ -4304,17 +4307,27 @@
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
-        .chat-effect-chat_sparkle { position: relative; }
-        .chat-effect-chat_sparkle::before { content: '✨'; position: absolute; left: -20px; animation: sparkle 1.5s infinite; }
-        .chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; }
-        .chat-effect-chat_glow { box-shadow: 0 0 20px rgba(255,215,0,0.3); border-radius: 8px; padding: 8px; background: rgba(255,215,0,0.05); }
-        .chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 0.8s infinite alternate; }
-        .chat-effect-chat_shadow { color: #666 !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important; }
-        .chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1s infinite alternate; }
-        .chat-effect-chat_gold { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; animation: goldPulse 2s infinite; }
+        .comment-text.chat-effect-chat_sparkle,
+        .message-text.chat-effect-chat_sparkle { position: relative; }
+        .comment-text.chat-effect-chat_sparkle::before,
+        .message-text.chat-effect-chat_sparkle::before { content: '✨'; position: absolute; left: -16px; top: 0.1em; animation: sparkle 1.5s infinite; }
+        .comment-text.chat-effect-chat_rainbow,
+        .message-text.chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; }
+        .comment-text.chat-effect-chat_glow,
+        .message-text.chat-effect-chat_glow { box-shadow: 0 0 18px rgba(255,215,0,0.28); border-radius: 10px; padding: 6px 10px; background: rgba(255,215,0,0.06); display: inline-block; max-width: 100%; }
+        .comment-text.chat-effect-chat_fire,
+        .message-text.chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 0.8s infinite alternate; }
+        .comment-text.chat-effect-chat_shadow,
+        .message-text.chat-effect-chat_shadow { color: #666 !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important; }
+        .comment-text.chat-effect-chat_ice,
+        .message-text.chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1s infinite alternate; }
+        .comment-text.chat-effect-chat_gold,
+        .message-text.chat-effect-chat_gold { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; animation: goldPulse 2s infinite; }
         /* Mythic Chat Effects */
-        .chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
-        .chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
+        .comment-text.chat-effect-chat_universe,
+        .message-text.chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
+        .comment-text.chat-effect-chat_godly,
+        .message-text.chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
     </style>
 </head>
 <body>
@@ -8305,7 +8318,7 @@
             const avatarHtml = renderAvatarMarkup(c.user_picture, c.user_name, c.avatar_decoration, 'comment-avatar ' + frameClass);
             
             return `
-                <div class="comment-item ${chatEffectClass}" id="${type}-${c.id}" data-user-id="${c.user_id || ''}">
+                <div class="comment-item" id="${type}-${c.id}" data-user-id="${c.user_id || ''}">
                     <button class="delete-comment-btn" onclick="deleteComment(${c.id}, '${type}')" title="Delete (Admin only)">&#10005;</button>
                     <div class="comment-header">
                         ${c.user_id ? `
@@ -8398,7 +8411,7 @@
                 
                 const avatarHtml = renderAvatarMarkup(r.user_picture || '', r.user_name || 'User', r.avatar_decoration || '', 'comment-avatar ' + frameClass);
                 return `
-                    <div class="comment-item reply-item ${chatEffectClass}" style="margin-left: 26px; margin-top: 8px; border-left: 2px solid rgba(255,255,255,0.12);" data-user-id="${r.user_id || ''}">
+                    <div class="comment-item reply-item" style="margin-left: 26px; margin-top: 8px; border-left: 2px solid rgba(255,255,255,0.12);" data-user-id="${r.user_id || ''}">
                         <div class="comment-header">
                             ${r.user_id ? `
                                 <a class="comment-user-link" href="/u/${r.user_id}">
