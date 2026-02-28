@@ -4072,7 +4072,7 @@ def set_interval():
     if not session.get('is_admin') and admin_role not in ('owner', 'co_owner', 'mod', 'host'):
         return jsonify({"error": "Admin required"}), 403
     
-    data = request.get_json()
+    data = request.get_json() or {}
     interval = data.get('interval', 60)
     
     # Validate interval
@@ -4295,7 +4295,7 @@ def verify_role_code():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
-    data = request.get_json()
+    data = request.get_json() or {}
     code = data.get('code', '').strip().upper()
     selected_role = data.get('role', '').strip().lower()
     
@@ -4669,7 +4669,7 @@ def purchase_item():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
-    data = request.get_json()
+    data = request.get_json() or {}
     item_id = data.get('item_id')
     
     if not item_id:
@@ -4866,7 +4866,7 @@ def equip_item():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
-    data = request.get_json()
+    data = request.get_json() or {}
     item_id = data.get('item_id')
     equip = data.get('equip', True)
     
@@ -5136,7 +5136,7 @@ def track_verse_read():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
-    data = request.get_json()
+    data = request.get_json() or {}
     verse_id = data.get('verse_id')
     
     conn, db_type = get_db()
@@ -5185,12 +5185,12 @@ def track_verse_read():
             c.execute("SELECT current_streak, longest_streak, total_verses_read FROM verse_read_streak WHERE user_id = ?", (user_id,))
         
         row = c.fetchone()
-        current_streak = row[0] if row else 1
-        longest_streak = row[1] if row else 1
-        total_read = row[2] if row else 1
+        current_streak = int(row_pick(row, 'current_streak', 0, 1) or 1)
+        longest_streak = int(row_pick(row, 'longest_streak', 1, 1) or 1)
+        total_read = int(row_pick(row, 'total_verses_read', 2, 1) or 1)
         
         # Award XP based on streak
-        base_xp = 10
+        base_xp = 25
         streak_bonus = min(current_streak * 2, 50)  # Max 50 bonus XP
         total_xp = base_xp + streak_bonus
         
@@ -5218,7 +5218,7 @@ def memorize_verse():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
-    data = request.get_json()
+    data = request.get_json() or {}
     verse_id = data.get('verse_id')
     
     if not verse_id:
@@ -5256,11 +5256,12 @@ def memorize_verse():
         
         # Count total memorized
         if db_type == 'postgres':
-            c.execute("SELECT COUNT(*) FROM verse_memorized WHERE user_id = %s", (user_id,))
+            c.execute("SELECT COUNT(*) AS count FROM verse_memorized WHERE user_id = %s", (user_id,))
         else:
-            c.execute("SELECT COUNT(*) FROM verse_memorized WHERE user_id = ?", (user_id,))
+            c.execute("SELECT COUNT(*) AS count FROM verse_memorized WHERE user_id = ?", (user_id,))
         
-        total_memorized = c.fetchone()[0]
+        total_row = c.fetchone()
+        total_memorized = int(row_pick(total_row, 'count', 0, 0) or 0)
         
         conn.commit()
         return jsonify({
@@ -5829,10 +5830,23 @@ def award_xp_to_user(user_id, amount, description):
         multiplier = max(1, int((active_boost or {}).get('multiplier', 1) or 1))
         awarded_amount = amount * multiplier
 
-        # Get current XP
+        # Lock/read user XP row to prevent concurrent award race conditions.
         if db_type == 'postgres':
-            c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = %s", (user_id,))
+            c.execute("""
+                INSERT INTO user_xp (user_id, xp, total_xp_earned, level, updated_at)
+                VALUES (%s, 0, 0, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT (user_id) DO NOTHING
+            """, (user_id,))
+            c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = %s FOR UPDATE", (user_id,))
         else:
+            try:
+                c.execute("BEGIN IMMEDIATE")
+            except Exception:
+                pass
+            c.execute("""
+                INSERT OR IGNORE INTO user_xp (user_id, xp, total_xp_earned, level, updated_at)
+                VALUES (?, 0, 0, 1, datetime('now'))
+            """, (user_id,))
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = ?", (user_id,))
         
         row = c.fetchone()
@@ -6215,7 +6229,10 @@ def unlock_achievement():
     data = request.get_json() or {}
     achievement_id = str(data.get("achievement_id") or "").strip()
     achievement_name = str(data.get("achievement_name") or achievement_id).strip()
-    xp_amount = int(data.get("xp") or 0)
+    try:
+        xp_amount = int(data.get("xp") or 0)
+    except Exception:
+        xp_amount = 0
     if not achievement_id:
         return jsonify({"success": False, "error": "achievement_id required"}), 400
     xp_amount = max(0, min(20000, xp_amount))

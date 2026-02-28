@@ -6175,11 +6175,11 @@
                         trackDailyAction('view', nextVerseKey);
                         
                         // Award XP and track stat for viewing
-                        const verseAward = await awardXP(10, 'view');
+                        const verseAward = await awardXP(VERSE_VIEW_XP, 'view');
                         trackStat('total_verses');
                         
                         if (settings.notifications && verseAward) {
-                            const gained = Number(verseAward.xp_awarded || 10);
+                            const gained = Number(verseAward.xp_awarded || VERSE_VIEW_XP);
                             showToast('New verse discovered! +' + gained + ' XP');
                         }
                         if (currentTab === 'comments') loadComments();
@@ -6330,10 +6330,10 @@
             try {
                 if (navigator.share) {
                     await navigator.share({ title: 'Bible AI Verse', text: text, url: window.location.href });
-                    trackShare();
+                    await trackShare();
                 } else {
                     await navigator.clipboard.writeText(text);
-                    trackShare();
+                    await trackShare();
                     if (settings.notifications) showToast('Verse copied for sharing!');
                 }
             } catch (e) {
@@ -9403,84 +9403,28 @@ async function checkAchievement(type, value) {
         }
 
         // Track shares for achievement
-        function trackShare() {
+        async function trackShare() {
             const shared = (localStorage.getItem('sharedVerses') || '').split(',').filter(x => x);
             shared.push(Date.now());
             localStorage.setItem('sharedVerses', shared.join(','));
             trackDailyAction('share');
-            awardXP(35, 'share');
+            const shareAward = await awardXP(50, 'share');
             trackStat('shares');
-            showToast('📤 Verse shared! +35 XP');
+            const gained = Number((shareAward && shareAward.xp_awarded) || 50);
+            showToast('📤 Verse shared! +' + gained + ' XP');
         }
 
         // === DISCOVER TAB FEATURES ===
         
         // Daily Challenge + XP System
-        const XP_STORAGE_KEY = 'bibleXpState';
-
-        function getXpState() {
-            try {
-                const saved = JSON.parse(localStorage.getItem(XP_STORAGE_KEY) || '{}');
-                return {
-                    xp: Number(saved.xp || 0)
-                };
-            } catch (_) {
-                return { xp: 0 };
-            }
-        }
-
-        function saveXpState(state) {
-            localStorage.setItem(XP_STORAGE_KEY, JSON.stringify(state));
-        }
-
-        function getLevelFromXp(xp) {
-            const level = Math.floor(xp / 1000) + 1;
-            return { level };
-        }
-
-        async function syncXpWithServer() {
-            try {
-                const res = await fetch('/api/shop/xp');
-                const data = await res.json();
-                if (data.xp !== undefined) {
-                    // Update localStorage to match server
-                    const state = getXpState();
-                    state.xp = data.xp;
-                    saveXpState(state);
-                    return data;
-                }
-            } catch (e) {
-                console.error('Error syncing XP:', e);
-            }
-            return null;
-        }
-        
         async function updateXpDisplay() {
-            // First try to sync with server
-            const serverData = await syncXpWithServer();
-            
-            const state = getXpState();
-            const xpEl = document.getElementById('profileXp');
-            const levelEl = document.getElementById('profileLevel');
-            const level = serverData ? serverData.level : getLevelFromXp(state.xp).level;
-            if (xpEl) xpEl.textContent = `${state.xp} XP`;
-            if (levelEl) levelEl.textContent = `Level ${level}`;
+            const synced = await syncXpWithServer();
+            if (!synced) refreshAllXPDisplays();
         }
 
         async function awardXp(amount, type, key) {
-            try {
-                const res = await fetch('/api/xp/award', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: Number(amount || 0), action: type || 'achievement' })
-                });
-                const data = await res.json().catch(() => ({}));
-                if (res.ok && data.success) {
-                    await updateXpDisplay();
-                    return true;
-                }
-            } catch (_) {}
-            return false;
+            const result = await awardXP(Number(amount || 0), type || key || 'achievement');
+            return !!result;
         }
 
         function trackDailyAction(action, verseId) {
@@ -11759,6 +11703,7 @@ async function checkAchievement(type, value) {
         let boostTicker = null;
         let currentShopTab = 'shop';
         let currentCategory = 'all';
+        const VERSE_VIEW_XP = 25;
         
         // Format large numbers (1000 -> 1k, 1000000 -> 1m)
         function formatNumber(num) {
@@ -11770,22 +11715,67 @@ async function checkAchievement(type, value) {
             }
             return num.toString();
         }
+
+        function normalizeXPState(xpData) {
+            const baseXp = Number(userXP.xp || 0);
+            const fallbackLevel = Math.floor(baseXp / 1000) + 1;
+            const nextXp = Number(xpData && xpData.xp);
+            const nextLevel = Number(xpData && xpData.level);
+            return {
+                ...(xpData || {}),
+                xp: Number.isFinite(nextXp) ? nextXp : baseXp,
+                level: Number.isFinite(nextLevel) && nextLevel > 0 ? nextLevel : fallbackLevel
+            };
+        }
+
+        function updateProfileXPDisplay() {
+            const xpEl = document.getElementById('profileXp');
+            const levelEl = document.getElementById('profileLevel');
+            if (xpEl) xpEl.textContent = formatNumber(userXP.xp) + ' XP';
+            if (levelEl) levelEl.textContent = 'Level ' + userXP.level;
+        }
+
+        function updateGuideXPDisplay() {
+            const guideXp = document.getElementById('guideXpAmount');
+            const guideLevel = document.getElementById('guideLevel');
+            if (guideXp) guideXp.textContent = formatNumber(userXP.xp) + ' XP';
+            if (guideLevel) guideLevel.textContent = 'Level ' + userXP.level;
+        }
+
+        function refreshAllXPDisplays() {
+            updateShopXPDisplay();
+            updateInventoryXPDisplay();
+            updateProfileXPDisplay();
+            updateGuideXPDisplay();
+        }
+
+        async function syncXpWithServer() {
+            try {
+                const xpRes = await fetch('/api/shop/xp', { cache: 'no-store' });
+                const xpData = await xpRes.json().catch(() => ({}));
+                if (!xpRes.ok || xpData.xp === undefined) return null;
+                userXP = normalizeXPState(xpData);
+                if (Object.prototype.hasOwnProperty.call(xpData, 'active_boost')) {
+                    activeBoostState = xpData.active_boost || null;
+                    startBoostTicker();
+                }
+                refreshAllXPDisplays();
+                return userXP;
+            } catch (e) {
+                console.error('Error syncing XP:', e);
+            }
+            return null;
+        }
         
         async function loadShopData() {
             try {
                 const itemsRes = await fetch('/api/shop/items');
                 const itemsData = await itemsRes.json();
                 if (itemsData.items) shopItems = itemsData.items;
-                
-                const xpRes = await fetch('/api/shop/xp');
-                const xpData = await xpRes.json();
-                if (xpData.xp !== undefined) {
-                    userXP = xpData;
-                    activeBoostState = xpData.active_boost || activeBoostState;
-                    updateShopXPDisplay();
-                }
-                
+
+                await syncXpWithServer();
                 await loadInventory();
+                refreshAllXPDisplays();
                 renderShopItems();
             } catch (e) {
                 console.error('Error loading shop:', e);
@@ -11799,6 +11789,7 @@ async function checkAchievement(type, value) {
                 if (data.inventory) userInventory = data.inventory;
                 activeBoostState = data.active_boost || null;
                 startBoostTicker();
+                refreshAllXPDisplays();
             } catch (e) {
                 console.error('Error loading inventory:', e);
             }
@@ -11844,8 +11835,8 @@ async function checkAchievement(type, value) {
         function updateShopXPDisplay() {
             const xpEl = document.getElementById('shopXpAmount');
             const levelEl = document.getElementById('shopLevel');
-            if (xpEl) xpEl.textContent = formatNumber(userXP.xp) + ' XP';
-            if (levelEl) levelEl.textContent = 'Level ' + userXP.level;
+            if (xpEl) xpEl.textContent = formatNumber(Number(userXP.xp || 0)) + ' XP';
+            if (levelEl) levelEl.textContent = 'Level ' + Number(userXP.level || 1);
         }
         
         let currentInventoryCategory = 'all';
@@ -11860,8 +11851,8 @@ async function checkAchievement(type, value) {
         function updateInventoryXPDisplay() {
             const xpEl = document.getElementById('inventoryXpAmount');
             const levelEl = document.getElementById('inventoryLevel');
-            if (xpEl) xpEl.textContent = formatNumber(userXP.xp) + ' XP';
-            if (levelEl) levelEl.textContent = 'Level ' + userXP.level;
+            if (xpEl) xpEl.textContent = formatNumber(Number(userXP.xp || 0)) + ' XP';
+            if (levelEl) levelEl.textContent = 'Level ' + Number(userXP.level || 1);
         }
         
         function filterShop(category) {
@@ -11960,7 +11951,7 @@ async function checkAchievement(type, value) {
             comment: { min: 100, max: 100, cooldown: 5000, dailyMax: 50 },
             reply: { min: 15, max: 25, cooldown: 3000, dailyMax: 100 },
             share: { min: 25, max: 50, cooldown: 60000, dailyMax: 20 },
-            view: { min: 10, max: 10, cooldown: 500, dailyMax: 200 },
+            view: { min: VERSE_VIEW_XP, max: VERSE_VIEW_XP, cooldown: 500, dailyMax: 200 },
             streak: { min: 10, max: 60, cooldown: 86400000, dailyMax: 1 },
             trivia_correct: { min: 20, max: 50, cooldown: 0, dailyMax: 50 },
             prayer: { min: 75, max: 75, cooldown: 60000, dailyMax: 10 },
@@ -12042,7 +12033,7 @@ async function checkAchievement(type, value) {
                         { icon: '👍', actionKey: 'dailyActionLikeVerse', action: 'Like a verse', type: 'like', xp: '25-50', bonus: 'Streak bonus +50' },
                         { icon: '💾', actionKey: 'dailyActionSaveVerse', action: 'Save a verse', type: 'save', xp: '25-50', bonus: '' },
                         { icon: '💬', actionKey: 'dailyActionPostComment', action: 'Post a comment', type: 'comment', xp: '100', bonus: '' },
-                        { icon: '📖', actionKey: 'dailyActionReadVerse', action: 'Read verse (streak)', type: 'view', xp: '10', bonus: 'Per verse viewed' },
+                        { icon: '📖', actionKey: 'dailyActionReadVerse', action: 'Read verse (streak)', type: 'view', xp: String(VERSE_VIEW_XP), bonus: 'Per verse viewed' },
                         { icon: '🎯', actionKey: 'dailyActionDailyChallenge', action: 'Complete daily challenge', type: 'daily_challenge', xp: '800-14000', bonus: 'Auto-awarded' }
                     ]
                 },
@@ -12103,11 +12094,7 @@ async function checkAchievement(type, value) {
                 </div>
             `).join('');
             
-            // Update XP display in guide
-            const guideXp = document.getElementById('guideXpAmount');
-            const guideLevel = document.getElementById('guideLevel');
-            if (guideXp) guideXp.textContent = formatNumber(userXP.xp) + ' XP';
-            if (guideLevel) guideLevel.textContent = 'Level ' + userXP.level;
+            updateGuideXPDisplay();
         }
         
         async function xpGuideAction(actionType, element) {
@@ -12119,7 +12106,8 @@ async function checkAchievement(type, value) {
             
             const result = await earnXP(actionType);
             if (result) {
-                showToast(`⚡ +XP earned for ${actionType}!`);
+                const gained = Number(result.xp_awarded || result.base_amount || 0);
+                showToast(`⚡ +${gained} XP earned for ${actionType}!`);
                 renderXPGuide(); // Refresh to update daily limits
             } else {
                 showToast('⏳ Action on cooldown or daily limit reached');
@@ -12143,7 +12131,7 @@ async function checkAchievement(type, value) {
                 
                 if (data.success) {
                     userXP.xp = data.remaining_xp;
-                    updateShopXPDisplay();
+                    refreshAllXPDisplays();
                     await loadInventory();
                     renderShopItems();
                     const qtyText = (data.category === 'consumable' && data.owned_quantity)
@@ -12176,6 +12164,7 @@ async function checkAchievement(type, value) {
                 startBoostTicker();
                 await loadInventory();
                 renderInventory();
+                refreshAllXPDisplays();
                 showToast(`⚡ Booster active (${(activeBoostState && activeBoostState.multiplier) || 1}x XP)!`);
             } catch (e) {
                 showToast('❌ Failed to use booster');
@@ -12227,14 +12216,12 @@ async function checkAchievement(type, value) {
                 const data = await res.json();
                 
                 if (data.success) {
-                    userXP.xp = data.new_total;
-                    userXP.level = data.level;
+                    userXP = normalizeXPState({ ...userXP, xp: data.new_total, level: data.level });
                     if (Object.prototype.hasOwnProperty.call(data, 'active_boost')) {
                         activeBoostState = data.active_boost || null;
                         startBoostTicker();
                     }
-                    updateShopXPDisplay();
-                    updateInventoryXPDisplay();
+                    refreshAllXPDisplays();
                     if (data.leveled_up) showToast('Level Up! You are now level ' + data.level + '!');
                     return data;
                 }
