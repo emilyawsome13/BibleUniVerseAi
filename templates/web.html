@@ -6434,35 +6434,36 @@
             return 'peace';
         }
 
-        function buildFortuneText(theme, anchorRef, topBook) {
+        function buildFortuneText(theme, topBook) {
             const fortunes = {
                 peace: [
-                    `Your fortune: quiet confidence is growing inside you. Keep moving one faithful step at a time. (${anchorRef})`,
-                    `Your fortune: peace will guard your next decisions; avoid rushing and trust steady wisdom from ${topBook}. (${anchorRef})`
+                    'A calm heart wins more victories this week than bold moves. Take breath and stay steady.',
+                    `Still waters speak to you: patience today seals the progress of tomorrow.`
                 ],
                 courage: [
-                    `Your fortune: what feels heavy now will become your testimony. Courage will rise when you take the first step. (${anchorRef})`,
-                    `Your fortune: fear is loud, but not final. A brave choice this week opens new clarity. (${anchorRef})`
+                    'A quiet bravery is building—step forward while your doubts wane and doors shift open.',
+                    'The winds call for courage; respond, and you will find strength waiting on the other side.'
                 ],
                 love: [
-                    `Your fortune: kindness you give returns multiplied. Lead with grace and watch relationships soften. (${anchorRef})`,
-                    `Your fortune: you are not overlooked. Love is already working behind the scenes in your favor. (${anchorRef})`
+                    'Generosity returns like a gentle rain—keep sowing kindness and blessings follow.',
+                    'Heartbeats that echo grace attract the right companions. Stay kind, stay tender.'
                 ],
                 patience: [
-                    `Your fortune: delay is not denial. The next season forms depth before the reward appears. (${anchorRef})`,
-                    `Your fortune: stay faithful in small routines. Consistency this week unlocks long-term fruit. (${anchorRef})`
+                    'The next chapter is under construction; let your patience be the blueprint.',
+                    'Delayed rewards sharpen your focus. Small tasks now become milestones later.'
                 ],
                 purpose: [
-                    `Your fortune: your direction is sharpening. A new opportunity aligns with your deeper calling soon. (${anchorRef})`,
-                    `Your fortune: doors that match your purpose open as you keep your focus clean and simple. (${anchorRef})`
+                    'A new plan pinpoints your calling. Focus on the path, not the noise on the sidelines.',
+                    'Purpose feels heavier when pursued alone; invite wisdom and your direction lights up.'
                 ],
                 strength: [
-                    `Your fortune: your strength is being renewed. You are stronger than this moment suggests. (${anchorRef})`,
-                    `Your fortune: resistance is training, not punishment. You will finish this stretch with greater authority. (${anchorRef})`
+                    'Your endurance multiplies every time you rise. Finish this stretch and the strength stays.',
+                    'Discipline is forging resilience; the next test will declare you ready.'
                 ]
             };
             const set = fortunes[theme] || fortunes.peace;
-            return set[Math.floor(Math.random() * set.length)];
+            const idx = Math.floor(Math.random() * set.length);
+            return `${set[idx]} ${topBook ? `(Library focus: ${topBook})` : ''}`.trim();
         }
 
         async function generateFortune() {
@@ -6493,27 +6494,25 @@
                 });
                 const topBook = Object.entries(bookCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Scripture';
                 const anchor = pool[Math.floor(Math.random() * pool.length)];
-                const anchorRef = anchor.ref || 'Your Library';
                 const theme = getFortuneTheme(anchor.text || '');
-                const fortuneText = buildFortuneText(theme, anchorRef, topBook);
+                const fortuneText = buildFortuneText(theme, topBook);
 
                 const fortune = {
                     id: `fortune-${Date.now()}`,
                     reason: 'Your Fortune',
                     text: fortuneText,
-                    ref: `Inspired by ${anchorRef}`,
+                    ref: '',
                     source: 'fortune'
                 };
                 list.innerHTML = `
                     <div class="rec-card" style="animation: slideIn 0.25s ease;">
                         <div class="rec-reason">🔮 ${fortune.reason}</div>
                         <div style="font-style: italic; margin-bottom: 10px;">${fortune.text}</div>
-                        <div style="font-weight: 700; color: var(--primary);">${fortune.ref}</div>
-                        <div style="font-size: 12px; opacity: 0.65; margin-top: 8px;">Primary source in your library: ${topBook}</div>
+                        <div style="font-size: 12px; opacity: 0.65; margin-top: 8px;">Crafted from ${topBook} across your library.</div>
                     </div>
                 `;
-                addToRecHistory(fortune);
-                showToast('Your fortune is ready.');
+                addToRecHistory({ ...fortune, ref: topBook });
+                showToast('Fortune delivered.');
             } catch (_) {
                 showToast('Unable to generate fortune right now.');
             }
@@ -9092,9 +9091,9 @@ async function loadAchievements(stats) {
 
     unlockedAchievementIds = Array.isArray(achievementState.unlocked) ? [...achievementState.unlocked] : [];
     userAchievements = [...unlockedAchievementIds];
-    const unlockedSet = new Set(unlockedAchievementIds);
-    let totalXPEarned = Number(achievementState.total_xp || 0);
-    let newUnlocks = false;
+            const unlockedSet = new Set(unlockedAchievementIds);
+            let totalXPEarned = Number(achievementState.total_xp || 0);
+            let newUnlocks = false;
 
     for (const ach of ACHIEVEMENTS) {
         if (unlockedSet.has(ach.id)) continue;
@@ -9108,25 +9107,27 @@ async function loadAchievements(stats) {
                     achievement_name: ach.name,
                     xp: Number(ach.xp || 0)
                 })
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok && data.success && data.awarded) {
-                unlockedSet.add(ach.id);
-                unlockedAchievementIds.push(ach.id);
-                userAchievements = [...unlockedAchievementIds];
-                totalXPEarned += Number(data.xp_awarded || ach.xp || 0);
-                newUnlocks = true;
-                if (settings.notifications) showToast(`🏆 Unlocked: ${ach.name}! +${ach.xp || 0} XP`);
-                if (typeof AudioSys !== 'undefined') AudioSys.playSuccess();
-                await updateXpDisplay();
-            } else if (res.ok && data.success && !data.awarded) {
-                unlockedSet.add(ach.id);
-                unlockedAchievementIds.push(ach.id);
-                userAchievements = [...unlockedAchievementIds];
-            }
-        } catch (_) {}
-    }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success && data.awarded) {
+                    unlockedSet.add(ach.id);
+                    unlockedAchievementIds.push(ach.id);
+                    userAchievements = [...unlockedAchievementIds];
+                    totalXPEarned += Number(data.xp_awarded || ach.xp || 0);
+                    newUnlocks = true;
+                    if (settings.notifications) showToast(`🏆 Unlocked: ${ach.name}! +${ach.xp || 0} XP`);
+                    if (typeof AudioSys !== 'undefined') AudioSys.playSuccess();
+                    await updateXpDisplay();
+                } else if (res.ok && data.success && !data.awarded) {
+                    unlockedSet.add(ach.id);
+                    unlockedAchievementIds.push(ach.id);
+                    userAchievements = [...unlockedAchievementIds];
+                }
+            } catch (_) {}
+        }
 
+    const finalState = { unlocked: [...unlockedSet], total_xp: totalXPEarned };
+    writeAchievementStateCache(finalState);
     renderAchievementsList();
     updateAchievementSummary(totalXPEarned);
 
