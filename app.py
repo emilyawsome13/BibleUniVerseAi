@@ -234,9 +234,15 @@ _API_RESPONSE_CACHE = {}
 _API_RESPONSE_CACHE_LOCK = threading.Lock()
 _RATE_LIMIT_BUCKETS = {}
 _RATE_LIMIT_LOCK = threading.Lock()
-REALTIME_HEARTBEAT_SECONDS = max(5, int(os.environ.get('REALTIME_HEARTBEAT_SECONDS', '20')))
+REALTIME_HEARTBEAT_SECONDS = max(2, min(10, int(os.environ.get('REALTIME_HEARTBEAT_SECONDS', '5'))))
+REALTIME_STREAM_MAX_SECONDS = max(8, min(28, int(os.environ.get('REALTIME_STREAM_MAX_SECONDS', '15'))))
 _REALTIME_SUBSCRIBERS = {}
 _REALTIME_SUBSCRIBERS_LOCK = threading.Lock()
+logger.info(
+    "Realtime config heartbeat=%ss stream_max=%ss",
+    REALTIME_HEARTBEAT_SECONDS,
+    REALTIME_STREAM_MAX_SECONDS
+)
 MOD_BLOCKLIST = [
     token.strip().lower()
     for token in str(os.environ.get(
@@ -286,6 +292,33 @@ I18N_SERVER_CATALOGS = {
         "offlineModeLabel": "Modo sin conexión listo"
     }
 }
+
+LIMITED_TIME_EVENTS = [
+    {
+        "id": "lent_focus_2026",
+        "name": "Lent Focus Sprint",
+        "description": "Claim a focused reading bonus during Lent.",
+        "xp_reward": 700,
+        "starts_at": "2026-02-18T00:00:00Z",
+        "ends_at": "2026-04-05T23:59:59Z"
+    },
+    {
+        "id": "spring_revival_2026",
+        "name": "Spring Revival Week",
+        "description": "Seven-day encouragement event with bonus XP.",
+        "xp_reward": 500,
+        "starts_at": "2026-03-01T00:00:00Z",
+        "ends_at": "2026-03-31T23:59:59Z"
+    },
+    {
+        "id": "easter_praise_2026",
+        "name": "Easter Praise Event",
+        "description": "Celebrate Easter with a one-time event bonus.",
+        "xp_reward": 1200,
+        "starts_at": "2026-04-01T00:00:00Z",
+        "ends_at": "2026-04-12T23:59:59Z"
+    }
+]
 
 FALLBACK_BOOKS = [
     {"id": "GEN", "name": "Genesis"},
@@ -988,6 +1021,90 @@ def ensure_growth_feature_tables(c, db_type):
 
     ensure_performance_indexes(c, db_type)
     _mark_schema_ready(db_type, "growth_features")
+
+def ensure_engagement_addon_tables(c, db_type):
+    if _is_schema_ready_with_table(c, db_type, "engagement_addons", "limited_time_event_claims"):
+        return
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS limited_time_event_claims (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                event_id TEXT NOT NULL,
+                claim_date TEXT NOT NULL,
+                xp_awarded INTEGER NOT NULL DEFAULT 0,
+                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, event_id, claim_date)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS prayer_buddy_queue (
+                user_id INTEGER PRIMARY KEY,
+                focus_topic TEXT,
+                queued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS prayer_buddy_pairs (
+                id SERIAL PRIMARY KEY,
+                user_a_id INTEGER NOT NULL,
+                user_b_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'active',
+                matched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ended_at TIMESTAMP,
+                UNIQUE(user_a_id, user_b_id, status)
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS limited_time_event_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                event_id TEXT NOT NULL,
+                claim_date TEXT NOT NULL,
+                xp_awarded INTEGER NOT NULL DEFAULT 0,
+                claimed_at TEXT,
+                UNIQUE(user_id, event_id, claim_date)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS prayer_buddy_queue (
+                user_id INTEGER PRIMARY KEY,
+                focus_topic TEXT,
+                queued_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS prayer_buddy_pairs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_a_id INTEGER NOT NULL,
+                user_b_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'active',
+                matched_at TEXT,
+                ended_at TEXT,
+                UNIQUE(user_a_id, user_b_id, status)
+            )
+        """)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "engagement_addons")
+
+def _parse_iso_utc(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+    except Exception:
+        return None
+
+def _is_event_active(event_meta, now_dt=None):
+    now_dt = now_dt or datetime.now(timezone.utc)
+    start_dt = _parse_iso_utc(event_meta.get("starts_at"))
+    end_dt = _parse_iso_utc(event_meta.get("ends_at"))
+    if start_dt and now_dt < start_dt:
+        return False
+    if end_dt and now_dt > end_dt:
+        return False
+    return True
 
 def get_notification_preferences(c, db_type, user_id, create_if_missing=True):
     ensure_growth_feature_tables(c, db_type)
@@ -3921,21 +4038,25 @@ class BibleGenerator:
         """Fetch a new verse from API or use fallback"""
         network = self.networks[self.network_idx]
         verse_data = None
-        
-        try:
-            r = self.session.get(network["url"], timeout=10)
-            if r.status_code == 200:
+
+        last_error = None
+        for attempt in range(2):
+            try:
+                r = self.session.get(network["url"], timeout=10)
+                if r.status_code != 200:
+                    last_error = f"status={r.status_code}"
+                    continue
                 data = r.json()
                 if isinstance(data, list):
-                    data = data[0]
-                    ref = f"{data['bookname']} {data['chapter']}:{data['verse']}"
-                    text = data['text']
+                    data = data[0] if data else {}
+                    ref = f"{data.get('bookname', 'Unknown')} {data.get('chapter', '?')}:{data.get('verse', '?')}"
+                    text = str(data.get('text') or '').strip()
                     trans = "WEB"
                 else:
-                    ref = data.get('reference', 'Unknown')
-                    text = data.get('text', '').strip()
-                    trans = data.get('translation_name', 'KJV')
-                
+                    ref = str(data.get('reference', 'Unknown'))
+                    text = str(data.get('text', '')).strip()
+                    trans = str(data.get('translation_name', 'KJV'))
+
                 if text and ref:
                     book = self.extract_book(ref)
                     verse_data = {
@@ -3945,8 +4066,16 @@ class BibleGenerator:
                         "source": network["name"],
                         "book": book
                     }
-        except Exception as e:
-            logger.error(f"Fetch error from {network['name']}: {e}")
+                    break
+                last_error = "empty_payload"
+            except requests.exceptions.RequestException as e:
+                last_error = str(e)
+            except Exception as e:
+                last_error = str(e)
+            time.sleep(0.2)
+
+        if not verse_data and last_error:
+            logger.warning(f"Verse fetch issue from {network['name']}: {last_error}")
         
         # Rotate network for next time
         self.network_idx = (self.network_idx + 1) % len(self.networks)
@@ -9011,24 +9140,32 @@ def realtime_stream():
 
     @stream_with_context
     def _event_stream():
+        deadline = time.time() + REALTIME_STREAM_MAX_SECONDS
         try:
             yield "retry: 2500\n"
             yield f"data: {json.dumps({'event': 'hello', 'payload': {'user_id': user_id}, 'ts': datetime.now().isoformat()})}\n\n"
-            while True:
+            while time.time() < deadline:
+                remaining = max(0.25, deadline - time.time())
+                wait_for = min(float(REALTIME_HEARTBEAT_SECONDS), remaining)
                 try:
-                    packet = mailbox.get(timeout=REALTIME_HEARTBEAT_SECONDS)
+                    packet = mailbox.get(timeout=wait_for)
                     yield f"data: {json.dumps(packet)}\n\n"
                 except queue.Empty:
+                    # Keep chunks flowing frequently so upstream worker watchdogs do not treat the request as stalled.
+                    yield f": keepalive {int(time.time())}\n\n"
                     yield f"data: {json.dumps({'event': 'heartbeat', 'payload': {}, 'ts': datetime.now().isoformat()})}\n\n"
+            # End this stream before worker timeout windows; EventSource will auto-reconnect.
+            yield f"data: {json.dumps({'event': 'stream_rotate', 'payload': {}, 'ts': datetime.now().isoformat()})}\n\n"
         except GeneratorExit:
             pass
+        except Exception as stream_error:
+            logger.info(f"Realtime stream closed for user {user_id}: {stream_error}")
         finally:
             _realtime_unsubscribe(user_id, mailbox)
 
     return Response(_event_stream(), mimetype='text/event-stream', headers={
-        "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no",
-        "Connection": "keep-alive"
+        "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no"
     })
 
 @app.route('/api/i18n/catalog')
@@ -9634,6 +9771,565 @@ def pod_leaderboard_api(pod_id):
         } for row in c.fetchall()]
         return jsonify({"leaderboard": board})
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+def _get_prayer_buddy_pair(c, db_type, user_id):
+    uid = int(user_id)
+    if db_type == 'postgres':
+        c.execute("""
+            SELECT p.id, p.user_a_id, p.user_b_id, p.status, p.matched_at
+            FROM prayer_buddy_pairs p
+            WHERE p.status = 'active' AND (p.user_a_id = %s OR p.user_b_id = %s)
+            ORDER BY p.matched_at DESC NULLS LAST, p.id DESC
+            LIMIT 1
+        """, (uid, uid))
+    else:
+        c.execute("""
+            SELECT p.id, p.user_a_id, p.user_b_id, p.status, p.matched_at
+            FROM prayer_buddy_pairs p
+            WHERE p.status = 'active' AND (p.user_a_id = ? OR p.user_b_id = ?)
+            ORDER BY p.matched_at DESC, p.id DESC
+            LIMIT 1
+        """, (uid, uid))
+    row = c.fetchone()
+    if not row:
+        return None
+    user_a = int(row_pick(row, 'user_a_id', 1) or 0)
+    user_b = int(row_pick(row, 'user_b_id', 2) or 0)
+    partner_id = user_b if user_a == uid else user_a
+    if partner_id <= 0:
+        return None
+
+    if db_type == 'postgres':
+        c.execute("""
+            SELECT id, name, COALESCE(custom_picture, picture) AS picture
+            FROM users
+            WHERE id = %s
+            LIMIT 1
+        """, (partner_id,))
+    else:
+        c.execute("""
+            SELECT id, name, COALESCE(custom_picture, picture) AS picture
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+        """, (partner_id,))
+    partner_row = c.fetchone()
+    return {
+        "pair_id": row_pick(row, 'id', 0),
+        "partner_id": partner_id,
+        "partner_name": row_pick(partner_row, 'name', 1) if partner_row else f"User #{partner_id}",
+        "partner_picture": (row_pick(partner_row, 'picture', 2) if partner_row else '') or '',
+        "matched_at": row_pick(row, 'matched_at', 4),
+        "status": row_pick(row, 'status', 3) or 'active'
+    }
+
+@app.route('/api/events/list')
+def events_list_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    today_key = datetime.now().astimezone().strftime("%Y-%m-%d")
+    now_utc = datetime.now(timezone.utc)
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_engagement_addon_tables(c, db_type)
+        conn.commit()
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT event_id, claim_date
+                FROM limited_time_event_claims
+                WHERE user_id = %s AND claim_date = %s
+            """, (uid, today_key))
+        else:
+            c.execute("""
+                SELECT event_id, claim_date
+                FROM limited_time_event_claims
+                WHERE user_id = ? AND claim_date = ?
+            """, (uid, today_key))
+        claimed_today = {str(row_pick(r, 'event_id', 0)) for r in c.fetchall()}
+
+        items = []
+        for evt in LIMITED_TIME_EVENTS:
+            is_active = _is_event_active(evt, now_utc)
+            items.append({
+                "id": evt["id"],
+                "name": evt["name"],
+                "description": evt["description"],
+                "xp_reward": int(evt.get("xp_reward", 0) or 0),
+                "starts_at": evt.get("starts_at"),
+                "ends_at": evt.get("ends_at"),
+                "active": bool(is_active),
+                "claimed_today": evt["id"] in claimed_today
+            })
+        return jsonify({
+            "today": today_key,
+            "events": items
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/events/claim', methods=['POST'])
+def events_claim_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    data = request.get_json(silent=True) or {}
+    event_id = str(data.get('event_id') or '').strip()
+    event_meta = next((evt for evt in LIMITED_TIME_EVENTS if evt.get("id") == event_id), None)
+    if not event_meta:
+        return jsonify({"error": "Event not found"}), 404
+    if not _is_event_active(event_meta):
+        return jsonify({"error": "Event is not active"}), 400
+
+    today_key = datetime.now().astimezone().strftime("%Y-%m-%d")
+    now_iso = datetime.now().isoformat()
+    reward = max(0, int(event_meta.get("xp_reward", 0) or 0))
+    if reward <= 0:
+        return jsonify({"error": "Invalid event reward"}), 400
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_engagement_addon_tables(c, db_type)
+        inserted = False
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO limited_time_event_claims (user_id, event_id, claim_date, xp_awarded, claimed_at)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (user_id, event_id, claim_date) DO NOTHING
+                RETURNING id
+            """, (uid, event_id, today_key, reward, now_iso))
+            inserted = bool(c.fetchone())
+        else:
+            before_changes = int(getattr(conn, "total_changes", 0))
+            c.execute("""
+                INSERT OR IGNORE INTO limited_time_event_claims (user_id, event_id, claim_date, xp_awarded, claimed_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (uid, event_id, today_key, reward, now_iso))
+            after_changes = int(getattr(conn, "total_changes", 0))
+            inserted = after_changes > before_changes
+
+        if not inserted:
+            conn.rollback()
+            return jsonify({"success": True, "already_claimed": True})
+
+        conn.commit()
+        awarded = award_xp_to_user(uid, reward, f"Limited event: {event_meta.get('name', event_id)}")
+        if not awarded.get("success"):
+            try:
+                if db_type == 'postgres':
+                    c.execute("""
+                        DELETE FROM limited_time_event_claims
+                        WHERE user_id = %s AND event_id = %s AND claim_date = %s
+                    """, (uid, event_id, today_key))
+                else:
+                    c.execute("""
+                        DELETE FROM limited_time_event_claims
+                        WHERE user_id = ? AND event_id = ? AND claim_date = ?
+                    """, (uid, event_id, today_key))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+            return jsonify({"error": awarded.get("error", "Failed to award XP")}), 500
+
+        publish_realtime_event([uid], "event_claimed", {"event_id": event_id, "xp_reward": reward})
+        return jsonify({
+            "success": True,
+            "already_claimed": False,
+            "event_id": event_id,
+            "xp_reward": int(awarded.get("awarded_amount", reward) or reward),
+            "new_total": awarded.get("new_total"),
+            "level": awarded.get("level"),
+            "leveled_up": bool(awarded.get("leveled_up", False))
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/leaderboard/global')
+def global_leaderboard_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    try:
+        limit = max(5, min(100, int(request.args.get('limit', 25))))
+    except Exception:
+        limit = 25
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT u.id AS user_id,
+                       COALESCE(NULLIF(TRIM(u.name), ''), ('User #' || u.id::TEXT)) AS user_name,
+                       COALESCE(u.custom_picture, u.picture, '') AS picture,
+                       COALESCE(x.level, 1) AS level,
+                       COALESCE(x.total_xp_earned, 0) AS total_xp_earned,
+                       COALESCE(v.current_streak, 0) AS current_streak,
+                       COALESCE(v.total_verses_read, 0) AS total_verses_read
+                FROM users u
+                LEFT JOIN user_xp x ON x.user_id = u.id
+                LEFT JOIN verse_read_streak v ON v.user_id = u.id
+                WHERE COALESCE(u.is_banned, 0) = 0
+                ORDER BY COALESCE(x.total_xp_earned, 0) DESC,
+                         COALESCE(v.current_streak, 0) DESC,
+                         u.id ASC
+                LIMIT %s
+            """, (limit,))
+        else:
+            c.execute("""
+                SELECT u.id AS user_id,
+                       COALESCE(NULLIF(TRIM(u.name), ''), ('User #' || CAST(u.id AS TEXT))) AS user_name,
+                       COALESCE(u.custom_picture, u.picture, '') AS picture,
+                       COALESCE(x.level, 1) AS level,
+                       COALESCE(x.total_xp_earned, 0) AS total_xp_earned,
+                       COALESCE(v.current_streak, 0) AS current_streak,
+                       COALESCE(v.total_verses_read, 0) AS total_verses_read
+                FROM users u
+                LEFT JOIN user_xp x ON x.user_id = u.id
+                LEFT JOIN verse_read_streak v ON v.user_id = u.id
+                WHERE COALESCE(u.is_banned, 0) = 0
+                ORDER BY COALESCE(x.total_xp_earned, 0) DESC,
+                         COALESCE(v.current_streak, 0) DESC,
+                         u.id ASC
+                LIMIT ?
+            """, (limit,))
+        rows = c.fetchall()
+        leaderboard = []
+        my_row = None
+        for idx, row in enumerate(rows, start=1):
+            item = {
+                "rank": idx,
+                "user_id": int(row_pick(row, 'user_id', 0) or 0),
+                "user_name": row_pick(row, 'user_name', 1) or "User",
+                "picture": row_pick(row, 'picture', 2) or '',
+                "level": int(row_pick(row, 'level', 3, 1) or 1),
+                "total_xp_earned": int(row_pick(row, 'total_xp_earned', 4, 0) or 0),
+                "current_streak": int(row_pick(row, 'current_streak', 5, 0) or 0),
+                "total_verses_read": int(row_pick(row, 'total_verses_read', 6, 0) or 0)
+            }
+            leaderboard.append(item)
+            if item["user_id"] == int(session['user_id']):
+                my_row = item
+        return jsonify({"leaderboard": leaderboard, "me": my_row})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/streak/heatmap')
+def streak_heatmap_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    try:
+        days = max(14, min(366, int(request.args.get('days', 120))))
+    except Exception:
+        days = 120
+
+    uid = int(session['user_id'])
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days - 1)
+    start_key = start_date.isoformat()
+    end_key = end_date.isoformat()
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_daily_challenge_tables(c, db_type)
+        conn.commit()
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT event_date, COUNT(*) AS count
+                FROM daily_actions
+                WHERE user_id = %s
+                  AND event_date >= %s
+                  AND event_date <= %s
+                GROUP BY event_date
+                ORDER BY event_date ASC
+            """, (uid, start_key, end_key))
+        else:
+            c.execute("""
+                SELECT event_date, COUNT(*) AS count
+                FROM daily_actions
+                WHERE user_id = ?
+                  AND event_date >= ?
+                  AND event_date <= ?
+                GROUP BY event_date
+                ORDER BY event_date ASC
+            """, (uid, start_key, end_key))
+        points = [{
+            "date": row_pick(row, 'event_date', 0),
+            "count": int(row_pick(row, 'count', 1, 0) or 0)
+        } for row in c.fetchall()]
+        return jsonify({
+            "days": days,
+            "start_date": start_key,
+            "end_date": end_key,
+            "points": points
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/daily-brief')
+def daily_brief_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    today_key = datetime.now().astimezone().strftime("%Y-%m-%d")
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_daily_challenge_tables(c, db_type)
+        ensure_notification_tables(c, db_type)
+        conn.commit()
+
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO user_xp (user_id, xp, total_xp_earned, level)
+                VALUES (%s, 0, 0, 1)
+                ON CONFLICT (user_id) DO NOTHING
+            """, (uid,))
+            c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = %s", (uid,))
+        else:
+            c.execute("""
+                INSERT OR IGNORE INTO user_xp (user_id, xp, total_xp_earned, level)
+                VALUES (?, 0, 0, 1)
+            """, (uid,))
+            c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = ?", (uid,))
+        xp_row = c.fetchone()
+        xp_data = {
+            "xp": int(row_pick(xp_row, 'xp', 0, 0) or 0),
+            "total_xp_earned": int(row_pick(xp_row, 'total_xp_earned', 1, 0) or 0),
+            "level": int(row_pick(xp_row, 'level', 2, 1) or 1)
+        }
+
+        if db_type == 'postgres':
+            c.execute("SELECT current_streak, longest_streak, total_verses_read FROM verse_read_streak WHERE user_id = %s", (uid,))
+        else:
+            c.execute("SELECT current_streak, longest_streak, total_verses_read FROM verse_read_streak WHERE user_id = ?", (uid,))
+        streak_row = c.fetchone()
+        streak = {
+            "current": int(row_pick(streak_row, 'current_streak', 0, 0) if streak_row else 0),
+            "longest": int(row_pick(streak_row, 'longest_streak', 1, 0) if streak_row else 0),
+            "total_verses": int(row_pick(streak_row, 'total_verses_read', 2, 0) if streak_row else 0)
+        }
+
+        challenge = pick_hourly_challenge(uid, today_key)
+        action = challenge.get('action', 'save')
+        goal = int(challenge.get('goal', 1) or 1)
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT COUNT(*) AS count
+                FROM daily_actions
+                WHERE user_id = %s AND action = %s AND event_date = %s
+            """, (uid, action, today_key))
+            progress_row = c.fetchone()
+            progress = int(row_pick(progress_row, 'count', 0, 0) or 0)
+            c.execute("""
+                SELECT COUNT(*) AS count
+                FROM user_notifications
+                WHERE user_id = %s AND COALESCE(is_read, 0) = 0
+            """, (uid,))
+            notif_row = c.fetchone()
+            unread = int(row_pick(notif_row, 'count', 0, 0) or 0)
+        else:
+            c.execute("""
+                SELECT COUNT(*)
+                FROM daily_actions
+                WHERE user_id = ? AND action = ? AND event_date = ?
+            """, (uid, action, today_key))
+            progress_row = c.fetchone()
+            progress = int(progress_row[0] if progress_row else 0)
+            c.execute("""
+                SELECT COUNT(*)
+                FROM user_notifications
+                WHERE user_id = ? AND COALESCE(is_read, 0) = 0
+            """, (uid,))
+            notif_row = c.fetchone()
+            unread = int(notif_row[0] if notif_row else 0)
+
+        return jsonify({
+            "today": today_key,
+            "xp": xp_data,
+            "streak": streak,
+            "challenge": {
+                "id": challenge.get("id"),
+                "text": challenge.get("text"),
+                "action": action,
+                "goal": goal,
+                "progress": progress,
+                "complete": progress >= goal
+            },
+            "unread_notifications": unread
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/prayer-buddy')
+def prayer_buddy_status_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_engagement_addon_tables(c, db_type)
+        conn.commit()
+        pair = _get_prayer_buddy_pair(c, db_type, uid)
+        if db_type == 'postgres':
+            c.execute("SELECT focus_topic, queued_at FROM prayer_buddy_queue WHERE user_id = %s", (uid,))
+        else:
+            c.execute("SELECT focus_topic, queued_at FROM prayer_buddy_queue WHERE user_id = ?", (uid,))
+        qrow = c.fetchone()
+        return jsonify({
+            "pair": pair,
+            "queued": bool(qrow),
+            "queue": {
+                "focus_topic": (row_pick(qrow, 'focus_topic', 0) if qrow else '') or '',
+                "queued_at": row_pick(qrow, 'queued_at', 1) if qrow else None
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/prayer-buddy/join', methods=['POST'])
+def prayer_buddy_join_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    data = request.get_json(silent=True) or {}
+    focus_topic = (data.get('focus_topic') or '').strip()[:120]
+    now_iso = datetime.now().isoformat()
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_engagement_addon_tables(c, db_type)
+        conn.commit()
+
+        existing = _get_prayer_buddy_pair(c, db_type, uid)
+        if existing:
+            return jsonify({"success": True, "matched": True, "pair": existing})
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT q.user_id
+                FROM prayer_buddy_queue q
+                WHERE q.user_id <> %s
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM prayer_buddy_pairs p
+                    WHERE p.status = 'active' AND (p.user_a_id = q.user_id OR p.user_b_id = q.user_id)
+                  )
+                ORDER BY q.queued_at ASC NULLS LAST, q.user_id ASC
+                LIMIT 1
+            """, (uid,))
+        else:
+            c.execute("""
+                SELECT q.user_id
+                FROM prayer_buddy_queue q
+                WHERE q.user_id <> ?
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM prayer_buddy_pairs p
+                    WHERE p.status = 'active' AND (p.user_a_id = q.user_id OR p.user_b_id = q.user_id)
+                  )
+                ORDER BY q.queued_at ASC, q.user_id ASC
+                LIMIT 1
+            """, (uid,))
+        candidate = c.fetchone()
+
+        if candidate:
+            other_id = int(row_pick(candidate, 'user_id', 0) or 0)
+            if other_id > 0:
+                a_id = min(uid, other_id)
+                b_id = max(uid, other_id)
+                if db_type == 'postgres':
+                    c.execute("""
+                        INSERT INTO prayer_buddy_pairs (user_a_id, user_b_id, status, matched_at)
+                        VALUES (%s, %s, 'active', %s)
+                        ON CONFLICT (user_a_id, user_b_id, status) DO NOTHING
+                    """, (a_id, b_id, now_iso))
+                    c.execute("DELETE FROM prayer_buddy_queue WHERE user_id IN (%s, %s)", (uid, other_id))
+                else:
+                    c.execute("""
+                        INSERT OR IGNORE INTO prayer_buddy_pairs (user_a_id, user_b_id, status, matched_at)
+                        VALUES (?, ?, 'active', ?)
+                    """, (a_id, b_id, now_iso))
+                    c.execute("DELETE FROM prayer_buddy_queue WHERE user_id IN (?, ?)", (uid, other_id))
+                queue_notification(c, db_type, uid, "Prayer Buddy Matched", "You have been matched with a prayer buddy.", notif_type='community', source='prayer_buddy')
+                queue_notification(c, db_type, other_id, "Prayer Buddy Matched", "You have been matched with a prayer buddy.", notif_type='community', source='prayer_buddy')
+                conn.commit()
+                publish_realtime_event([uid, other_id], "prayer_buddy_match", {"user_a_id": a_id, "user_b_id": b_id})
+                pair = _get_prayer_buddy_pair(c, db_type, uid)
+                return jsonify({"success": True, "matched": True, "pair": pair})
+
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO prayer_buddy_queue (user_id, focus_topic, queued_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    focus_topic = EXCLUDED.focus_topic,
+                    queued_at = EXCLUDED.queued_at
+            """, (uid, focus_topic, now_iso))
+        else:
+            c.execute("""
+                INSERT OR REPLACE INTO prayer_buddy_queue (user_id, focus_topic, queued_at)
+                VALUES (?, ?, ?)
+            """, (uid, focus_topic, now_iso))
+        conn.commit()
+        return jsonify({"success": True, "matched": False, "queued": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/prayer-buddy/leave', methods=['POST'])
+def prayer_buddy_leave_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    now_iso = datetime.now().isoformat()
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_engagement_addon_tables(c, db_type)
+        if db_type == 'postgres':
+            c.execute("DELETE FROM prayer_buddy_queue WHERE user_id = %s", (uid,))
+            c.execute("""
+                UPDATE prayer_buddy_pairs
+                SET status = 'ended', ended_at = %s
+                WHERE status = 'active' AND (user_a_id = %s OR user_b_id = %s)
+            """, (now_iso, uid, uid))
+        else:
+            c.execute("DELETE FROM prayer_buddy_queue WHERE user_id = ?", (uid,))
+            c.execute("""
+                UPDATE prayer_buddy_pairs
+                SET status = 'ended', ended_at = ?
+                WHERE status = 'active' AND (user_a_id = ? OR user_b_id = ?)
+            """, (now_iso, uid, uid))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()

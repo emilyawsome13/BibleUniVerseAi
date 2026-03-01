@@ -940,6 +940,8 @@
         body.tab-recommendations .ambient-bg { filter: hue-rotate(26deg) saturate(1.08); }
         body.tab-library .ambient-bg { filter: hue-rotate(52deg) saturate(1.08); }
         body.tab-comments .ambient-bg { filter: hue-rotate(78deg) saturate(1.1); }
+        body.tab-events .ambient-bg { filter: hue-rotate(96deg) saturate(1.12); }
+        body.tab-leaderboard .ambient-bg { filter: hue-rotate(124deg) saturate(1.14); }
         body.tab-profile .ambient-bg { filter: hue-rotate(110deg) saturate(1.1); }
         body.tab-about .ambient-bg { filter: hue-rotate(145deg) saturate(1.16); }
         .ambient-bg { transition: filter 280ms ease; }
@@ -5053,6 +5055,100 @@
         .message-text.chat-effect-chat_godly { color: #fff8d4 !important; text-shadow: 0 0 12px rgba(255,215,0,0.7), 0 0 24px rgba(255,20,147,0.45) !important; background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,20,147,0.2)) !important; border-color: rgba(255,215,0,0.5); animation: mythicPulse 1s infinite; font-weight: 700 !important; }
         .comment-text.chat-effect-chat_revelation,
         .message-text.chat-effect-chat_revelation { color: #f3fffe !important; text-shadow: 0 0 12px rgba(122,255,242,0.72), 0 0 20px rgba(196,132,255,0.56) !important; background: linear-gradient(135deg, rgba(122,255,242,0.28), rgba(196,132,255,0.3), rgba(255,245,182,0.24)) !important; border-color: rgba(155,255,246,0.68); animation: transcendentLabelPulse 1.2s ease-in-out infinite; font-weight: 800 !important; }
+
+        .addons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .addon-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 8px 24px var(--ink-soft);
+        }
+        .addon-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+        .addon-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        .addon-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .event-list, .brief-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .event-item, .brief-item, .nudge-item {
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: var(--surface);
+        }
+        .event-item strong, .brief-item strong, .nudge-item strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .event-meta {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(20, minmax(10px, 1fr));
+            gap: 4px;
+        }
+        .heatmap-cell {
+            aspect-ratio: 1 / 1;
+            border-radius: 3px;
+            background: rgba(120, 130, 150, 0.18);
+        }
+        .heatmap-cell.lvl-1 { background: rgba(10,132,255,0.35); }
+        .heatmap-cell.lvl-2 { background: rgba(10,132,255,0.55); }
+        .heatmap-cell.lvl-3 { background: rgba(18,209,142,0.7); }
+        .heatmap-cell.lvl-4 { background: rgba(18,209,142,0.9); }
+        .leaderboard-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 620px;
+        }
+        .leaderboard-table th,
+        .leaderboard-table td {
+            border-bottom: 1px solid var(--glass-border);
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+        .leaderboard-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            background: var(--surface);
+        }
+        .verse-card-canvas {
+            width: 100%;
+            max-width: 320px;
+            border-radius: 14px;
+            border: 1px solid var(--glass-border);
+            background: #0f172a;
+        }
     </style>
 </head>
 <body>
@@ -5113,6 +5209,14 @@
                 <button class="nav-item" onclick="switchTab('xp-guide')" data-tab="xp-guide">
                     <span class="nav-icon">&#128161;</span>
                     <span>XP Guide</span>
+                </button>
+                <button class="nav-item" onclick="switchTab('events')" data-tab="events">
+                    <span class="nav-icon">&#127881;</span>
+                    <span>Events</span>
+                </button>
+                <button class="nav-item" onclick="switchTab('leaderboard')" data-tab="leaderboard">
+                    <span class="nav-icon">&#127942;</span>
+                    <span>Leaderboard</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('profile')" data-tab="profile">
                     <span class="nav-icon">&#128100;</span>
@@ -5767,6 +5871,108 @@
                 </div>
             </div>
 
+            <!-- EVENTS TAB -->
+            <div id="events" class="tab-view">
+                <div class="glass-card" style="padding: 20px;">
+                    <div class="shop-header" style="margin-bottom: 10px;">
+                        <h2 class="shop-title">🎉 Events & Add-ons</h2>
+                        <button class="btn btn-secondary" onclick="loadEventsHub(true)">Refresh</button>
+                    </div>
+                    <div class="addons-grid">
+                        <div class="addon-card">
+                            <div class="addon-title">📰 Daily Brief</div>
+                            <div class="addon-sub">Quick snapshot: challenge progress, streak, XP, and unread alerts.</div>
+                            <div class="brief-list" id="dailyBriefList">
+                                <div class="brief-item">Loading daily brief...</div>
+                            </div>
+                        </div>
+
+                        <div class="addon-card">
+                            <div class="addon-title">⏰ Smart Nudge</div>
+                            <div class="addon-sub">Context-aware suggestions based on your current progress.</div>
+                            <div id="smartNudgeList">
+                                <div class="nudge-item">Preparing nudges...</div>
+                            </div>
+                        </div>
+
+                        <div class="addon-card">
+                            <div class="addon-title">🎁 Limited Events</div>
+                            <div class="addon-sub">Claim time-boxed event rewards once per day.</div>
+                            <div class="event-list" id="limitedEventsList">
+                                <div class="event-item">Loading events...</div>
+                            </div>
+                        </div>
+
+                        <div class="addon-card">
+                            <div class="addon-title">🤝 Prayer Buddy Match</div>
+                            <div class="addon-sub">Join matchmaking to get paired with one prayer partner.</div>
+                            <div class="addon-row">
+                                <input class="library-search" id="prayerBuddyFocus" placeholder="Focus topic (optional)" style="margin-bottom:0; flex:1; min-width:160px;">
+                            </div>
+                            <div class="addon-row">
+                                <button class="btn btn-primary" onclick="joinPrayerBuddy()">Find Buddy</button>
+                                <button class="btn btn-secondary" onclick="leavePrayerBuddy()">Leave Queue</button>
+                                <button class="btn btn-secondary" onclick="loadPrayerBuddyStatus(true)">Refresh</button>
+                            </div>
+                            <div id="prayerBuddyStatus" class="event-meta">No prayer buddy activity yet.</div>
+                        </div>
+
+                        <div class="addon-card">
+                            <div class="addon-title">🖼️ Verse Card Generator</div>
+                            <div class="addon-sub">Create a share-ready card using the currently loaded verse.</div>
+                            <canvas id="verseCardCanvas" class="verse-card-canvas" width="1080" height="1080"></canvas>
+                            <div class="addon-row" style="margin-top: 8px;">
+                                <button class="btn btn-primary" onclick="generateVerseCard()">Generate</button>
+                                <button class="btn btn-secondary" onclick="downloadVerseCard()">Download</button>
+                            </div>
+                        </div>
+
+                        <div class="addon-card">
+                            <div class="addon-title">🔥 Streak Calendar Heatmap</div>
+                            <div class="addon-sub">Visualize consistency from your recent daily actions.</div>
+                            <div class="addon-row">
+                                <select id="heatmapDays" class="setting-select" style="max-width: 130px; padding: 6px 8px;">
+                                    <option value="60">Last 60 days</option>
+                                    <option value="120" selected>Last 120 days</option>
+                                    <option value="180">Last 180 days</option>
+                                    <option value="365">Last 365 days</option>
+                                </select>
+                                <button class="btn btn-secondary" onclick="loadStreakHeatmap(true)">Refresh</button>
+                            </div>
+                            <div class="heatmap-grid" id="streakHeatmapGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEADERBOARD TAB -->
+            <div id="leaderboard" class="tab-view">
+                <div class="glass-card" style="padding: 20px;">
+                    <div class="shop-header">
+                        <h2 class="shop-title">🏆 Global Leaderboard</h2>
+                        <button class="btn btn-secondary" onclick="loadGlobalLeaderboard(true)">Refresh</button>
+                    </div>
+                    <div id="leaderboardSummary" class="event-meta" style="margin-bottom: 10px;">Loading rankings...</div>
+                    <div class="leaderboard-table-wrap">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>User</th>
+                                    <th>Level</th>
+                                    <th>Total XP</th>
+                                    <th>Streak</th>
+                                    <th>Verses Read</th>
+                                </tr>
+                            </thead>
+                            <tbody id="globalLeaderboardBody">
+                                <tr><td colspan="6">Loading leaderboard...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- PROFILE TAB -->
             <div id="profile" class="tab-view" data-created-at="{{ user.created_at or '' }}" data-user-name="{{ user.name }}" data-user-email="{{ user.email }}" data-user-picture="{{ user.picture }}" data-user-decor="{{ user.avatar_decoration or '' }}" data-user-id="{{ user.id }}">
                 <div class="glass-card" style="text-align: center; padding: 32px; position: relative;" id="profileCard">
@@ -5980,6 +6186,14 @@
             <button class="tab-btn" onclick="switchTab('xp-guide', this)">
                 <span class="tab-icon">&#9889;</span>
                 <span class="tab-label">XP</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('events', this)">
+                <span class="tab-icon">&#127881;</span>
+                <span class="tab-label">Events</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('leaderboard', this)">
+                <span class="tab-icon">&#127942;</span>
+                <span class="tab-label">Ranks</span>
             </button>
             <button class="tab-btn" onclick="switchTab('shop', this)">
                 <span class="tab-icon">&#128722;</span>
@@ -6497,12 +6711,20 @@
         let realtimeSource = null;
         let realtimeConnected = false;
         let realtimeLastEventAt = 0;
+        let realtimeErrorCount = 0;
+        let realtimeReconnectTimer = null;
+        let realtimePausedUntil = 0;
         let notificationPrefsCache = null;
         let growthGroupsCache = [];
         let growthPodsCache = [];
         let growthSelectedGroupId = null;
         let growthSelectedPodId = null;
         let serverI18nCatalog = {};
+        let eventsCache = [];
+        let dailyBriefCache = null;
+        let prayerBuddyCache = null;
+        let leaderboardCache = [];
+        let heatmapCache = [];
         
         // Text to Speech
         const TTS = {
@@ -6820,6 +7042,11 @@
 
         function connectRealtimeStream() {
             if (typeof EventSource === 'undefined') return;
+            if (Date.now() < realtimePausedUntil) return;
+            if (realtimeReconnectTimer) {
+                clearTimeout(realtimeReconnectTimer);
+                realtimeReconnectTimer = null;
+            }
             if (realtimeSource) {
                 try { realtimeSource.close(); } catch (_) {}
                 realtimeSource = null;
@@ -6829,6 +7056,7 @@
             source.onopen = () => {
                 realtimeConnected = true;
                 realtimeLastEventAt = Date.now();
+                realtimeErrorCount = 0;
                 updateRealtimeStatusPill();
                 refreshNotificationPollingMode();
             };
@@ -6842,10 +7070,24 @@
                 realtimeConnected = false;
                 updateRealtimeStatusPill();
                 refreshNotificationPollingMode();
+                try { source.close(); } catch (_) {}
+                if (realtimeSource === source) realtimeSource = null;
+                realtimeErrorCount += 1;
+                let delay = Math.min(60000, 2000 * Math.pow(2, Math.min(realtimeErrorCount, 5)));
+                if (realtimeErrorCount >= 6) {
+                    realtimePausedUntil = Date.now() + 120000;
+                    delay = 120000;
+                    if (settings.notifications) showToast('Live updates paused briefly to reduce server load.');
+                }
+                realtimeReconnectTimer = setTimeout(() => {
+                    connectRealtimeStream();
+                }, delay);
             };
         }
 
         function reconnectRealtime() {
+            realtimePausedUntil = 0;
+            realtimeErrorCount = 0;
             connectRealtimeStream();
             showToast('Reconnecting live updates...');
         }
@@ -13077,7 +13319,7 @@ async function checkAchievement(type, value) {
         }
 
         function updateTabThemeClass(tab) {
-            const classes = ['tab-discover', 'tab-recommendations', 'tab-library', 'tab-comments', 'tab-profile', 'tab-about'];
+            const classes = ['tab-discover', 'tab-recommendations', 'tab-library', 'tab-comments', 'tab-events', 'tab-leaderboard', 'tab-profile', 'tab-about'];
             classes.forEach(c => document.body.classList.remove(c));
             document.body.classList.add(`tab-${tab}`);
         }
@@ -13198,6 +13440,8 @@ async function checkAchievement(type, value) {
             inventory: 'My Items',
             achievements: 'Achievements',
             xpGuide: 'XP Guide',
+            events: 'Events',
+            leaderboard: 'Leaderboard',
             profile: 'Profile',
             about: 'About Us',
             chat: 'Chat',
@@ -13735,6 +13979,8 @@ async function checkAchievement(type, value) {
                 inventory: t.inventory,
                 achievements: t.achievements,
                 'xp-guide': t.xpGuide,
+                events: t.events || 'Events',
+                leaderboard: t.leaderboard || 'Leaderboard',
                 profile: t.profile,
                 about: t.about
             };
@@ -13744,8 +13990,8 @@ async function checkAchievement(type, value) {
                 if (key && label && navLabelMap[key]) label.textContent = navLabelMap[key];
             });
 
-            const mobileMap = [t.discover, t.forYou, t.library, t.chat, t.awards, t.xpGuide, t.shop, t.profile, t.about];
-            document.querySelectorAll('.bottom-nav .tab-btn .tab-label').forEach((labelEl, idx) => {
+            const mobileMap = [t.discover, t.forYou, t.library, t.chat, t.awards, t.xpGuide, t.events || 'Events', t.leaderboard || 'Ranks', t.shop, t.profile, t.about];
+            document.querySelectorAll('.tab-bar .tab-btn .tab-label, .bottom-nav .tab-btn .tab-label').forEach((labelEl, idx) => {
                 if (mobileMap[idx]) labelEl.textContent = mobileMap[idx];
             });
 
@@ -14972,6 +15218,346 @@ async function checkAchievement(type, value) {
                 console.error('Equip error:', e);
             }
         }
+
+        function formatIsoShort(value) {
+            if (!value) return '';
+            const dt = new Date(value);
+            if (Number.isNaN(dt.getTime())) return '';
+            return dt.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        }
+
+        function renderDailyBrief(brief) {
+            const box = document.getElementById('dailyBriefList');
+            if (!box) return;
+            if (!brief || brief.error) {
+                box.innerHTML = '<div class="brief-item">Unable to load daily brief.</div>';
+                return;
+            }
+            const challenge = brief.challenge || {};
+            const xp = brief.xp || {};
+            const streak = brief.streak || {};
+            box.innerHTML = `
+                <div class="brief-item"><strong>Challenge</strong>${escapeHtml(challenge.text || 'No challenge')}<div class="event-meta">${escapeHtml(String(challenge.progress || 0))}/${escapeHtml(String(challenge.goal || 0))}</div></div>
+                <div class="brief-item"><strong>Streak</strong>${escapeHtml(String(streak.current || 0))} day current, ${escapeHtml(String(streak.longest || 0))} best</div>
+                <div class="brief-item"><strong>XP</strong>Level ${escapeHtml(String(xp.level || 1))} • Total ${escapeHtml(String(xp.total_xp_earned || 0))}</div>
+                <div class="brief-item"><strong>Unread Alerts</strong>${escapeHtml(String(brief.unread_notifications || 0))}</div>
+            `;
+        }
+
+        function renderSmartNudges() {
+            const box = document.getElementById('smartNudgeList');
+            if (!box) return;
+            const nudges = [];
+            const brief = dailyBriefCache || {};
+            const challenge = brief.challenge || {};
+            const streak = brief.streak || {};
+            const events = Array.isArray(eventsCache) ? eventsCache : [];
+            const activeUnclaimed = events.filter((e) => e.active && !e.claimed_today);
+            if (activeUnclaimed.length) {
+                nudges.push(`Claim ${activeUnclaimed[0].name} for +${activeUnclaimed[0].xp_reward} XP.`);
+            }
+            if (challenge.goal && (challenge.progress || 0) < challenge.goal) {
+                nudges.push(`You are ${(challenge.goal - (challenge.progress || 0))} step(s) away from today's challenge goal.`);
+            }
+            if ((streak.current || 0) === 0) {
+                nudges.push('Read one verse now to start today’s streak.');
+            }
+            if (prayerBuddyCache && !prayerBuddyCache.pair && !prayerBuddyCache.queued) {
+                nudges.push('Join Prayer Buddy to get a partner for today.');
+            }
+            if (!nudges.length) {
+                nudges.push('You are on track. Keep consistency with one more reading session.');
+            }
+            box.innerHTML = nudges.map((n) => `<div class="nudge-item"><strong>Suggestion</strong>${escapeHtml(n)}</div>`).join('');
+        }
+
+        function renderLimitedEvents(items) {
+            const list = document.getElementById('limitedEventsList');
+            if (!list) return;
+            if (!Array.isArray(items) || !items.length) {
+                list.innerHTML = '<div class="event-item">No events available right now.</div>';
+                return;
+            }
+            list.innerHTML = items.map((evt) => {
+                const active = !!evt.active;
+                const claimed = !!evt.claimed_today;
+                const buttonDisabled = (!active || claimed) ? 'disabled' : '';
+                const buttonLabel = claimed ? 'Claimed Today' : (active ? `Claim +${evt.xp_reward} XP` : 'Inactive');
+                return `
+                    <div class="event-item">
+                        <strong>${escapeHtml(evt.name || 'Event')}</strong>
+                        <div>${escapeHtml(evt.description || '')}</div>
+                        <div class="event-meta">${escapeHtml(formatIsoShort(evt.starts_at))} - ${escapeHtml(formatIsoShort(evt.ends_at))}</div>
+                        <div class="addon-row" style="margin-top:8px;">
+                            <button class="btn btn-primary" ${buttonDisabled} onclick="claimLimitedEvent('${escapeHtml(String(evt.id || ''))}')">${escapeHtml(buttonLabel)}</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderPrayerBuddyStatus(payload) {
+            const el = document.getElementById('prayerBuddyStatus');
+            if (!el) return;
+            if (!payload || payload.error) {
+                el.textContent = 'Unable to load prayer buddy status.';
+                return;
+            }
+            const pair = payload.pair;
+            if (pair && pair.partner_id) {
+                el.textContent = `Matched with ${pair.partner_name || ('User #' + pair.partner_id)} since ${formatIsoShort(pair.matched_at)}.`;
+                return;
+            }
+            if (payload.queued) {
+                const queuedAt = (payload.queue && payload.queue.queued_at) ? ` since ${formatIsoShort(payload.queue.queued_at)}` : '';
+                el.textContent = `In prayer buddy queue${queuedAt}.`;
+                return;
+            }
+            el.textContent = 'No active buddy and not queued.';
+        }
+
+        function renderStreakHeatmap(points, days) {
+            const grid = document.getElementById('streakHeatmapGrid');
+            if (!grid) return;
+            const lookup = {};
+            (points || []).forEach((p) => {
+                if (p && p.date) lookup[String(p.date)] = Number(p.count || 0);
+            });
+            const totalDays = Math.max(14, Number(days || 120));
+            const end = new Date();
+            const cells = [];
+            for (let i = totalDays - 1; i >= 0; i--) {
+                const d = new Date(end);
+                d.setDate(end.getDate() - i);
+                const key = d.toISOString().slice(0, 10);
+                const count = Number(lookup[key] || 0);
+                let lvl = 0;
+                if (count >= 1) lvl = 1;
+                if (count >= 2) lvl = 2;
+                if (count >= 4) lvl = 3;
+                if (count >= 7) lvl = 4;
+                cells.push(`<div class="heatmap-cell lvl-${lvl}" title="${escapeHtml(key)}: ${escapeHtml(String(count))} actions"></div>`);
+            }
+            grid.innerHTML = cells.join('');
+        }
+
+        function renderGlobalLeaderboard(rows, me) {
+            const body = document.getElementById('globalLeaderboardBody');
+            const summary = document.getElementById('leaderboardSummary');
+            if (!body || !summary) return;
+            if (!Array.isArray(rows) || !rows.length) {
+                body.innerHTML = '<tr><td colspan="6">No leaderboard data available.</td></tr>';
+                summary.textContent = 'No ranking data available.';
+                return;
+            }
+            body.innerHTML = rows.map((r) => `
+                <tr>
+                    <td>#${escapeHtml(String(r.rank || 0))}</td>
+                    <td>${escapeHtml(r.user_name || 'User')}</td>
+                    <td>${escapeHtml(String(r.level || 1))}</td>
+                    <td>${escapeHtml(String(r.total_xp_earned || 0))}</td>
+                    <td>${escapeHtml(String(r.current_streak || 0))}</td>
+                    <td>${escapeHtml(String(r.total_verses_read || 0))}</td>
+                </tr>
+            `).join('');
+            summary.textContent = me ? `Your rank in this view: #${me.rank}` : 'You are outside the current top list.';
+        }
+
+        async function loadDailyBrief(force = false) {
+            if (!force && dailyBriefCache) return dailyBriefCache;
+            const res = await fetch('/api/daily-brief', { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'daily_brief_failed');
+            dailyBriefCache = data;
+            renderDailyBrief(data);
+            return data;
+        }
+
+        async function loadLimitedEvents(force = false) {
+            if (!force && eventsCache.length) return eventsCache;
+            const res = await fetch('/api/events/list', { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'events_list_failed');
+            eventsCache = Array.isArray(data.events) ? data.events : [];
+            renderLimitedEvents(eventsCache);
+            return eventsCache;
+        }
+
+        async function claimLimitedEvent(eventId) {
+            try {
+                const res = await fetch('/api/events/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event_id: eventId })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Unable to claim event reward');
+                    return;
+                }
+                if (data.already_claimed) {
+                    showToast('Event already claimed for today');
+                } else {
+                    showToast(`Event reward claimed! +${data.xp_reward || 0} XP`);
+                    if (typeof updateXpDisplay === 'function') await updateXpDisplay();
+                }
+                await loadLimitedEvents(true);
+                renderSmartNudges();
+            } catch (_) {
+                showToast('Unable to claim event reward');
+            }
+        }
+
+        async function loadPrayerBuddyStatus(force = false) {
+            if (!force && prayerBuddyCache) return prayerBuddyCache;
+            const res = await fetch('/api/prayer-buddy', { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'prayer_buddy_status_failed');
+            prayerBuddyCache = data;
+            renderPrayerBuddyStatus(data);
+            return data;
+        }
+
+        async function joinPrayerBuddy() {
+            const focus = (document.getElementById('prayerBuddyFocus')?.value || '').trim();
+            try {
+                const res = await fetch('/api/prayer-buddy/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ focus_topic: focus })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Could not join prayer buddy queue');
+                    return;
+                }
+                if (data.matched) showToast('Prayer buddy matched!');
+                else showToast('Added to prayer buddy queue');
+                await loadPrayerBuddyStatus(true);
+                renderSmartNudges();
+            } catch (_) {
+                showToast('Could not join prayer buddy queue');
+            }
+        }
+
+        async function leavePrayerBuddy() {
+            try {
+                const res = await fetch('/api/prayer-buddy/leave', { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Could not leave prayer buddy queue');
+                    return;
+                }
+                showToast('Prayer buddy status cleared');
+                prayerBuddyCache = null;
+                await loadPrayerBuddyStatus(true);
+                renderSmartNudges();
+            } catch (_) {
+                showToast('Could not leave prayer buddy queue');
+            }
+        }
+
+        async function loadStreakHeatmap(force = false) {
+            const days = Number(document.getElementById('heatmapDays')?.value || 120);
+            if (!force && heatmapCache.length) {
+                renderStreakHeatmap(heatmapCache, days);
+                return heatmapCache;
+            }
+            const res = await fetch(`/api/streak/heatmap?days=${encodeURIComponent(String(days))}`, { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'heatmap_failed');
+            heatmapCache = Array.isArray(data.points) ? data.points : [];
+            renderStreakHeatmap(heatmapCache, days);
+            return heatmapCache;
+        }
+
+        function generateVerseCard() {
+            const canvas = document.getElementById('verseCardCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            const verseText = (currentVerse && currentVerse.text) ? String(currentVerse.text) : 'Load a verse from Discover to generate a card.';
+            const verseRef = (currentVerse && currentVerse.ref) ? String(currentVerse.ref) : 'Bible AI';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0, '#0a84ff');
+            grad.addColorStop(0.55, '#1f3f77');
+            grad.addColorStop(1, '#101827');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            for (let i = 0; i < 10; i++) {
+                ctx.beginPath();
+                const x = (i + 1) * 96;
+                const y = ((i % 5) + 1) * 150;
+                ctx.arc(x, y, 32 + (i % 3) * 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 68px Sora, sans-serif';
+            ctx.fillText('Bible AI', 84, 132);
+            ctx.font = '42px Sora, sans-serif';
+            const maxWidth = canvas.width - 160;
+            const words = verseText.split(/\s+/);
+            const lines = [];
+            let line = '';
+            for (const word of words) {
+                const test = line ? `${line} ${word}` : word;
+                if (ctx.measureText(test).width > maxWidth) {
+                    lines.push(line);
+                    line = word;
+                } else {
+                    line = test;
+                }
+            }
+            if (line) lines.push(line);
+            let y = 260;
+            lines.slice(0, 11).forEach((ln) => {
+                ctx.fillText(ln, 84, y);
+                y += 58;
+            });
+            ctx.font = 'bold 48px Sora, sans-serif';
+            ctx.fillStyle = '#c9ecff';
+            ctx.fillText(`— ${verseRef}`, 84, canvas.height - 130);
+        }
+
+        function downloadVerseCard() {
+            const canvas = document.getElementById('verseCardCanvas');
+            if (!canvas) return;
+            const a = document.createElement('a');
+            const safeRef = ((currentVerse && currentVerse.ref) ? currentVerse.ref : 'verse').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+            a.download = `bible-ai-${safeRef}.png`;
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        }
+
+        async function loadGlobalLeaderboard(force = false) {
+            if (!force && leaderboardCache.length) {
+                renderGlobalLeaderboard(leaderboardCache, leaderboardCache.find((x) => x.user_id === Number(document.getElementById('profile')?.dataset?.userId || 0)) || null);
+                return leaderboardCache;
+            }
+            const res = await fetch('/api/leaderboard/global?limit=30', { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'leaderboard_failed');
+            leaderboardCache = Array.isArray(data.leaderboard) ? data.leaderboard : [];
+            renderGlobalLeaderboard(leaderboardCache, data.me || null);
+            return leaderboardCache;
+        }
+
+        async function loadEventsHub(force = false) {
+            try {
+                await Promise.all([
+                    loadDailyBrief(force),
+                    loadLimitedEvents(force),
+                    loadPrayerBuddyStatus(force),
+                    loadStreakHeatmap(force)
+                ]);
+                renderSmartNudges();
+                generateVerseCard();
+            } catch (e) {
+                showToast('Some event modules failed to load');
+            }
+        }
         
         const originalSwitchTab = switchTab;
         switchTab = function(tab, btn) {
@@ -14983,6 +15569,8 @@ async function checkAchievement(type, value) {
                     startBoostTicker();
                 });
             }
+            if (tab === 'events') loadEventsHub();
+            if (tab === 'leaderboard') loadGlobalLeaderboard();
         };
         
         async function awardXP(amount, action) {

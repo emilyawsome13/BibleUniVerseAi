@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --worker-class gthread --threads 8 --timeout 120 --graceful-timeout 30 --keep-alive 65
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
