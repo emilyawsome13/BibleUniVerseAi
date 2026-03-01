@@ -6714,7 +6714,6 @@
         let realtimeErrorCount = 0;
         let realtimeReconnectTimer = null;
         let realtimePausedUntil = 0;
-        const REALTIME_STREAM_ENABLED = false;
         let notificationPrefsCache = null;
         let growthGroupsCache = [];
         let growthPodsCache = [];
@@ -6976,6 +6975,11 @@
                 else {
                     startVersePolling();
                     refreshNotificationPollingMode();
+                    if (settings.keepAwake) requestWakeLock();
+                }
+                if (document.hidden && wakeLockHandle) {
+                    wakeLockHandle.release().catch(() => {});
+                    wakeLockHandle = null;
                 }
             });
             const verseContainer = document.querySelector('.verse-container');
@@ -7042,12 +7046,6 @@
         }
 
         function connectRealtimeStream() {
-            if (!REALTIME_STREAM_ENABLED) {
-                realtimeConnected = false;
-                updateRealtimeStatusPill();
-                refreshNotificationPollingMode();
-                return;
-            }
             if (typeof EventSource === 'undefined') return;
             if (Date.now() < realtimePausedUntil) return;
             if (realtimeReconnectTimer) {
@@ -14060,6 +14058,19 @@ async function checkAchievement(type, value) {
         }
 
         // ===== AUDIO SYSTEM =====
+        let audioGestureUnlocked = false;
+        function unlockAudioFromGesture() {
+            if (audioGestureUnlocked) return;
+            audioGestureUnlocked = true;
+            AudioSys.init();
+            if (AudioSys.ctx && AudioSys.ctx.state === 'suspended') {
+                AudioSys.ctx.resume().catch(() => {});
+            }
+            document.removeEventListener('pointerdown', unlockAudioFromGesture, true);
+            document.removeEventListener('touchstart', unlockAudioFromGesture, true);
+            document.removeEventListener('keydown', unlockAudioFromGesture, true);
+        }
+
         const AudioSys = {
             ctx: null,
             master: null,
@@ -14084,8 +14095,9 @@ async function checkAchievement(type, value) {
             },
             _allow() {
                 if (!settings.sound) return false;
+                if (!audioGestureUnlocked) return false;
                 this.init();
-                if (this.ctx.state === 'suspended') this.ctx.resume();
+                if (!this.ctx || this.ctx.state !== 'running') return false;
                 const now = performance.now();
                 if (now - this.lastPlay < 50) return false;
                 this.lastPlay = now;
@@ -14171,8 +14183,13 @@ async function checkAchievement(type, value) {
             }
         };
 
+        document.addEventListener('pointerdown', unlockAudioFromGesture, true);
+        document.addEventListener('touchstart', unlockAudioFromGesture, true);
+        document.addEventListener('keydown', unlockAudioFromGesture, true);
+
         document.addEventListener('pointerdown', (e) => {
             if (!settings.sound) return;
+            unlockAudioFromGesture();
             const target = e.target.closest('button, .btn, .action-btn, .tab-btn, .nav-item, .icon-btn, .send-btn, .bible-reader-btn, .toggle, .segment-btn');
             if (target) AudioSys.playTap();
         });
@@ -14301,17 +14318,22 @@ async function checkAchievement(type, value) {
 
         async function requestWakeLock() {
             if (!('wakeLock' in navigator)) return false;
+            if (document.hidden || document.visibilityState !== 'visible') return false;
+            if (wakeLockHandle) return true;
             try {
                 wakeLockHandle = await navigator.wakeLock.request('screen');
                 wakeLockHandle.addEventListener('release', () => {
                     wakeLockHandle = null;
-                    if (settings.keepAwake) {
+                    if (settings.keepAwake && !document.hidden) {
                         setTimeout(() => requestWakeLock(), 300);
                     }
                 });
                 return true;
             } catch (e) {
-                console.error('Wake lock failed:', e);
+                if (!e || e.name === 'NotAllowedError' || e.name === 'AbortError') {
+                    return false;
+                }
+                console.warn('Wake lock unavailable:', e);
                 return false;
             }
         }
@@ -14524,7 +14546,7 @@ async function checkAchievement(type, value) {
 
             if (settings.keepAwake) {
                 document.getElementById('wakeLockToggle').classList.add('active');
-                requestWakeLock();
+                if (!document.hidden) requestWakeLock();
             }
             
             // Apply TTS settings

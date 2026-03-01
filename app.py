@@ -121,7 +121,7 @@ def get_user_equipped_items(c, db_type, user_id):
                 item_data = {
                     "item_id": row['item_id'] if hasattr(row, 'keys') else row[0],
                     "name": row['name'] if hasattr(row, 'keys') else row[3],
-                    "icon": row['icon'] if hasattr(row, 'keys') else row[4],
+                    "icon": normalize_shop_icon(row['icon'] if hasattr(row, 'keys') else row[4], category),
                     "rarity": row['rarity'] if hasattr(row, 'keys') else row[5],
                     "effects": effects
                 }
@@ -236,14 +236,12 @@ _RATE_LIMIT_BUCKETS = {}
 _RATE_LIMIT_LOCK = threading.Lock()
 REALTIME_HEARTBEAT_SECONDS = max(2, min(10, int(os.environ.get('REALTIME_HEARTBEAT_SECONDS', '5'))))
 REALTIME_STREAM_MAX_SECONDS = max(8, min(28, int(os.environ.get('REALTIME_STREAM_MAX_SECONDS', '15'))))
-DISABLE_REALTIME_STREAM = str(os.environ.get('DISABLE_REALTIME_STREAM', '1')).strip().lower() in ('1', 'true', 'yes', 'on')
 _REALTIME_SUBSCRIBERS = {}
 _REALTIME_SUBSCRIBERS_LOCK = threading.Lock()
 logger.info(
-    "Realtime config heartbeat=%ss stream_max=%ss disabled=%s",
+    "Realtime config heartbeat=%ss stream_max=%ss",
     REALTIME_HEARTBEAT_SECONDS,
-    REALTIME_STREAM_MAX_SECONDS,
-    DISABLE_REALTIME_STREAM
+    REALTIME_STREAM_MAX_SECONDS
 )
 MOD_BLOCKLIST = [
     token.strip().lower()
@@ -3985,11 +3983,6 @@ class BibleGenerator:
         self.network_idx = 0
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0'})
-        # Hard-disabled by default to avoid noisy SSL/provider failures in production logs.
-        self.use_external_verse_apis = False
-        self.fetch_warning_cooldown = max(30, int(os.environ.get('VERSE_FETCH_WARNING_COOLDOWN_SECONDS', '600')))
-        self._last_fetch_issue_log_at = {}
-        self._last_fallback_log_at = 0.0
         
         # Start thread
         self.start_thread()
@@ -4043,93 +4036,53 @@ class BibleGenerator:
     
     def fetch_verse(self):
         """Fetch a new verse from API or use fallback"""
+        network = self.networks[self.network_idx]
         verse_data = None
-        now_ts = time.time()
 
-        # Prefer using a locally stored verse first to avoid external SSL/network issues.
-        try:
-            conn, db_type = get_db()
-            c = get_cursor(conn, db_type)
-            if db_type == 'postgres':
-                c.execute("""
-                    SELECT reference, text, translation, source, book
-                    FROM verses
-                    WHERE COALESCE(text, '') <> ''
-                    ORDER BY RANDOM()
-                    LIMIT 1
-                """)
-            else:
-                c.execute("""
-                    SELECT reference, text, translation, source, book
-                    FROM verses
-                    WHERE COALESCE(text, '') <> ''
-                    ORDER BY RANDOM()
-                    LIMIT 1
-                """)
-            row = c.fetchone()
-            conn.close()
-            if row:
-                verse_data = {
-                    "ref": row_pick(row, 'reference', 0),
-                    "text": row_pick(row, 'text', 1),
-                    "trans": row_pick(row, 'translation', 2) or 'KJV',
-                    "source": row_pick(row, 'source', 3) or 'Local Pool',
-                    "book": row_pick(row, 'book', 4) or self.extract_book(row_pick(row, 'reference', 0))
-                }
-        except Exception:
-            verse_data = None
+        last_error = None
+        for attempt in range(2):
+            try:
+                r = self.session.get(network["url"], timeout=10)
+                if r.status_code != 200:
+                    last_error = f"status={r.status_code}"
+                    continue
+                data = r.json()
+                if isinstance(data, list):
+                    data = data[0] if data else {}
+                    ref = f"{data.get('bookname', 'Unknown')} {data.get('chapter', '?')}:{data.get('verse', '?')}"
+                    text = str(data.get('text') or '').strip()
+                    trans = "WEB"
+                else:
+                    ref = str(data.get('reference', 'Unknown'))
+                    text = str(data.get('text', '')).strip()
+                    trans = str(data.get('translation_name', 'KJV'))
 
-        # Try external APIs only when explicitly enabled and local pool is empty.
-        if not verse_data and self.use_external_verse_apis:
-            network = self.networks[self.network_idx]
-            last_error = None
-            for _ in range(2):
-                try:
-                    r = self.session.get(network["url"], timeout=10)
-                    if r.status_code != 200:
-                        last_error = f"status={r.status_code}"
-                        continue
-                    data = r.json()
-                    if isinstance(data, list):
-                        data = data[0] if data else {}
-                        ref = f"{data.get('bookname', 'Unknown')} {data.get('chapter', '?')}:{data.get('verse', '?')}"
-                        text = str(data.get('text') or '').strip()
-                        trans = "WEB"
-                    else:
-                        ref = str(data.get('reference', 'Unknown'))
-                        text = str(data.get('text', '')).strip()
-                        trans = str(data.get('translation_name', 'KJV'))
+                if text and ref:
+                    book = self.extract_book(ref)
+                    verse_data = {
+                        "ref": ref,
+                        "text": text,
+                        "trans": trans,
+                        "source": network["name"],
+                        "book": book
+                    }
+                    break
+                last_error = "empty_payload"
+            except requests.exceptions.RequestException as e:
+                last_error = str(e)
+            except Exception as e:
+                last_error = str(e)
+            time.sleep(0.2)
 
-                    if text and ref:
-                        verse_data = {
-                            "ref": ref,
-                            "text": text,
-                            "trans": trans,
-                            "source": network["name"],
-                            "book": self.extract_book(ref)
-                        }
-                        break
-                    last_error = "empty_payload"
-                except requests.exceptions.RequestException as e:
-                    last_error = str(e)
-                except Exception as e:
-                    last_error = str(e)
-                time.sleep(0.2)
-
-            if not verse_data and last_error:
-                last_log = float(self._last_fetch_issue_log_at.get(network["name"], 0) or 0)
-                if (now_ts - last_log) >= self.fetch_warning_cooldown:
-                    logger.warning(f"Verse fetch issue from {network['name']}: {last_error}")
-                    self._last_fetch_issue_log_at[network["name"]] = now_ts
-
-            # Rotate network for next time
-            self.network_idx = (self.network_idx + 1) % len(self.networks)
-
+        if not verse_data and last_error:
+            logger.warning(f"Verse fetch issue from {network['name']}: {last_error}")
+        
+        # Rotate network for next time
+        self.network_idx = (self.network_idx + 1) % len(self.networks)
+        
         # If API failed, use fallback
         if not verse_data:
-            if (now_ts - float(self._last_fallback_log_at or 0)) >= self.fetch_warning_cooldown:
-                logger.warning("Using fallback verse")
-                self._last_fallback_log_at = now_ts
+            logger.warning("Using fallback verse")
             fallback = random.choice(self.fallback_verses)
             verse_data = {
                 "ref": fallback['ref'],
@@ -6070,6 +6023,22 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "ability_ascension_xp", "name": "Ascension XP Boost", "description": "10x XP for 30 minutes", "category": "consumable", "price": 120000, "rarity": "transcendent", "icon": "??", "effects": {"boost": "ascension_xp", "duration": "30m", "multiplier": 10}},
 ]
 
+SHOP_CATEGORY_DEFAULT_ICONS = {
+    "frame": "\U0001F5BC\ufe0f",       # framed picture
+    "name_color": "\U0001F3A8",        # palette
+    "title": "\U0001F451",             # crown
+    "badge": "\U0001F396\ufe0f",       # military medal
+    "chat_effect": "\U0001F4AC",       # speech balloon
+    "profile_bg": "\U0001F3DE\ufe0f",  # national park
+    "consumable": "\u26A1",            # lightning bolt
+}
+
+def normalize_shop_icon(icon, category):
+    value = (icon or "").strip()
+    if value and any(ch not in {"?", " "} for ch in value):
+        return value
+    return SHOP_CATEGORY_DEFAULT_ICONS.get(category, "\U0001F6D2")
+
 def init_shop_items():
     """Initialize default shop items and update existing ones"""
     conn, db_type = get_db()
@@ -6078,6 +6047,7 @@ def init_shop_items():
     try:
         for item in DEFAULT_SHOP_ITEMS:
             effects_json = json.dumps(item['effects']) if db_type == 'postgres' else json.dumps(item['effects'])
+            normalized_icon = normalize_shop_icon(item.get('icon'), item.get('category'))
             
             if db_type == 'postgres':
                 # Insert new items or update existing ones (to sync prices)
@@ -6094,14 +6064,14 @@ def init_shop_items():
                         effects = EXCLUDED.effects,
                         available = TRUE
                 """, (item['item_id'], item['name'], item['description'], item['category'], 
-                      item['price'], item['rarity'], item['icon'], effects_json))
+                      item['price'], item['rarity'], normalized_icon, effects_json))
             else:
                 # For SQLite, try insert first, then update if exists
                 c.execute("""
                     INSERT OR REPLACE INTO shop_items (item_id, name, description, category, price, rarity, icon, effects, available)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
                 """, (item['item_id'], item['name'], item['description'], item['category'],
-                      item['price'], item['rarity'], item['icon'], effects_json))
+                      item['price'], item['rarity'], normalized_icon, effects_json))
         
         conn.commit()
         logger.info("Shop items initialized/updated")
@@ -6151,14 +6121,16 @@ def get_shop_items():
         items = []
         for row in c.fetchall():
             effects = row['effects'] if isinstance(row['effects'], dict) else json.loads(row['effects'] or '{}')
+            category = row['category'] if hasattr(row, 'keys') else row[3]
+            icon = row['icon'] if hasattr(row, 'keys') else row[6]
             items.append({
                 "item_id": row['item_id'] if hasattr(row, 'keys') else row[0],
                 "name": row['name'] if hasattr(row, 'keys') else row[1],
                 "description": row['description'] if hasattr(row, 'keys') else row[2],
-                "category": row['category'] if hasattr(row, 'keys') else row[3],
+                "category": category,
                 "price": row['price'] if hasattr(row, 'keys') else row[4],
                 "rarity": row['rarity'] if hasattr(row, 'keys') else row[5],
-                "icon": row['icon'] if hasattr(row, 'keys') else row[6],
+                "icon": normalize_shop_icon(icon, category),
                 "effects": effects
             })
         
@@ -6395,15 +6367,16 @@ def get_user_inventory():
         items = []
         for row in c.fetchall():
             effects = row['effects'] if isinstance(row['effects'], dict) else json.loads(row['effects'] or '{}')
+            category = row['category'] if hasattr(row, 'keys') else row[5]
             items.append({
                 "item_id": row['item_id'] if hasattr(row, 'keys') else row[0],
                 "equipped": bool(row['equipped'] if hasattr(row, 'keys') else row[1]),
                 "quantity": int(row_pick(row, 'quantity', 2, 1) or 1),
                 "name": row['name'] if hasattr(row, 'keys') else row[3],
                 "description": row['description'] if hasattr(row, 'keys') else row[4],
-                "category": row['category'] if hasattr(row, 'keys') else row[5],
+                "category": category,
                 "rarity": row['rarity'] if hasattr(row, 'keys') else row[6],
-                "icon": row['icon'] if hasattr(row, 'keys') else row[7],
+                "icon": normalize_shop_icon(row['icon'] if hasattr(row, 'keys') else row[7], category),
                 "effects": effects
             })
 
@@ -6442,7 +6415,10 @@ def get_user_inventory():
                         "description": row_pick(boost_row, 'description', 2, 'Currently active'),
                         "category": row_pick(boost_row, 'category', 3, 'consumable'),
                         "rarity": row_pick(boost_row, 'rarity', 4, 'transcendent'),
-                        "icon": row_pick(boost_row, 'icon', 5, '?'),
+                        "icon": normalize_shop_icon(
+                            row_pick(boost_row, 'icon', 5, ''),
+                            row_pick(boost_row, 'category', 3, 'consumable')
+                        ),
                         "effects": boost_effects
                     })
         conn.commit()
@@ -6705,7 +6681,7 @@ def get_user_profile_customization(user_id):
             item_data = {
                 "item_id": row['item_id'] if hasattr(row, 'keys') else row[0],
                 "name": row['name'] if hasattr(row, 'keys') else row[3],
-                "icon": row['icon'] if hasattr(row, 'keys') else row[4],
+                "icon": normalize_shop_icon(row['icon'] if hasattr(row, 'keys') else row[4], category),
                 "rarity": row['rarity'] if hasattr(row, 'keys') else row[5],
                 "effects": effects
             }
@@ -9182,9 +9158,6 @@ def _is_pod_member(c, db_type, pod_id, user_id):
 def realtime_stream():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
-    if DISABLE_REALTIME_STREAM:
-        # Keep endpoint valid but disable long-lived streams that can trigger worker timeouts.
-        return Response(status=204)
     user_id = int(session['user_id'])
     mailbox = _realtime_subscribe(user_id)
 
@@ -10029,7 +10002,7 @@ def global_leaderboard_api():
                 FROM users u
                 LEFT JOIN user_xp x ON x.user_id = u.id
                 LEFT JOIN verse_read_streak v ON v.user_id = u.id
-                WHERE COALESCE(u.is_banned, 0) = 0
+                WHERE COALESCE(u.is_banned, FALSE) = FALSE
                 ORDER BY COALESCE(x.total_xp_earned, 0) DESC,
                          COALESCE(v.current_streak, 0) DESC,
                          u.id ASC
@@ -12055,29 +12028,39 @@ def recent_users():
             return jsonify(cached)
         hidden_users = get_user_safety_filters(c, db_type, uid)["hidden_dm_users"]
         if db_type == 'postgres':
-            c.execute(f"""
+            c.execute("""
                 SELECT u.id, u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
                 FROM users u
-                WHERE u.id <> %s AND u.id IN (
-                    SELECT user_id FROM comments ORDER BY timestamp DESC LIMIT {limit * 5}
-                    UNION
-                    SELECT user_id FROM community_messages ORDER BY timestamp DESC LIMIT {limit * 5}
-                )
-                ORDER BY u.id DESC
-                LIMIT {limit}
-            """, (uid,))
+                JOIN (
+                    SELECT recent.user_id, MAX(recent.ts) AS last_ts
+                    FROM (
+                        SELECT user_id, timestamp AS ts FROM comments
+                        UNION ALL
+                        SELECT user_id, timestamp AS ts FROM community_messages
+                    ) AS recent
+                    GROUP BY recent.user_id
+                ) r ON r.user_id = u.id
+                WHERE u.id <> %s
+                ORDER BY r.last_ts DESC NULLS LAST, u.id DESC
+                LIMIT %s
+            """, (uid, limit))
         else:
-            c.execute(f"""
+            c.execute("""
                 SELECT u.id, u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
                 FROM users u
-                WHERE u.id <> ? AND u.id IN (
-                    SELECT user_id FROM comments ORDER BY timestamp DESC LIMIT {limit * 5}
-                    UNION
-                    SELECT user_id FROM community_messages ORDER BY timestamp DESC LIMIT {limit * 5}
-                )
-                ORDER BY u.id DESC
-                LIMIT {limit}
-            """, (uid,))
+                JOIN (
+                    SELECT recent.user_id, MAX(recent.ts) AS last_ts
+                    FROM (
+                        SELECT user_id, timestamp AS ts FROM comments
+                        UNION ALL
+                        SELECT user_id, timestamp AS ts FROM community_messages
+                    ) AS recent
+                    GROUP BY recent.user_id
+                ) r ON r.user_id = u.id
+                WHERE u.id <> ?
+                ORDER BY r.last_ts DESC, u.id DESC
+                LIMIT ?
+            """, (uid, limit))
         rows = c.fetchall()
         results = []
         for row in rows:
