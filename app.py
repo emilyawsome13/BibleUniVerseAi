@@ -4450,16 +4450,18 @@ DEFAULT_SHOP_ITEMS = [
     # Mythic Colors (50k-100k XP) - ULTRA RARE
     {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "🔥", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
     {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "🌑", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
-    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 100000, "rarity": "mythic", "icon": "👑", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
+    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 190000, "rarity": "transcendent", "icon": "👑", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
     
     # Transcendent Colors
     {"item_id": "color_celestial", "name": "Celestial Prism", "description": "Starlight forged into your name", "category": "name_color", "price": 170000, "rarity": "transcendent", "icon": "🌠", "effects": {"gradient": True, "colors": ["#FFFFFF", "#8AFFF5", "#C58CFF", "#FFF5B6"], "animation": "celestial_shift"}},
+    {"item_id": "color_edenlight", "name": "Edenlight", "description": "Soft living light from Eden", "category": "name_color", "price": 110000, "rarity": "mythic", "icon": "🌿", "effects": {"gradient": True, "colors": ["#D9FFB2", "#7DFFF8"], "animation": "eden_bloom"}},
     
     # ==================== TITLES ====================
     # Common Titles (500-1k XP)
     {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "🔍", "effects": {"title": "Seeker", "prefix": True}},
     {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "✉️", "effects": {"title": "Messenger", "prefix": True}},
     {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "🙏", "effects": {"title": "Disciple", "prefix": True}},
+    {"item_id": "title_servant", "name": "Servant", "description": "Faithful in the small things", "category": "title", "price": 1200, "rarity": "common", "icon": "🕯️", "effects": {"title": "Servant", "prefix": True}},
     
     # Rare Titles (2k-4k XP)
     {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "🎵", "effects": {"title": "Worshiper", "prefix": True}},
@@ -4479,10 +4481,11 @@ DEFAULT_SHOP_ITEMS = [
     # Mythic Titles (60k-150k XP) - ULTRA RARE
     {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "🗡️", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
     {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "✨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
-    {"item_id": "title_god", "name": "Creator", "description": "Supreme being", "category": "title", "price": 150000, "rarity": "mythic", "icon": "👑", "effects": {"title": "Creator", "prefix": True, "glow": True}},
+    {"item_id": "title_god", "name": "Throne Keeper", "description": "Guardian near the eternal throne", "category": "title", "price": 190000, "rarity": "transcendent", "icon": "🛐", "effects": {"title": "Throne Keeper", "prefix": True, "glow": True}},
     
     # Transcendent Titles
-    {"item_id": "title_thronekeeper", "name": "Thronekeeper", "description": "Guardian of the highest realm", "category": "title", "price": 220000, "rarity": "transcendent", "icon": "🛐", "effects": {"title": "Thronekeeper", "prefix": True, "glow": True}},
+    {"item_id": "title_thronekeeper", "name": "Creator", "description": "Crowned at the highest rank", "category": "title", "price": 260000, "rarity": "transcendent", "icon": "👑", "effects": {"title": "Creator", "prefix": True, "glow": True}},
+    {"item_id": "title_alphaomega", "name": "Alpha Omega", "description": "Beginning and end", "category": "title", "price": 300000, "rarity": "transcendent", "icon": "☀️", "effects": {"title": "Alpha Omega", "prefix": True, "glow": True}},
     
     # ==================== BADGES ====================
     # Common Badges (200-800 XP)
@@ -4494,6 +4497,7 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "💝", "effects": {"badge": "heart", "color": "#FF375F"}},
     {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "⭐", "effects": {"badge": "star", "color": "#FFD700"}},
     {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "🙏", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
+    {"item_id": "badge_anchor", "name": "Anchor", "description": "Steady and unshaken", "category": "badge", "price": 4500, "rarity": "rare", "icon": "⚓", "effects": {"badge": "anchor", "color": "#7AB8FF"}},
     
     # Epic Badges (6k-10k XP)
     {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "🕊️", "effects": {"badge": "dove", "color": "#FFFFFF"}},
@@ -4526,13 +4530,15 @@ DEFAULT_SHOP_ITEMS = [
     # Legendary Chat Effects (15k-25k XP)
     {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "🌈", "effects": {"effect": "rainbow", "gradient": True}},
     {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "📜", "effects": {"effect": "gold", "animation": "shimmer"}},
+    {"item_id": "chat_halo", "name": "Halo Speech", "description": "Soft holy glow around words", "category": "chat_effect", "price": 32000, "rarity": "legendary", "icon": "💠", "effects": {"effect": "glow", "animation": "halo"}},
     
     # Mythic Chat Effects (50k-100k XP) - ULTRA RARE
     {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "🌌", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
-    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 100000, "rarity": "mythic", "icon": "⚡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
+    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 200000, "rarity": "transcendent", "icon": "⚡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
     
     # Transcendent Chat Effects
     {"item_id": "chat_revelation", "name": "Revelation Voice", "description": "Speech wrapped in celestial prophecy", "category": "chat_effect", "price": 190000, "rarity": "transcendent", "icon": "📡", "effects": {"effect": "revelation", "animation": "oracle_wave"}},
+    {"item_id": "chat_thunder_sigil", "name": "Thunder Sigil", "description": "Electrified transcendent speech", "category": "chat_effect", "price": 280000, "rarity": "transcendent", "icon": "🌩️", "effects": {"effect": "godly", "animation": "storm_sigil"}},
     
     # ==================== PROFILE BACKGROUNDS ====================
     # Rare Backgrounds (3k-5k XP)
@@ -4553,10 +4559,11 @@ DEFAULT_SHOP_ITEMS = [
     # Mythic Backgrounds (60k-120k XP) - ULTRA RARE
     {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "🪑", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
     {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
-    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 120000, "rarity": "mythic", "icon": "👑", "effects": {"bg_style": "godly", "animation": "omnipotence"}},
+    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 260000, "rarity": "transcendent", "icon": "👑", "effects": {"bg_style": "gradient", "colors": ["#FBE38A", "#B884FF", "#7DFFF8"], "animation": "omnipotence"}},
     
     # Transcendent Backgrounds
     {"item_id": "bg_new_jerusalem", "name": "New Jerusalem", "description": "A radiant city of eternal light", "category": "profile_bg", "price": 240000, "rarity": "transcendent", "icon": "🌆", "effects": {"bg_style": "gradient", "colors": ["#7DFFF8", "#B884FF", "#FFE38A"], "animation": "heavenfall"}},
+    {"item_id": "bg_covenant_light", "name": "Covenant Light", "description": "Soft covenant glow and calm sky", "category": "profile_bg", "price": 140000, "rarity": "mythic", "icon": "🕊️", "effects": {"bg_style": "gradient", "colors": ["#9BE7FF", "#D3B7FF"], "animation": "gentle_shift"}},
     
     # ==================== BOOSTS / CONSUMABLES ====================
     # Epic Boosts
@@ -4565,6 +4572,7 @@ DEFAULT_SHOP_ITEMS = [
     
     # Mythic Boosts
     {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "💫", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
+    {"item_id": "ability_sevenfold_xp", "name": "Sevenfold XP Boost", "description": "7x XP for 45 minutes", "category": "consumable", "price": 65000, "rarity": "mythic", "icon": "🌀", "effects": {"boost": "sevenfold_xp", "duration": "45m", "multiplier": 7}},
     
     # Transcendent Boosts
     {"item_id": "ability_ascension_xp", "name": "Ascension XP Boost", "description": "10x XP for 30 minutes", "category": "consumable", "price": 120000, "rarity": "transcendent", "icon": "🧬", "effects": {"boost": "ascension_xp", "duration": "30m", "multiplier": 10}},
@@ -4908,6 +4916,43 @@ def get_user_inventory():
             })
 
         active_boost = get_active_boost(c, db_type, session['user_id'], cleanup_expired=True)
+        # Keep active boost visible in inventory even when consumed quantity reaches 0.
+        if active_boost and active_boost.get("item_id"):
+            boost_item_id = str(active_boost.get("item_id"))
+            if not any(str(it.get("item_id")) == boost_item_id for it in items):
+                if db_type == 'postgres':
+                    c.execute("""
+                        SELECT item_id, name, description, category, rarity, icon, effects
+                        FROM shop_items
+                        WHERE item_id = %s
+                        LIMIT 1
+                    """, (boost_item_id,))
+                else:
+                    c.execute("""
+                        SELECT item_id, name, description, category, rarity, icon, effects
+                        FROM shop_items
+                        WHERE item_id = ?
+                        LIMIT 1
+                    """, (boost_item_id,))
+                boost_row = c.fetchone()
+                if boost_row:
+                    boost_effects = row_pick(boost_row, 'effects', 6, {}) or {}
+                    if not isinstance(boost_effects, dict):
+                        try:
+                            boost_effects = json.loads(boost_effects or '{}')
+                        except Exception:
+                            boost_effects = {}
+                    items.append({
+                        "item_id": row_pick(boost_row, 'item_id', 0, boost_item_id),
+                        "equipped": False,
+                        "quantity": 0,
+                        "name": row_pick(boost_row, 'name', 1, 'Active Boost'),
+                        "description": row_pick(boost_row, 'description', 2, 'Currently active'),
+                        "category": row_pick(boost_row, 'category', 3, 'consumable'),
+                        "rarity": row_pick(boost_row, 'rarity', 4, 'transcendent'),
+                        "icon": row_pick(boost_row, 'icon', 5, '⚡'),
+                        "effects": boost_effects
+                    })
         conn.commit()
         return jsonify({"inventory": items, "active_boost": active_boost})
     except Exception as e:

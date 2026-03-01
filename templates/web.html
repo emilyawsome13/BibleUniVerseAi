@@ -1822,37 +1822,56 @@
 
         .dm-layout {
             display: grid;
-            grid-template-columns: 240px 1fr;
-            gap: 12px;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .dm-sidebar {
+            min-width: 0;
+        }
+
+        .dm-main {
+            min-width: 0;
+        }
+
+        .dm-thread-list-title {
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin: 0 4px 6px;
         }
 
         .dm-thread-list {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
+            background: linear-gradient(160deg, rgba(8, 15, 28, 0.64), rgba(8, 18, 34, 0.5));
+            border: 1px solid rgba(150, 182, 235, 0.22);
             border-radius: 14px;
             padding: 10px;
-            max-height: 360px;
+            max-height: 350px;
             overflow-y: auto;
+            box-shadow: inset 0 0 0 1px rgba(72, 108, 166, 0.12);
         }
 
         .dm-thread {
             display: flex;
             gap: 10px;
             align-items: center;
-            padding: 8px 10px;
+            padding: 9px 10px;
             border-radius: 12px;
             cursor: pointer;
-            border: 1px solid transparent;
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.2s ease;
         }
 
         .dm-thread:hover {
-            background: rgba(255,255,255,0.06);
-            border-color: var(--glass-border);
+            background: rgba(116, 180, 255, 0.12);
+            border-color: rgba(128, 198, 255, 0.38);
         }
 
         .dm-thread.active {
-            background: rgba(79,70,229,0.18);
-            border-color: rgba(79,70,229,0.4);
+            background: linear-gradient(135deg, rgba(52, 130, 255, 0.24), rgba(110, 90, 255, 0.22));
+            border-color: rgba(126, 185, 255, 0.55);
+            box-shadow: 0 0 0 1px rgba(126, 185, 255, 0.3), 0 8px 18px rgba(24, 65, 125, 0.32);
         }
 
         .dm-thread-avatar {
@@ -1865,11 +1884,13 @@
         .dm-thread-name {
             font-size: 13px;
             font-weight: 600;
+            color: var(--text);
         }
 
         .dm-thread-last {
             font-size: 11px;
             color: var(--text-secondary);
+            line-height: 1.3;
         }
 
         .dm-unread {
@@ -1884,28 +1905,34 @@
         }
 
         .dm-messages {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
+            background: linear-gradient(165deg, rgba(9, 19, 36, 0.68), rgba(10, 20, 40, 0.54));
+            border: 1px solid rgba(150, 182, 235, 0.24);
             border-radius: 14px;
             padding: 12px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            min-height: 240px;
+            min-height: 260px;
+            max-height: 420px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 0 1px rgba(72, 108, 166, 0.12);
         }
 
         .dm-message {
             max-width: 75%;
-            padding: 8px 12px;
-            border-radius: 14px;
+            padding: 9px 12px;
+            border-radius: 14px 14px 14px 6px;
             font-size: 13px;
             line-height: 1.4;
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
         .dm-message.self {
             margin-left: auto;
-            background: rgba(79,70,229,0.35);
+            background: linear-gradient(135deg, rgba(56, 144, 255, 0.32), rgba(94, 99, 255, 0.28));
+            border-radius: 14px 14px 6px 14px;
+            border-color: rgba(122, 186, 255, 0.34);
         }
 
         .dm-time {
@@ -1925,6 +1952,10 @@
             gap: 8px;
             align-items: center;
             margin-top: 10px;
+            background: rgba(5, 10, 20, 0.36);
+            border: 1px solid rgba(150, 182, 235, 0.2);
+            border-radius: 12px;
+            padding: 8px;
         }
 
         .dm-actions {
@@ -1932,6 +1963,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            padding: 2px 4px;
         }
 
         .dm-typing {
@@ -1943,8 +1975,8 @@
 
         .dm-input {
             flex: 1;
-            background: rgba(0,0,0,0.35);
-            border: 1px solid var(--glass-border);
+            background: rgba(3, 7, 15, 0.56);
+            border: 1px solid rgba(154, 189, 245, 0.22);
             border-radius: 12px;
             color: var(--text);
             padding: 8px 10px;
@@ -1958,8 +1990,8 @@
         }
 
         .dm-search-results {
-            background: rgba(0,0,0,0.35);
-            border: 1px solid var(--glass-border);
+            background: rgba(5, 11, 22, 0.6);
+            border: 1px solid rgba(150, 182, 235, 0.22);
             border-radius: 10px;
             padding: 6px;
             max-height: 160px;
@@ -1971,9 +2003,63 @@
             .dm-layout {
                 grid-template-columns: 1fr;
             }
+            .dm-thread-list {
+                max-height: 240px;
+            }
             .dm-time {
                 opacity: 0.75;
             }
+        }
+
+        .dm-inline-suggestions {
+            margin: 0 0 10px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(150, 182, 235, 0.2);
+            background: linear-gradient(135deg, rgba(12, 24, 48, 0.48), rgba(10, 18, 36, 0.42));
+        }
+
+        .dm-inline-head {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+        }
+
+        .dm-inline-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .dm-inline-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(145, 200, 255, 0.26);
+            background: rgba(90, 140, 235, 0.12);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 4px 10px 4px 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.18s ease;
+        }
+
+        .dm-inline-chip:hover {
+            border-color: rgba(145, 200, 255, 0.5);
+            background: rgba(95, 165, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .dm-inline-chip-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.08);
         }
 
         .comment-input-area {
@@ -4928,6 +5014,7 @@
                             <textarea class="comment-input" id="commentInput" name="comment_text" autocomplete="off" data-form-type="other" placeholder="Share your thoughts on this verse... Use @ to mention" rows="1" onkeydown="handleCommentKey(event)"></textarea>
                             <button class="send-btn" id="commentSendBtn" onclick="postComment()">&#8593;</button>
                         </div>
+                        <div class="dm-inline-suggestions" id="verseDmSuggestions" style="display:none;"></div>
 
                         <div class="comments-list" id="commentsList"></div>
                     </div>
@@ -4956,6 +5043,7 @@
                             <textarea class="comment-input" id="communityInput" name="community_text" autocomplete="off" data-form-type="other" placeholder="Share about life, ask for help, or offer guidance... #topic" rows="1" onkeydown="handleCommunityKey(event)"></textarea>
                             <button class="send-btn" id="communitySendBtn" onclick="postCommunityMessage()">&#8593;</button>
                         </div>
+                        <div class="dm-inline-suggestions" id="communityDmSuggestions" style="display:none;"></div>
 
                         <div class="comments-list" id="communityList"></div>
                     </div>
@@ -4974,11 +5062,13 @@
                         <div class="dm-search-results" id="dmSearchResults" style="display:none;"></div>
 
                         <div class="dm-layout">
-                            <div>
+                            <div class="dm-sidebar">
+                                <div class="dm-thread-list-title">Conversations</div>
                                 <div class="dm-thread-list" id="dmThreadList"></div>
-                                <div class="dm-thread-list" id="dmSuggestedList" style="margin-top:8px;"></div>
+                                <div class="dm-thread-list-title" style="margin-top:8px;">Suggestions</div>
+                                <div class="dm-thread-list" id="dmSuggestedList"></div>
                             </div>
-                            <div>
+                            <div class="dm-main">
                                 <div class="dm-actions">
                                     <div style="font-size:12px;color:var(--text-secondary);" id="dmHeaderLabel">No conversation selected</div>
                                     <button class="btn btn-secondary" onclick="deleteDmThread()">Delete Thread</button>
@@ -5811,6 +5901,8 @@
         let dmTypingCooldown = null;
         let currentAvatarDecoration = '';
         const dmThreadsCache = {};
+        const commentDmSuggestionTimers = {};
+        const commentDmSuggestionLastShownAt = {};
         let aboutIsSliding = false;
         let aboutSyncTimer = null;
         let aboutVideoErrorCount = 0;
@@ -6576,7 +6668,7 @@
             // Track daily challenge and achievements
             if (data.liked) {
                 trackDailyAction('like');
-                awardXP(50, 'like');
+                awardXP(120, 'like');
                 trackStat('likes');
             }
         }
@@ -6604,7 +6696,7 @@
             // Track daily challenge and achievements
             if (data.saved) {
                 trackDailyAction('save');
-                awardXP(50, 'save');
+                awardXP(120, 'save');
                 trackStat('saves');
             }
             if (settings.notifications) showToast(data.saved ? 'Verse saved' : 'Removed from saved');
@@ -7858,6 +7950,7 @@
             
             // Setup DM button handlers
             setupDmButtonHandlers();
+            showBriefCommentDmSuggestions('verseDmSuggestions');
         }
 
         function setupDmButtonHandlers() {
@@ -7909,7 +8002,7 @@
             loadProfileStats();
             if (settings.notifications) showToast('Comment posted!');
             trackDailyAction('comment');
-            awardXP(100, 'comment');
+            awardXP(180, 'comment');
             trackStat('comments');
         }
 
@@ -7956,6 +8049,7 @@
             
             // Setup DM button handlers
             setupDmButtonHandlers();
+            showBriefCommentDmSuggestions('communityDmSuggestions');
         }
 
         async function postCommunityMessage() {
@@ -8057,6 +8151,57 @@
                 }).join('');
             } catch (_) {
                 suggested.innerHTML = '';
+            }
+        }
+
+        function hideCommentDmSuggestions(containerId) {
+            const box = document.getElementById(containerId);
+            if (!box) return;
+            box.style.display = 'none';
+            box.innerHTML = '';
+            if (commentDmSuggestionTimers[containerId]) {
+                clearTimeout(commentDmSuggestionTimers[containerId]);
+                commentDmSuggestionTimers[containerId] = null;
+            }
+        }
+
+        async function showBriefCommentDmSuggestions(containerId) {
+            const box = document.getElementById(containerId);
+            if (!box) return;
+            const now = Date.now();
+            const lastShown = Number(commentDmSuggestionLastShownAt[containerId] || 0);
+            if (lastShown && (now - lastShown) < 30000) return;
+            try {
+                const res = await fetch('/api/users/recent?limit=8', { cache: 'no-store' });
+                const data = await res.json().catch(() => ([]));
+                const users = (Array.isArray(data) ? data : [])
+                    .filter(u => u && Number(u.id) !== Number({{ user.id }}))
+                    .slice(0, 5);
+                if (!users.length) {
+                    hideCommentDmSuggestions(containerId);
+                    return;
+                }
+                box.innerHTML = `
+                    <div class="dm-inline-head">Quick DM Suggestions</div>
+                    <div class="dm-inline-list">
+                        ${users.map(u => `
+                            <button class="dm-inline-chip" onclick="openDmFromComment(${u.id}, ${JSON.stringify(u.name || 'User')}, ${JSON.stringify(u.picture || '')}, ${JSON.stringify(u.avatar_decoration || '')})">
+                                ${u.picture ? `<img class="dm-inline-chip-avatar" src="${escapeHtml(u.picture || '')}" alt="">` : `<span class="dm-inline-chip-avatar" style="display:inline-flex;align-items:center;justify-content:center;">👤</span>`}
+                                <span>${escapeHtml(u.name || 'User')}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                box.style.display = 'block';
+                commentDmSuggestionLastShownAt[containerId] = now;
+                if (commentDmSuggestionTimers[containerId]) {
+                    clearTimeout(commentDmSuggestionTimers[containerId]);
+                }
+                commentDmSuggestionTimers[containerId] = setTimeout(() => {
+                    hideCommentDmSuggestions(containerId);
+                }, 8500);
+            } catch (_) {
+                hideCommentDmSuggestions(containerId);
             }
         }
 
@@ -9308,11 +9453,27 @@ const ACHIEVEMENTS = [
     { id: 'influencer_25', icon: '🌟', name: 'Influencer', desc: 'Get 25 likes on comments', goal: 25, category: 'special', xp: 250, progress: (d) => d.liked_comments, check: (d) => d.liked_comments >= 25 },
     
     // Special Milestones
+    { id: 'first_three_views', icon: '👀', name: 'Warmup', desc: 'View 3 verses', goal: 3, category: 'special', xp: 25, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 3 },
+    { id: 'first_three_likes', icon: '🤍', name: 'Supporter', desc: 'Like 3 verses', goal: 3, category: 'likes', xp: 40, progress: (d) => d.liked, check: (d) => d.liked >= 3 },
+    { id: 'first_three_saves', icon: '📎', name: 'Starter Pack', desc: 'Save 3 verses', goal: 3, category: 'saves', xp: 40, progress: (d) => d.saved, check: (d) => d.saved >= 3 },
+    { id: 'first_shop_set', icon: '🎁', name: 'Setup Complete', desc: 'Buy 3 items', goal: 3, category: 'special', xp: 120, progress: (d) => d.purchases, check: (d) => d.purchases >= 3 },
     { id: 'level_5', icon: '⬆️', name: 'Rising', desc: 'Reach level 5', goal: 5, category: 'special', xp: 200, progress: () => userXP.level, check: () => userXP.level >= 5 },
     { id: 'level_10', icon: '📈', name: 'Climbing', desc: 'Reach level 10', goal: 10, category: 'special', xp: 500, progress: () => userXP.level, check: () => userXP.level >= 10 },
     { id: 'level_25', icon: '🚀', name: 'Veteran', desc: 'Reach level 25', goal: 25, category: 'special', xp: 1500, progress: () => userXP.level, check: () => userXP.level >= 25 },
-    { id: 'level_50', icon: '🏔️', name: 'Legend', desc: 'Reach level 50', goal: 50, category: 'special', xp: 5000, progress: () => userXP.level, check: () => userXP.level >= 50 }
+    { id: 'level_50', icon: '🏔️', name: 'Legend', desc: 'Reach level 50', goal: 50, category: 'special', xp: 5000, progress: () => userXP.level, check: () => userXP.level >= 50 },
+    { id: 'level_100', icon: '🌠', name: 'Ascended', desc: 'Reach level 100', goal: 100, category: 'special', xp: 12000, progress: () => userXP.level, check: () => userXP.level >= 100 },
+    { id: 'liker_5000', icon: '💖', name: 'Heartstorm', desc: 'Like 5000 verses', goal: 5000, category: 'likes', xp: 8000, progress: (d) => d.liked, check: (d) => d.liked >= 5000 },
+    { id: 'commenter_2000', icon: '🧿', name: 'Voice of Many', desc: 'Post 2000 comments', goal: 2000, category: 'comments', xp: 9500, progress: (d) => d.comments, check: (d) => d.comments >= 2000 },
+    { id: 'mentor_1000', icon: '🧠', name: 'Master Mentor', desc: 'Post 1000 replies', goal: 1000, category: 'replies', xp: 9000, progress: (d) => d.replies, check: (d) => d.replies >= 1000 },
+    { id: 'seeker_25000', icon: '🗺️', name: 'Scripture Cartographer', desc: 'View 25000 verses', goal: 25000, category: 'special', xp: 18000, progress: (d) => d.total_verses, check: (d) => d.total_verses >= 25000 },
+    { id: 'streak_730', icon: '🕯️', name: 'Everfaithful', desc: '730 day streak', goal: 730, category: 'streak', xp: 25000, progress: () => getStreakCount(), check: () => getStreakCount() >= 730 }
 ];
+
+const ACHIEVEMENT_XP_MULTIPLIER = 1.75;
+ACHIEVEMENTS.forEach((ach) => {
+    const base = Number(ach.xp || 0);
+    ach.xp = Math.max(50, Math.round(base * ACHIEVEMENT_XP_MULTIPLIER));
+});
 
 function getAchievementProgress(ach, stats, isUnlocked) {
     const goal = Math.max(1, Number(ach.goal || 1));
@@ -9712,7 +9873,7 @@ async function checkAchievement(type, value) {
             shared.push(Date.now());
             localStorage.setItem('sharedVerses', shared.join(','));
             trackDailyAction('share');
-            const shareAward = await awardXP(50, 'share');
+            const shareAward = await awardXP(180, 'share');
             trackStat('shares');
             const gained = Number((shareAward && shareAward.xp_awarded) || 50);
             showToast('📤 Verse shared! +' + gained + ' XP');
@@ -10590,7 +10751,7 @@ async function checkAchievement(type, value) {
                 if (parentType === 'community') loadCommunityMessages(true);
                 else loadComments(true);
                 loadProfileStats();
-                awardXP(20, 'reply');
+                awardXP(80, 'reply');
                 trackStat('replies');
                 showToast('Reply posted! +20 XP');
             } catch (e) {
@@ -10656,6 +10817,8 @@ async function checkAchievement(type, value) {
             currentCommentsView = view === 'community' ? 'community' : (view === 'dm' ? 'dm' : 'verse');
             openReplyKey = null;
             replyActiveKey = null;
+            if (currentCommentsView !== 'verse') hideCommentDmSuggestions('verseDmSuggestions');
+            if (currentCommentsView !== 'community') hideCommentDmSuggestions('communityDmSuggestions');
             const verseSection = document.getElementById('verseCommentsSection');
             const communitySection = document.getElementById('communityCommentsSection');
             const dmSection = document.getElementById('dmCommentsSection');
@@ -12007,7 +12170,7 @@ async function checkAchievement(type, value) {
         let boostTicker = null;
         let currentShopTab = 'shop';
         let currentCategory = 'all';
-        const VERSE_VIEW_XP = 25;
+        const VERSE_VIEW_XP = 50;
         
         // Format large numbers (1000 -> 1k, 1000000 -> 1m)
         function formatNumber(num) {
@@ -12236,7 +12399,27 @@ async function checkAchievement(type, value) {
         function renderInventory() {
             const container = document.getElementById('inventoryItems');
             
-            let items = userInventory;
+            let items = Array.isArray(userInventory) ? [...userInventory] : [];
+            const activeBoostSeconds = getRemainingBoostSeconds();
+            if (activeBoostState && activeBoostSeconds > 0) {
+                const hasBoostItem = items.some(item => item && item.item_id === activeBoostState.item_id);
+                if (!hasBoostItem) {
+                    const meta = (shopItems || []).find(s => s && s.item_id === activeBoostState.item_id) || {};
+                    const mul = Number(activeBoostState.multiplier || 1);
+                    items.unshift({
+                        item_id: activeBoostState.item_id,
+                        equipped: false,
+                        quantity: 0,
+                        name: meta.name || `Active x${mul} Boost`,
+                        description: meta.description || `Boost running (${mul}x XP)`,
+                        category: 'consumable',
+                        rarity: meta.rarity || 'transcendent',
+                        icon: meta.icon || '⚡',
+                        effects: meta.effects || {},
+                        active_only: true
+                    });
+                }
+            }
             if (currentInventoryCategory !== 'all') {
                 items = items.filter(item => item.category === currentInventoryCategory);
             }
@@ -12256,7 +12439,9 @@ async function checkAchievement(type, value) {
                 const boostActive = isConsumable && activeBoostState && activeBoostState.item_id === item.item_id && getRemainingBoostSeconds() > 0;
                 const boostRemaining = boostActive ? formatDurationShort(getRemainingBoostSeconds()) : '';
                 const statusLabel = isConsumable
-                    ? ('Owned x' + quantity + (boostActive ? ' • Active ' + boostRemaining : ''))
+                    ? (boostActive
+                        ? ('Active ' + boostRemaining + (quantity > 0 ? (' • Owned x' + quantity) : ''))
+                        : ('Owned x' + quantity))
                     : (isEquipped ? '✓ Equipped' : 'Owned');
                 const btnClass = isConsumable ? 'equip' : (isEquipped ? 'unequip' : 'equip');
                 const btnLabel = isConsumable ? (boostActive ? ('Active ' + boostRemaining) : 'Use') : (isEquipped ? 'Unequip' : 'Equip');
@@ -12278,18 +12463,18 @@ async function checkAchievement(type, value) {
         
         // XP Guide - Functional XP Actions
         const XP_ACTIONS = {
-            like: { min: 25, max: 50, cooldown: 1000, dailyMax: 100 },
-            save: { min: 25, max: 50, cooldown: 1000, dailyMax: 100 },
-            comment: { min: 100, max: 100, cooldown: 5000, dailyMax: 50 },
-            reply: { min: 15, max: 25, cooldown: 3000, dailyMax: 100 },
-            share: { min: 25, max: 50, cooldown: 60000, dailyMax: 20 },
+            like: { min: 80, max: 140, cooldown: 1000, dailyMax: 120 },
+            save: { min: 80, max: 140, cooldown: 1000, dailyMax: 120 },
+            comment: { min: 180, max: 180, cooldown: 5000, dailyMax: 60 },
+            reply: { min: 60, max: 100, cooldown: 3000, dailyMax: 120 },
+            share: { min: 120, max: 220, cooldown: 60000, dailyMax: 25 },
             view: { min: VERSE_VIEW_XP, max: VERSE_VIEW_XP, cooldown: 500, dailyMax: 200 },
-            streak: { min: 10, max: 60, cooldown: 86400000, dailyMax: 1 },
-            trivia_correct: { min: 20, max: 50, cooldown: 0, dailyMax: 50 },
-            prayer: { min: 75, max: 75, cooldown: 60000, dailyMax: 10 },
-            memorize: { min: 100, max: 100, cooldown: 0, dailyMax: 10 },
-            study_note: { min: 50, max: 200, cooldown: 0, dailyMax: 20 },
-            achievement: { min: 25, max: 2000, cooldown: 0, dailyMax: 1000 }
+            streak: { min: 40, max: 220, cooldown: 86400000, dailyMax: 1 },
+            trivia_correct: { min: 80, max: 160, cooldown: 0, dailyMax: 60 },
+            prayer: { min: 140, max: 140, cooldown: 60000, dailyMax: 20 },
+            memorize: { min: 220, max: 220, cooldown: 0, dailyMax: 15 },
+            study_note: { min: 120, max: 320, cooldown: 0, dailyMax: 30 },
+            achievement: { min: 80, max: 5000, cooldown: 0, dailyMax: 1200 }
         };
         
         let xpActionCooldowns = {};
@@ -12362,40 +12547,40 @@ async function checkAchievement(type, value) {
                     titleKey: 'dailyActionsTitle',
                     title: '📅 Daily Actions',
                     items: [
-                        { icon: '👍', actionKey: 'dailyActionLikeVerse', action: 'Like a verse', type: 'like', xp: '25-50', bonus: 'Streak bonus +50' },
-                        { icon: '💾', actionKey: 'dailyActionSaveVerse', action: 'Save a verse', type: 'save', xp: '25-50', bonus: '' },
-                        { icon: '💬', actionKey: 'dailyActionPostComment', action: 'Post a comment', type: 'comment', xp: '100', bonus: '' },
+                        { icon: '👍', actionKey: 'dailyActionLikeVerse', action: 'Like a verse', type: 'like', xp: '80-140', bonus: 'Streak bonus +50' },
+                        { icon: '💾', actionKey: 'dailyActionSaveVerse', action: 'Save a verse', type: 'save', xp: '80-140', bonus: '' },
+                        { icon: '💬', actionKey: 'dailyActionPostComment', action: 'Post a comment', type: 'comment', xp: '180', bonus: '' },
                         { icon: '📖', actionKey: 'dailyActionReadVerse', action: 'Read verse (streak)', type: 'view', xp: String(VERSE_VIEW_XP), bonus: 'Per verse viewed' },
-                        { icon: '🎯', actionKey: 'dailyActionDailyChallenge', action: 'Complete daily challenge', type: 'daily_challenge', xp: '800-14000', bonus: 'Auto-awarded' }
+                        { icon: '🎯', actionKey: 'dailyActionDailyChallenge', action: 'Complete daily challenge', type: 'daily_challenge', xp: '1200-20000', bonus: 'Auto-awarded' }
                     ]
                 },
                 {
                     titleKey: 'socialInteractionsTitle',
                     title: '👥 Social Interactions',
                     items: [
-                        { icon: '❤️', actionKey: 'socialActionLikeComment', action: 'Get a like on comment', type: 'liked_comment', xp: '10', bonus: 'Auto-awarded' },
-                        { icon: '📤', actionKey: 'socialActionShareVerse', action: 'Share a verse', type: 'share', xp: '25-50', bonus: '' },
-                        { icon: '🤝', actionKey: 'socialActionReplySomeone', action: 'Reply to someone', type: 'reply', xp: '15-25', bonus: '' },
-                        { icon: '✝️', actionKey: 'socialActionAddPrayer', action: 'Add prayer to journal', type: 'prayer', xp: '75', bonus: 'Limited daily' }
+                        { icon: '❤️', actionKey: 'socialActionLikeComment', action: 'Get a like on comment', type: 'liked_comment', xp: '40-120', bonus: 'Auto-awarded' },
+                        { icon: '📤', actionKey: 'socialActionShareVerse', action: 'Share a verse', type: 'share', xp: '120-220', bonus: '' },
+                        { icon: '🤝', actionKey: 'socialActionReplySomeone', action: 'Reply to someone', type: 'reply', xp: '60-100', bonus: '' },
+                        { icon: '✝️', actionKey: 'socialActionAddPrayer', action: 'Add prayer to journal', type: 'prayer', xp: '140', bonus: 'Limited daily' }
                     ]
                 },
                 {
                     titleKey: 'bibleStudyTitle',
                     title: '📚 Bible Study',
                     items: [
-                        { icon: '🧠', actionKey: 'studyActionMemorize', action: 'Memorize a verse', type: 'memorize', xp: '100', bonus: '' },
-                        { icon: '📝', actionKey: 'studyActionWriteNote', action: 'Write study note', type: 'study_note', xp: '50-200', bonus: 'Based on length' },
-                        { icon: '🎮', actionKey: 'studyActionTrivia', action: 'Correct trivia answer', type: 'trivia_correct', xp: '20-50', bonus: 'Streak bonus' },
-                        { icon: '🔥', actionKey: 'studyActionStreak', action: 'Maintain reading streak', type: 'streak', xp: '10-60', bonus: '+2 per streak day' }
+                        { icon: '🧠', actionKey: 'studyActionMemorize', action: 'Memorize a verse', type: 'memorize', xp: '220', bonus: '' },
+                        { icon: '📝', actionKey: 'studyActionWriteNote', action: 'Write study note', type: 'study_note', xp: '120-320', bonus: 'Based on length' },
+                        { icon: '🎮', actionKey: 'studyActionTrivia', action: 'Correct trivia answer', type: 'trivia_correct', xp: '80-160', bonus: 'Streak bonus' },
+                        { icon: '🔥', actionKey: 'studyActionStreak', action: 'Maintain reading streak', type: 'streak', xp: '40-220', bonus: '+2 per streak day' }
                     ]
                 },
                 {
                     titleKey: 'achievementsMilestonesTitle',
                     title: '⭐ Achievements & Milestones',
                     items: [
-                        { icon: '🏆', actionKey: 'specialActionCompleteAchievement', action: 'Complete achievement', type: 'achievement', xp: '25-2000', bonus: 'Based on difficulty' },
+                        { icon: '🏆', actionKey: 'specialActionCompleteAchievement', action: 'Complete achievement', type: 'achievement', xp: '80-5000', bonus: 'Based on difficulty' },
                         { icon: '⬆️', actionKey: 'specialActionLevelUp', action: 'Level up bonus', type: 'level_up', xp: 'Bonus', bonus: 'Higher level = more' },
-                        { icon: '🛒', actionKey: 'specialActionFirstPurchase', action: 'First purchase', type: 'first_purchase', xp: '100', bonus: 'One-time' },
+                        { icon: '🛒', actionKey: 'specialActionFirstPurchase', action: 'First purchase', type: 'first_purchase', xp: '250', bonus: 'One-time' },
                         { icon: '🎁', actionKey: 'specialActionEvents', action: 'Special events', type: 'event', xp: 'Varies', bonus: 'Holiday bonuses' }
                     ]
                 }
