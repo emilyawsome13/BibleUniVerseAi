@@ -553,12 +553,30 @@ def ensure_performance_indexes(c, db_type):
         "CREATE INDEX IF NOT EXISTS idx_mod_events_status ON moderation_events(status, created_at)"
     ]
 
-    for stmt in statements:
-        try:
-            c.execute(stmt)
-        except Exception:
-            # Optional tables may not exist yet; table-specific ensure functions will retry later.
-            pass
+    for i, stmt in enumerate(statements):
+        if db_type == 'postgres':
+            # In PostgreSQL, one failed statement aborts the whole transaction.
+            # Isolate each optional index creation in its own savepoint.
+            sp_name = f"sp_idx_{i}"
+            try:
+                c.execute(f"SAVEPOINT {sp_name}")
+                c.execute(stmt)
+                c.execute(f"RELEASE SAVEPOINT {sp_name}")
+            except Exception:
+                try:
+                    c.execute(f"ROLLBACK TO SAVEPOINT {sp_name}")
+                except Exception:
+                    pass
+                try:
+                    c.execute(f"RELEASE SAVEPOINT {sp_name}")
+                except Exception:
+                    pass
+        else:
+            try:
+                c.execute(stmt)
+            except Exception:
+                # Optional tables may not exist yet; table-specific ensure functions will retry later.
+                pass
 
 def _build_in_clause_params(db_type, values):
     safe_values = [v for v in values if v is not None]
@@ -932,25 +950,28 @@ def ensure_growth_feature_tables(c, db_type):
     ensure_performance_indexes(c, db_type)
     _mark_schema_ready(db_type, "growth_features")
 
-def get_notification_preferences(c, db_type, user_id):
+def get_notification_preferences(c, db_type, user_id, create_if_missing=True):
     ensure_growth_feature_tables(c, db_type)
     uid = int(user_id)
+    if create_if_missing:
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO notification_preferences (user_id)
+                VALUES (%s)
+                ON CONFLICT (user_id) DO NOTHING
+            """, (uid,))
+        else:
+            c.execute("""
+                INSERT OR IGNORE INTO notification_preferences (user_id, updated_at)
+                VALUES (?, ?)
+            """, (uid, datetime.now().isoformat()))
     if db_type == 'postgres':
-        c.execute("""
-            INSERT INTO notification_preferences (user_id)
-            VALUES (%s)
-            ON CONFLICT (user_id) DO NOTHING
-        """, (uid,))
         c.execute("""
             SELECT dm_enabled, community_enabled, reports_enabled, system_enabled, digest_mode
             FROM notification_preferences
             WHERE user_id = %s
         """, (uid,))
     else:
-        c.execute("""
-            INSERT OR IGNORE INTO notification_preferences (user_id, updated_at)
-            VALUES (?, ?)
-        """, (uid, datetime.now().isoformat()))
         c.execute("""
             SELECT dm_enabled, community_enabled, reports_enabled, system_enabled, digest_mode
             FROM notification_preferences
@@ -973,7 +994,9 @@ def get_notification_preferences(c, db_type, user_id):
         "digest_mode": str(row_pick(row, 'digest_mode', 4, 'instant') or 'instant').strip().lower()
     }
 
-def queue_notification(c, db_type, user_id, title, message, notif_type='system', source='system'):
+def ensure_notification_tables(c, db_type):
+    if _is_schema_ready(db_type, "notification_tables"):
+        return
     if db_type == 'postgres':
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_notifications (
@@ -1002,7 +1025,12 @@ def queue_notification(c, db_type, user_id, title, message, notif_type='system',
                 sent_at TEXT
             )
         """)
-    prefs = get_notification_preferences(c, db_type, user_id)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "notification_tables")
+
+def queue_notification(c, db_type, user_id, title, message, notif_type='system', source='system'):
+    ensure_notification_tables(c, db_type)
+    prefs = get_notification_preferences(c, db_type, user_id, create_if_missing=False)
     pref_key = NOTIF_TYPE_TO_PREF.get(str(notif_type or '').strip().lower(), 'system_enabled')
     if not prefs.get(pref_key, True):
         return False
@@ -1020,6 +1048,7 @@ def queue_notification(c, db_type, user_id, title, message, notif_type='system',
             INSERT INTO user_notifications (user_id, title, message, notif_type, source, is_read, created_at, sent_at)
             VALUES (?, ?, ?, ?, ?, 0, ?, ?)
         """, (int(user_id), str(title or 'Notification')[:120], str(message or '')[:1000], str(notif_type or 'system')[:40], str(source or 'system')[:40], now_iso, now_iso))
+    _api_cache_invalidate_prefixes(f"notifications:{int(user_id)}:")
     return True
 
 def record_moderation_event(c, db_type, user_id, source, event_type, score=1.0, meta=None):
@@ -2727,6 +2756,7 @@ def record_daily_action(user_id, action, verse_id=None):
     now = datetime.now().isoformat()
 
     try:
+        schema_ready_before = _is_schema_ready(db_type, "daily_challenge")
         ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("""
@@ -2740,7 +2770,12 @@ def record_daily_action(user_id, action, verse_id=None):
                 VALUES (?, ?, ?, ?, ?)
             """, (user_id, action, verse_id, period_key, now))
         conn.commit()
+        _api_cache_invalidate_prefixes(f"daily_challenge:{int(user_id)}:")
     except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         logger.warning(f"Daily action record failed: {e}")
     finally:
         conn.close()
@@ -7637,23 +7672,30 @@ def get_daily_challenge():
     if is_banned:
         return jsonify({"error": "banned"}), 403
 
+    user_id = int(session['user_id'])
+    period_key = get_challenge_period_key()
+    cache_key = f"daily_challenge:{user_id}:{period_key}"
+    cached = _api_cache_get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
-    period_key = get_challenge_period_key()
     period_start, period_end = get_hour_window()
     hide_at = period_end
-    challenge = pick_hourly_challenge(session['user_id'], period_key)
+    challenge = pick_hourly_challenge(user_id, period_key)
     goal = challenge.get('goal', 2)
     action = challenge.get('action', 'save')
 
     try:
+        schema_ready_before = _is_schema_ready(db_type, "daily_challenge")
         ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("""
                 SELECT COUNT(*) AS count
                 FROM daily_actions
                 WHERE user_id = %s AND action = %s AND event_date = %s
-            """, (session['user_id'], action, period_key))
+            """, (user_id, action, period_key))
             row = c.fetchone()
             progress = int(row['count'] if row and isinstance(row, dict) else (row[0] if row else 0))
 
@@ -7662,14 +7704,14 @@ def get_daily_challenge():
                 FROM daily_challenge_claims
                 WHERE user_id = %s AND challenge_date = %s AND challenge_id = %s
                 LIMIT 1
-            """, (session['user_id'], period_key, challenge.get('id', 'daily')))
+            """, (user_id, period_key, challenge.get('id', 'daily')))
             claimed = bool(c.fetchone())
         else:
             c.execute("""
                 SELECT COUNT(*)
                 FROM daily_actions
                 WHERE user_id = ? AND action = ? AND event_date = ?
-            """, (session['user_id'], action, period_key))
+            """, (user_id, action, period_key))
             row = c.fetchone()
             progress = int(row[0] if row else 0)
 
@@ -7678,15 +7720,16 @@ def get_daily_challenge():
                 FROM daily_challenge_claims
                 WHERE user_id = ? AND challenge_date = ? AND challenge_id = ?
                 LIMIT 1
-            """, (session['user_id'], period_key, challenge.get('id', 'daily')))
+            """, (user_id, period_key, challenge.get('id', 'daily')))
             claimed = bool(c.fetchone())
 
-        conn.commit()
+        if not schema_ready_before:
+            conn.commit()
         progress = min(progress, goal)
-        xp_reward = get_hourly_xp_reward(session['user_id'], period_key, challenge)
+        xp_reward = get_hourly_xp_reward(user_id, period_key, challenge)
         now_ts = datetime.now().astimezone()
         hidden = bool(hide_at and now_ts >= hide_at)
-        return jsonify({
+        payload = {
             "id": challenge.get('id', 'save2'),
             "text": challenge.get('text', 'Save 2 verses to your library'),
             "goal": goal,
@@ -7701,8 +7744,14 @@ def get_daily_challenge():
             "progress": progress,
             "completed": progress >= goal,
             "claimed": claimed
-        })
+        }
+        _api_cache_set(cache_key, payload, ttl=8)
+        return jsonify(payload)
     except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         logger.error(f"Daily challenge error: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
@@ -7727,7 +7776,10 @@ def claim_daily_challenge():
     xp_reward = get_hourly_xp_reward(session['user_id'], period_key, challenge)
 
     try:
+        schema_ready_before = _is_schema_ready(db_type, "daily_challenge")
         ensure_daily_challenge_tables(c, db_type)
+        if not schema_ready_before:
+            conn.commit()
 
         if db_type == 'postgres':
             c.execute("""
@@ -7773,6 +7825,7 @@ def claim_daily_challenge():
         conn.commit()
 
         if not inserted:
+            _api_cache_invalidate_prefixes(f"daily_challenge:{int(session['user_id'])}:")
             return jsonify({
                 "success": True,
                 "awarded": False,
@@ -7798,6 +7851,7 @@ def claim_daily_challenge():
                 logger.error(f"Daily challenge rollback failed: {cleanup_error}")
             return jsonify({"success": False, "error": awarded.get("error", "XP award failed")}), 500
 
+        _api_cache_invalidate_prefixes(f"daily_challenge:{int(session['user_id'])}:")
         return jsonify({
             "success": True,
             "awarded": True,
@@ -7808,6 +7862,10 @@ def claim_daily_challenge():
             "leveled_up": awarded.get("leveled_up", False)
         })
     except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         logger.error(f"Daily challenge claim error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
@@ -8956,10 +9014,12 @@ def notifications_preferences():
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     try:
+        growth_ready_before = _is_schema_ready(db_type, "growth_features")
         ensure_growth_feature_tables(c, db_type)
-        conn.commit()
+        if not growth_ready_before:
+            conn.commit()
         uid = int(session['user_id'])
-        prefs = get_notification_preferences(c, db_type, uid)
+        prefs = get_notification_preferences(c, db_type, uid, create_if_missing=(request.method == 'POST'))
         if request.method == 'POST':
             data = request.get_json(silent=True) or {}
             merged = {
@@ -8987,6 +9047,7 @@ def notifications_preferences():
                     WHERE user_id = ?
                 """, (int(merged["dm_enabled"]), int(merged["community_enabled"]), int(merged["reports_enabled"]), int(merged["system_enabled"]), merged["digest_mode"], now_iso, uid))
             conn.commit()
+            _api_cache_invalidate_prefixes(f"notifications:{uid}:")
             prefs = merged
         return jsonify({"preferences": prefs})
     except Exception as e:
@@ -12652,39 +12713,21 @@ def get_notifications():
     if 'user_id' not in session:
         return jsonify([]), 401
     conn = None
+    uid = int(session['user_id'])
+    cache_key = f"notifications:{uid}:list"
+    cached = _api_cache_get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
     try:
         conn, db_type = get_db()
         c = get_cursor(conn, db_type)
-        if db_type == 'postgres':
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS user_notifications (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER,
-                    title TEXT,
-                    message TEXT,
-                    notif_type TEXT DEFAULT 'announcement',
-                    source TEXT DEFAULT 'admin',
-                    is_read INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    sent_at TIMESTAMP
-                )
-            """)
-        else:
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS user_notifications (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    title TEXT,
-                    message TEXT,
-                    notif_type TEXT DEFAULT 'announcement',
-                    source TEXT DEFAULT 'admin',
-                    is_read INTEGER DEFAULT 0,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    sent_at TEXT
-                )
-            """)
+        notif_ready_before = _is_schema_ready(db_type, "notification_tables")
+        growth_ready_before = _is_schema_ready(db_type, "growth_features")
+        ensure_notification_tables(c, db_type)
         ensure_growth_feature_tables(c, db_type)
-        prefs = get_notification_preferences(c, db_type, session['user_id'])
+        if (not notif_ready_before) or (not growth_ready_before):
+            conn.commit()
+        prefs = get_notification_preferences(c, db_type, uid, create_if_missing=False)
         if db_type == 'postgres':
             c.execute("""
                 SELECT id, title, message, notif_type, source, is_read, created_at
@@ -12692,7 +12735,7 @@ def get_notifications():
                 WHERE user_id = %s
                 ORDER BY created_at DESC
                 LIMIT 50
-            """, (session['user_id'],))
+            """, (uid,))
         else:
             c.execute("""
                 SELECT id, title, message, notif_type, source, is_read, created_at
@@ -12700,9 +12743,10 @@ def get_notifications():
                 WHERE user_id = ?
                 ORDER BY created_at DESC
                 LIMIT 50
-            """, (session['user_id'],))
+            """, (uid,))
         rows = c.fetchall()
         conn.close()
+        conn = None
         def _parse_ts(val):
             if not val:
                 return None
@@ -12761,10 +12805,15 @@ def get_notifications():
                     "is_read": bool(row[5] or 0),
                     "created_at": created_at
                 })
+        _api_cache_set(cache_key, out, ttl=6)
         return jsonify(out)
     except Exception as e:
         logger.error(f"Get notifications error: {e}")
         if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             try:
                 conn.close()
             except:
@@ -12779,44 +12828,22 @@ def mark_notifications_read():
     try:
         conn, db_type = get_db()
         c = get_cursor(conn, db_type)
-        if db_type == 'postgres':
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS user_notifications (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER,
-                    title TEXT,
-                    message TEXT,
-                    notif_type TEXT DEFAULT 'announcement',
-                    source TEXT DEFAULT 'admin',
-                    is_read INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    sent_at TIMESTAMP
-                )
-            """)
-        else:
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS user_notifications (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    title TEXT,
-                    message TEXT,
-                    notif_type TEXT DEFAULT 'announcement',
-                    source TEXT DEFAULT 'admin',
-                    is_read INTEGER DEFAULT 0,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    sent_at TEXT
-                )
-            """)
+        ensure_notification_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("UPDATE user_notifications SET is_read = 1 WHERE user_id = %s", (session['user_id'],))
         else:
             c.execute("UPDATE user_notifications SET is_read = 1 WHERE user_id = ?", (session['user_id'],))
         conn.commit()
+        _api_cache_invalidate_prefixes(f"notifications:{int(session['user_id'])}:")
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
         logger.error(f"Mark notifications read error: {e}")
         if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             try:
                 conn.close()
             except:
