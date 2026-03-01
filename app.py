@@ -4422,6 +4422,9 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "🌌", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
     {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
     
+    # Transcendent Frames (180k+ XP) - ABOVE MYTHIC
+    {"item_id": "frame_seraphic", "name": "Seraphic Crown", "description": "An ascended halo beyond mythic", "category": "frame", "price": 180000, "rarity": "transcendent", "icon": "👼", "effects": {"frame_style": "seraphic", "animation": "prismatic_aura", "particles": True}},
+    
     # ==================== NAME COLORS ====================
     # Common Colors (100-500 XP)
     {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔵", "effects": {"color": "#0A84FF", "glow": False}},
@@ -4449,6 +4452,9 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "🌑", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
     {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 100000, "rarity": "mythic", "icon": "👑", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
     
+    # Transcendent Colors
+    {"item_id": "color_celestial", "name": "Celestial Prism", "description": "Starlight forged into your name", "category": "name_color", "price": 170000, "rarity": "transcendent", "icon": "🌠", "effects": {"gradient": True, "colors": ["#FFFFFF", "#8AFFF5", "#C58CFF", "#FFF5B6"], "animation": "celestial_shift"}},
+    
     # ==================== TITLES ====================
     # Common Titles (500-1k XP)
     {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "🔍", "effects": {"title": "Seeker", "prefix": True}},
@@ -4474,6 +4480,9 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "🗡️", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
     {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "✨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
     {"item_id": "title_god", "name": "Creator", "description": "Supreme being", "category": "title", "price": 150000, "rarity": "mythic", "icon": "👑", "effects": {"title": "Creator", "prefix": True, "glow": True}},
+    
+    # Transcendent Titles
+    {"item_id": "title_thronekeeper", "name": "Thronekeeper", "description": "Guardian of the highest realm", "category": "title", "price": 220000, "rarity": "transcendent", "icon": "🛐", "effects": {"title": "Thronekeeper", "prefix": True, "glow": True}},
     
     # ==================== BADGES ====================
     # Common Badges (200-800 XP)
@@ -4501,6 +4510,9 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "👁️", "effects": {"badge": "omniscient", "color": "#FF1493"}},
     {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "✨", "effects": {"badge": "divine", "color": "#FFD700"}},
     
+    # Transcendent Badges
+    {"item_id": "badge_omega", "name": "Omega Witness", "description": "Mark of the end and beginning", "category": "badge", "price": 210000, "rarity": "transcendent", "icon": "☄️", "effects": {"badge": "omega", "color": "#7DFFF8"}},
+    
     # ==================== CHAT EFFECTS ====================
     # Rare Chat Effects (3k-5k XP)
     {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "💫", "effects": {"effect": "glow", "color": "#FFD700"}},
@@ -4518,6 +4530,9 @@ DEFAULT_SHOP_ITEMS = [
     # Mythic Chat Effects (50k-100k XP) - ULTRA RARE
     {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "🌌", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
     {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 100000, "rarity": "mythic", "icon": "⚡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
+    
+    # Transcendent Chat Effects
+    {"item_id": "chat_revelation", "name": "Revelation Voice", "description": "Speech wrapped in celestial prophecy", "category": "chat_effect", "price": 190000, "rarity": "transcendent", "icon": "📡", "effects": {"effect": "revelation", "animation": "oracle_wave"}},
     
     # ==================== PROFILE BACKGROUNDS ====================
     # Rare Backgrounds (3k-5k XP)
@@ -4540,6 +4555,9 @@ DEFAULT_SHOP_ITEMS = [
     {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
     {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 120000, "rarity": "mythic", "icon": "👑", "effects": {"bg_style": "godly", "animation": "omnipotence"}},
     
+    # Transcendent Backgrounds
+    {"item_id": "bg_new_jerusalem", "name": "New Jerusalem", "description": "A radiant city of eternal light", "category": "profile_bg", "price": 240000, "rarity": "transcendent", "icon": "🌆", "effects": {"bg_style": "gradient", "colors": ["#7DFFF8", "#B884FF", "#FFE38A"], "animation": "heavenfall"}},
+    
     # ==================== BOOSTS / CONSUMABLES ====================
     # Epic Boosts
     {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "⚡", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
@@ -4547,6 +4565,9 @@ DEFAULT_SHOP_ITEMS = [
     
     # Mythic Boosts
     {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "💫", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
+    
+    # Transcendent Boosts
+    {"item_id": "ability_ascension_xp", "name": "Ascension XP Boost", "description": "10x XP for 30 minutes", "category": "consumable", "price": 120000, "rarity": "transcendent", "icon": "🧬", "effects": {"boost": "ascension_xp", "duration": "30m", "multiplier": 10}},
 ]
 
 def init_shop_items():

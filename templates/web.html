@@ -2268,6 +2268,12 @@
             color: var(--primary);
         }
 
+        .comment-user-link.comment-name:hover {
+            color: inherit;
+            border-color: rgba(145, 200, 255, 0.56);
+            box-shadow: inset 0 0 0 1px rgba(145, 200, 255, 0.36), 0 0 14px rgba(76, 152, 255, 0.24);
+        }
+
         .comment-meta {
             flex: 1;
         }
@@ -2275,12 +2281,18 @@
         .comment-name {
             font-size: 13px;
             font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(175, 198, 235, 0.34);
+            box-shadow: inset 0 0 0 1px rgba(95, 120, 165, 0.18), 0 0 10px rgba(60, 92, 146, 0.2);
             flex-shrink: 1;
             min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 150px;
+            max-width: 180px;
         }
 
         .comment-name-row {
@@ -3889,6 +3901,13 @@
             box-shadow: 0 16px 40px rgba(255, 58, 178, 0.42), 0 0 30px rgba(82, 205, 255, 0.26);
             animation: mythicCardPulse 1.8s ease-in-out infinite, mythicSheenDrift 4.2s linear infinite;
         }
+        .shop-item.transcendent {
+            --rarity-a: rgba(122, 255, 242, 0.72);
+            --rarity-b: rgba(196, 132, 255, 0.66);
+            border-color: rgba(170, 255, 246, 0.75);
+            box-shadow: 0 0 0 1px rgba(170, 255, 246, 0.46), 0 18px 46px rgba(86, 245, 255, 0.34), 0 0 44px rgba(202, 132, 255, 0.3);
+            animation: transcendentCardPulse 1.45s ease-in-out infinite, mythicSheenDrift 3.6s linear infinite;
+        }
 
         .shop-item-icon { font-size: 46px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 8px rgba(255,255,255,0.16)); }
         .shop-item-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text); }
@@ -3911,6 +3930,7 @@
         .shop-item-rarity.epic { color: #d9a8ff; border-color: rgba(191, 109, 255, 0.44); text-shadow: 0 0 10px rgba(191, 109, 255, 0.45); }
         .shop-item-rarity.legendary { color: #ffd885; border-color: rgba(255, 207, 106, 0.46); text-shadow: 0 0 10px rgba(255, 210, 120, 0.48); }
         .shop-item-rarity.mythic { color: #ffc8ef; border-color: rgba(255, 120, 220, 0.56); text-shadow: 0 0 12px rgba(255, 112, 210, 0.52); animation: rarityPulseSoft 1.8s ease-in-out infinite; }
+        .shop-item-rarity.transcendent { color: #e6fffb; border-color: rgba(144, 255, 247, 0.66); text-shadow: 0 0 14px rgba(126, 255, 247, 0.65), 0 0 20px rgba(191, 142, 255, 0.56); animation: transcendentLabelPulse 1.4s ease-in-out infinite; }
 
         .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
         .shop-item-price.owned { color: #7de8b0; }
@@ -4014,6 +4034,12 @@
             box-shadow: 0 0 22px rgba(255, 72, 186, 0.55), 0 0 14px rgba(102, 214, 255, 0.45);
             animation: badgeMythicPulse 1.6s ease-in-out infinite;
         }
+        .profile-badge.rarity-transcendent,
+        .user-badge-icon.rarity-transcendent,
+        .user-badge-small.rarity-transcendent {
+            box-shadow: 0 0 24px rgba(125, 255, 248, 0.62), 0 0 18px rgba(194, 132, 255, 0.56);
+            animation: badgeTranscendentPulse 1.2s ease-in-out infinite;
+        }
 
         /* Rarity title pop */
         .user-title.legendary,
@@ -4028,6 +4054,15 @@
         .user-title-mythic {
             box-shadow: 0 0 22px rgba(255, 70, 182, 0.55);
             animation: mythicSheenDrift 4s linear infinite;
+            background-size: 220% 220%;
+        }
+        .user-title.transcendent,
+        .user-title-transcendent {
+            color: #f5fffd;
+            border: 1px solid rgba(155, 255, 246, 0.7);
+            background: linear-gradient(135deg, rgba(84, 255, 242, 0.34), rgba(186, 116, 255, 0.34), rgba(255, 255, 255, 0.24));
+            box-shadow: 0 0 24px rgba(120, 255, 246, 0.54), 0 0 14px rgba(196, 132, 255, 0.42);
+            animation: transcendentLabelPulse 1.4s ease-in-out infinite;
             background-size: 220% 220%;
         }
         
@@ -4250,6 +4285,18 @@
             0%, 100% { transform: scale(1); filter: saturate(1); }
             50% { transform: scale(1.08); filter: saturate(1.2); }
         }
+        @keyframes transcendentCardPulse {
+            0%, 100% { box-shadow: 0 0 0 1px rgba(170, 255, 246, 0.42), 0 18px 46px rgba(86, 245, 255, 0.3), 0 0 38px rgba(202, 132, 255, 0.24); }
+            50% { box-shadow: 0 0 0 1px rgba(170, 255, 246, 0.68), 0 20px 52px rgba(86, 245, 255, 0.42), 0 0 50px rgba(202, 132, 255, 0.36); }
+        }
+        @keyframes transcendentLabelPulse {
+            0%, 100% { transform: translateY(0); filter: saturate(1); }
+            50% { transform: translateY(-1px); filter: saturate(1.2); }
+        }
+        @keyframes badgeTranscendentPulse {
+            0%, 100% { transform: scale(1); filter: saturate(1); }
+            50% { transform: scale(1.12); filter: saturate(1.22); }
+        }
         
         /* Shop Item Effects - Profile Frames */
         .profile-frame { position: relative; }
@@ -4276,6 +4323,8 @@
         .profile-frame-frame_cosmic::after { content: '🌌'; position: absolute; top: -8px; left: -8px; font-size: 20px; animation: starTwinkle 1s infinite; }
         .profile-frame-frame_infinity { border: 3px solid transparent !important; background: linear-gradient(135deg, #FF1493, #00FF87, #00CED1) border-box !important; animation: rainbow 3s linear infinite; box-shadow: 0 0 25px rgba(255,20,147,0.5) !important; }
         .profile-frame-frame_infinity::after { content: '♾️'; position: absolute; bottom: -8px; right: -8px; font-size: 22px; }
+        .profile-frame-frame_seraphic { border: 3px solid transparent !important; background: linear-gradient(135deg, #7dfff8, #b67cff, #fff3a1) border-box !important; box-shadow: 0 0 28px rgba(122,255,242,0.55), inset 0 0 14px rgba(196,132,255,0.35) !important; animation: transcendentCardPulse 1.5s ease-in-out infinite; }
+        .profile-frame-frame_seraphic::after { content: '✶'; position: absolute; top: -9px; right: -7px; font-size: 20px; color: #bdfef8; text-shadow: 0 0 12px rgba(125,255,248,0.75); }
         
         /* Shop Item Effects - Name Colors */
         .profile-name-color_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
@@ -4296,6 +4345,7 @@
         .profile-name-color_phoenix { background: linear-gradient(90deg, #FF0000, #FF6600, #FFCC00) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: fireText 1s infinite alternate; font-weight: 700 !important; }
         .profile-name-color_void { color: #1a0033 !important; text-shadow: 0 0 20px rgba(147,0,211,0.8), 0 0 40px rgba(147,0,211,0.4) !important; font-weight: 700 !important; }
         .profile-name-color_godly { background: linear-gradient(90deg, #FFD700, #FFFFFF, #FFD700, #FFFFFF) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 2s linear infinite; font-weight: 700 !important; text-shadow: 0 0 30px rgba(255,215,0,0.5) !important; }
+        .profile-name-color_celestial { background: linear-gradient(90deg, #ffffff, #8afff5, #c58cff, #fff5b6) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: mythicSheenDrift 2.8s linear infinite; font-weight: 800 !important; text-shadow: 0 0 24px rgba(138,255,245,0.45); }
         
         /* Shop Item Effects - Titles */
         .user-title { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: 600; vertical-align: middle; flex-shrink: 0; white-space: nowrap; }
@@ -4304,6 +4354,7 @@
         .user-title-rare { background: linear-gradient(135deg, #00BFFF, #1E90FF); color: #fff; }
         .user-title-common { background: linear-gradient(135deg, #808080, #A9A9A9); color: #fff; }
         .user-title-mythic { background: linear-gradient(135deg, #FF1493, #9400D3, #00CED1); color: #fff; box-shadow: 0 0 20px rgba(255,20,147,0.5); animation: mythicShine 3s linear infinite; }
+        .user-title-transcendent { color: #f5fffd; border: 1px solid rgba(155, 255, 246, 0.7); background: linear-gradient(135deg, rgba(84, 255, 242, 0.34), rgba(186, 116, 255, 0.34), rgba(255, 255, 255, 0.24)); box-shadow: 0 0 24px rgba(120, 255, 246, 0.54), 0 0 14px rgba(196, 132, 255, 0.42); animation: transcendentLabelPulse 1.4s ease-in-out infinite; background-size: 220% 220%; }
         
         /* Shop Item Effects - Badges */
         .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 12px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 0; min-height: 0; border-radius: 0; }
@@ -4347,6 +4398,8 @@
         .message-text.chat-effect-chat_universe { color: #ffeaff !important; background: linear-gradient(135deg, rgba(148,0,211,0.34), rgba(0,206,209,0.3), rgba(255,20,147,0.34)) !important; border-color: rgba(255,120,220,0.42); box-shadow: 0 0 14px rgba(184, 89, 255, 0.24); animation: rainbow 3s linear infinite; font-weight: 700 !important; }
         .comment-text.chat-effect-chat_godly,
         .message-text.chat-effect-chat_godly { color: #fff8d4 !important; text-shadow: 0 0 12px rgba(255,215,0,0.7), 0 0 24px rgba(255,20,147,0.45) !important; background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,20,147,0.2)) !important; border-color: rgba(255,215,0,0.5); animation: mythicPulse 1s infinite; font-weight: 700 !important; }
+        .comment-text.chat-effect-chat_revelation,
+        .message-text.chat-effect-chat_revelation { color: #f3fffe !important; text-shadow: 0 0 12px rgba(122,255,242,0.72), 0 0 20px rgba(196,132,255,0.56) !important; background: linear-gradient(135deg, rgba(122,255,242,0.28), rgba(196,132,255,0.3), rgba(255,245,182,0.24)) !important; border-color: rgba(155,255,246,0.68); animation: transcendentLabelPulse 1.2s ease-in-out infinite; font-weight: 800 !important; }
     </style>
 </head>
 <body>
@@ -11969,7 +12022,7 @@ async function checkAchievement(type, value) {
 
         function safeRarity(value) {
             const raw = String(value || 'common').trim().toLowerCase();
-            if (raw === 'mythic' || raw === 'legendary' || raw === 'epic' || raw === 'rare' || raw === 'common') {
+            if (raw === 'transcendent' || raw === 'mythic' || raw === 'legendary' || raw === 'epic' || raw === 'rare' || raw === 'common') {
                 return raw;
             }
             return 'common';
