@@ -8505,9 +8505,9 @@ def public_profile(user_id):
     c = get_cursor(conn, db_type)
     try:
         if db_type == 'postgres':
-            c.execute("SELECT id, name, email, COALESCE(custom_picture, picture) AS picture, role, created_at, avatar_decoration FROM users WHERE id = %s", (user_id,))
+            c.execute("SELECT id, name, email, COALESCE(custom_picture, picture) AS picture, role, created_at, avatar_decoration, is_banned FROM users WHERE id = %s", (user_id,))
         else:
-            c.execute("SELECT id, name, email, COALESCE(custom_picture, picture) AS picture, role, created_at, avatar_decoration FROM users WHERE id = ?", (user_id,))
+            c.execute("SELECT id, name, email, COALESCE(custom_picture, picture) AS picture, role, created_at, avatar_decoration, is_banned FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
         if not row:
             conn.close()
@@ -8519,6 +8519,7 @@ def public_profile(user_id):
             role = normalize_role(row['role'] or 'user')
             created_at = row['created_at'] or ''
             avatar_decoration = row_value(row, 'avatar_decoration')
+            is_banned = bool(row_value(row, 'is_banned', False))
             uid = row['id']
         else:
             uid = row[0]
@@ -8528,9 +8529,15 @@ def public_profile(user_id):
             role = normalize_role(row[4] if len(row) > 4 else 'user')
             created_at = row[5] if len(row) > 5 else ''
             avatar_decoration = row[6] if len(row) > 6 else None
+            is_banned = bool(row[7]) if len(row) > 7 else False
         viewer_role = normalize_role(session.get('admin_role') or session.get('role') or 'user')
         show_email = role_priority(viewer_role) >= role_priority('host')
         can_dm = session.get('user_id') != uid
+        can_manage_target = session.get('user_id') != uid and role_priority(viewer_role) > role_priority(role)
+        can_admin_restrict = can_manage_target and role_priority(viewer_role) >= role_priority('host')
+        can_admin_ban = can_manage_target and role_priority(viewer_role) >= role_priority('host')
+        can_admin_role = can_manage_target and role_priority(viewer_role) >= role_priority('co_owner')
+        can_admin_details = role_priority(viewer_role) >= role_priority('host')
         created_display = ''
         if created_at:
             try:
@@ -8551,6 +8558,7 @@ def public_profile(user_id):
             "avatar_decoration": avatar_decoration,
             "role": role,
             "role_display": role.replace('_', ' ').upper(),
+            "is_banned": is_banned,
             "created_at": created_at,
             "created_at_display": created_display,
             "equipped_frame": equipped["frame"],
@@ -8558,7 +8566,13 @@ def public_profile(user_id):
             "equipped_title": equipped["title"],
             "equipped_badges": equipped["badges"],
             "equipped_profile_bg": equipped["profile_bg"]
-        }, show_email=show_email, can_dm=can_dm)
+        },
+        show_email=show_email,
+        can_dm=can_dm,
+        can_admin_restrict=can_admin_restrict,
+        can_admin_ban=can_admin_ban,
+        can_admin_role=can_admin_role,
+        can_admin_details=can_admin_details)
     except Exception as e:
         try:
             conn.close()
