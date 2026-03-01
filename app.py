@@ -227,6 +227,19 @@ _SCHEMA_READY_LOCK = threading.Lock()
 BAN_STATUS_CACHE_TTL = max(1.0, float(os.environ.get('BAN_STATUS_CACHE_TTL', '3.0')))
 _BAN_STATUS_CACHE = {}
 _BAN_STATUS_CACHE_LOCK = threading.Lock()
+API_RESPONSE_CACHE_TTL = max(1.0, float(os.environ.get('API_RESPONSE_CACHE_TTL', '3.0')))
+_API_RESPONSE_CACHE = {}
+_API_RESPONSE_CACHE_LOCK = threading.Lock()
+_RATE_LIMIT_BUCKETS = {}
+_RATE_LIMIT_LOCK = threading.Lock()
+MOD_BLOCKLIST = [
+    token.strip().lower()
+    for token in str(os.environ.get(
+        'MOD_BLOCKLIST',
+        'free money,crypto giveaway,buy followers,click this link'
+    )).split(',')
+    if token.strip()
+]
 
 FALLBACK_BOOKS = [
     {"id": "GEN", "name": "Genesis"},
@@ -481,7 +494,8 @@ def ensure_performance_indexes(c, db_type):
         "CREATE INDEX IF NOT EXISTS idx_notifications_user_state ON user_notifications(user_id, is_read, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_presence_seen ON user_presence(last_seen)",
         "CREATE INDEX IF NOT EXISTS idx_research_room_ts ON research_community_messages(room_slug, timestamp)",
-        "CREATE INDEX IF NOT EXISTS idx_research_user_ts ON research_community_messages(user_id, timestamp)"
+        "CREATE INDEX IF NOT EXISTS idx_research_user_ts ON research_community_messages(user_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_community_pins_type_msg ON community_pins(message_type, message_id)"
     ]
 
     for stmt in statements:
@@ -497,6 +511,72 @@ def _build_in_clause_params(db_type, values):
         return None, ()
     placeholder = "%s" if db_type == 'postgres' else "?"
     return ",".join([placeholder] * len(safe_values)), tuple(safe_values)
+
+def _api_cache_get(key):
+    now = time.time()
+    with _API_RESPONSE_CACHE_LOCK:
+        entry = _API_RESPONSE_CACHE.get(key)
+        if not entry:
+            return None
+        expires_at = entry.get('expires_at', 0)
+        if expires_at <= now:
+            _API_RESPONSE_CACHE.pop(key, None)
+            return None
+        return entry.get('value')
+
+def _api_cache_set(key, value, ttl=None):
+    try:
+        payload = json.loads(json.dumps(value))
+    except Exception:
+        payload = value
+    ttl_sec = float(ttl if ttl is not None else API_RESPONSE_CACHE_TTL)
+    with _API_RESPONSE_CACHE_LOCK:
+        _API_RESPONSE_CACHE[key] = {
+            'value': payload,
+            'expires_at': time.time() + max(0.5, ttl_sec)
+        }
+
+def _api_cache_invalidate_prefixes(*prefixes):
+    clean_prefixes = [p for p in prefixes if p]
+    if not clean_prefixes:
+        return
+    with _API_RESPONSE_CACHE_LOCK:
+        keys = list(_API_RESPONSE_CACHE.keys())
+        for key in keys:
+            if any(str(key).startswith(prefix) for prefix in clean_prefixes):
+                _API_RESPONSE_CACHE.pop(key, None)
+
+def check_rate_limit(user_id, action, limit, window_seconds):
+    if not user_id:
+        return False, 0
+    uid = int(user_id)
+    now = time.time()
+    key = f"{uid}:{action}"
+    window = max(1, int(window_seconds))
+    with _RATE_LIMIT_LOCK:
+        bucket = _RATE_LIMIT_BUCKETS.get(key, [])
+        bucket = [t for t in bucket if (now - t) < window]
+        if len(bucket) >= max(1, int(limit)):
+            retry_after = max(1, int(window - (now - bucket[0])))
+            _RATE_LIMIT_BUCKETS[key] = bucket
+            return True, retry_after
+        bucket.append(now)
+        _RATE_LIMIT_BUCKETS[key] = bucket
+    return False, 0
+
+def moderate_user_content(text):
+    sample = str(text or '')
+    lowered = sample.lower()
+    for term in MOD_BLOCKLIST:
+        if term and term in lowered:
+            return True, "Message blocked by safety filter."
+    links = re.findall(r'https?://|www\.', lowered)
+    if len(links) >= 3:
+        return True, "Too many links in one message."
+    repeated = re.search(r'(.)\1{14,}', sample)
+    if repeated:
+        return True, "Message appears to be spam."
+    return False, ""
 
 def ensure_research_feature_tables(c, db_type):
     if _is_schema_ready(db_type, "research_features"):
@@ -2299,6 +2379,163 @@ def ensure_dm_tables(c, db_type):
     ensure_performance_indexes(c, db_type)
     _mark_schema_ready(db_type, "dm")
 
+def ensure_community_pin_table(c, db_type):
+    if _is_schema_ready(db_type, "community_pins"):
+        return
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS community_pins (
+                room_slug TEXT PRIMARY KEY,
+                message_type TEXT NOT NULL DEFAULT 'community',
+                message_id INTEGER NOT NULL,
+                pinned_by INTEGER,
+                note TEXT,
+                pinned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS community_pins (
+                room_slug TEXT PRIMARY KEY,
+                message_type TEXT NOT NULL DEFAULT 'community',
+                message_id INTEGER NOT NULL,
+                pinned_by INTEGER,
+                note TEXT,
+                pinned_at TEXT
+            )
+        """)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "community_pins")
+
+def get_community_pin(c, db_type, room_slug='general', hidden_user_ids=None):
+    ensure_community_pin_table(c, db_type)
+    hidden_user_ids = set(hidden_user_ids or ())
+    room = (room_slug or 'general').strip().lower() or 'general'
+    if db_type == 'postgres':
+        c.execute("""
+            SELECT room_slug, message_type, message_id, pinned_by, note, pinned_at
+            FROM community_pins
+            WHERE room_slug = %s
+            LIMIT 1
+        """, (room,))
+    else:
+        c.execute("""
+            SELECT room_slug, message_type, message_id, pinned_by, note, pinned_at
+            FROM community_pins
+            WHERE room_slug = ?
+            LIMIT 1
+        """, (room,))
+    pin_row = c.fetchone()
+    if not pin_row:
+        return None
+
+    try:
+        message_type = str(pin_row['message_type'] or 'community').strip().lower()
+        message_id = int(pin_row['message_id'])
+        pinned_by = row_value(pin_row, 'pinned_by')
+        note = row_value(pin_row, 'note') or ""
+        pinned_at = row_value(pin_row, 'pinned_at')
+    except Exception:
+        message_type = str(pin_row[1] if len(pin_row) > 1 else 'community').strip().lower()
+        message_id = int(pin_row[2] if len(pin_row) > 2 else 0)
+        pinned_by = pin_row[3] if len(pin_row) > 3 else None
+        note = pin_row[4] if len(pin_row) > 4 and pin_row[4] else ""
+        pinned_at = pin_row[5] if len(pin_row) > 5 else None
+
+    if message_id <= 0:
+        return None
+
+    if message_type == 'research':
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT m.id, m.room_slug, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM research_community_messages m
+                LEFT JOIN users u ON u.id = m.user_id
+                WHERE m.id = %s
+                LIMIT 1
+            """, (message_id,))
+        else:
+            c.execute("""
+                SELECT m.id, m.room_slug, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM research_community_messages m
+                LEFT JOIN users u ON u.id = m.user_id
+                WHERE m.id = ?
+                LIMIT 1
+            """, (message_id,))
+        row = c.fetchone()
+        if not row:
+            return None
+        user_id = row_pick(row, 'user_id', 2)
+        try:
+            user_id = int(user_id) if user_id is not None else None
+        except Exception:
+            user_id = None
+        if user_id is not None and user_id in hidden_user_ids:
+            return None
+        message = {
+            "id": row_pick(row, 'id', 0),
+            "room_slug": row_pick(row, 'room_slug', 1),
+            "user_id": user_id,
+            "text": row_pick(row, 'text', 3) or "",
+            "timestamp": row_pick(row, 'timestamp', 4),
+            "user_name": row_pick(row, 'name', 7) or row_pick(row, 'google_name', 5) or "Anonymous",
+            "user_picture": row_pick(row, 'picture', 8) or row_pick(row, 'google_picture', 6) or "",
+            "user_role": normalize_role(row_pick(row, 'role', 9) or "user"),
+            "avatar_decoration": row_pick(row, 'avatar_decoration', 10) or ""
+        }
+    else:
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT cm.id, cm.user_id, cm.text, cm.timestamp, cm.google_name, cm.google_picture,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM community_messages cm
+                LEFT JOIN users u ON cm.user_id = u.id
+                WHERE cm.id = %s
+                LIMIT 1
+            """, (message_id,))
+        else:
+            c.execute("""
+                SELECT cm.id, cm.user_id, cm.text, cm.timestamp, cm.google_name, cm.google_picture,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM community_messages cm
+                LEFT JOIN users u ON cm.user_id = u.id
+                WHERE cm.id = ?
+                LIMIT 1
+            """, (message_id,))
+        row = c.fetchone()
+        if not row:
+            return None
+        user_id = row_pick(row, 'user_id', 1)
+        try:
+            user_id = int(user_id) if user_id is not None else None
+        except Exception:
+            user_id = None
+        if user_id is not None and user_id in hidden_user_ids:
+            return None
+        message = {
+            "id": row_pick(row, 'id', 0),
+            "room_slug": room,
+            "user_id": user_id,
+            "text": row_pick(row, 'text', 2) or "",
+            "timestamp": row_pick(row, 'timestamp', 3),
+            "user_name": row_pick(row, 'name', 6) or row_pick(row, 'google_name', 4) or "Anonymous",
+            "user_picture": row_pick(row, 'picture', 7) or row_pick(row, 'google_picture', 5) or "",
+            "user_role": normalize_role(row_pick(row, 'role', 8) or "user"),
+            "avatar_decoration": row_pick(row, 'avatar_decoration', 9) or ""
+        }
+
+    return {
+        "room_slug": room,
+        "message_type": "research" if message_type == 'research' else "community",
+        "message_id": message_id,
+        "pinned_by": pinned_by,
+        "note": note,
+        "pinned_at": pinned_at,
+        "message": message
+    }
+
 def normalize_mute_scope(scope):
     value = str(scope or 'all').strip().lower()
     if value in ('dm', 'direct', 'direct_message', 'direct_messages'):
@@ -2356,6 +2593,12 @@ def ensure_user_safety_tables(c, db_type):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        try:
+            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_by TEXT")
+            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP")
+            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS review_note TEXT")
+        except Exception:
+            pass
     else:
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_blocks (
@@ -2386,9 +2629,21 @@ def ensure_user_safety_tables(c, db_type):
                 reason TEXT NOT NULL,
                 details TEXT,
                 status TEXT NOT NULL DEFAULT 'open',
-                created_at TEXT
+                created_at TEXT,
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                review_note TEXT
             )
         """)
+        for col_def in ("reviewed_by TEXT", "reviewed_at TEXT", "review_note TEXT"):
+            col_name = col_def.split()[0]
+            try:
+                c.execute(f"SELECT {col_name} FROM user_reports LIMIT 1")
+            except Exception:
+                try:
+                    c.execute(f"ALTER TABLE user_reports ADD COLUMN {col_def}")
+                except Exception:
+                    pass
     ensure_performance_indexes(c, db_type)
     _mark_schema_ready(db_type, "user_safety")
 
@@ -8287,9 +8542,11 @@ def community_room_messages(slug):
     try:
         ensure_research_feature_tables(c, db_type)
         ensure_user_safety_tables(c, db_type)
+        ensure_community_pin_table(c, db_type)
         conn.commit()
         safety = get_user_safety_filters(c, db_type, session['user_id'])
         hidden_public_users = safety["hidden_public_users"]
+        cache_key = f"community_room:{int(session['user_id'])}:{room_slug}"
 
         if request.method == 'POST':
             is_banned, _, _ = check_ban_status(session['user_id'])
@@ -8299,6 +8556,16 @@ def community_room_messages(slug):
             text = (data.get('text') or '').strip()
             if not text:
                 return jsonify({"error": "Empty message"}), 400
+            limited, retry_after = check_rate_limit(session['user_id'], 'community_room_post', 8, 30)
+            if limited:
+                return jsonify({
+                    "error": "rate_limited",
+                    "message": "Too many messages. Please slow down.",
+                    "retry_after": retry_after
+                }), 429
+            blocked, mod_message = moderate_user_content(text)
+            if blocked:
+                return jsonify({"error": "content_blocked", "message": mod_message}), 400
             c.execute("""
                 INSERT INTO research_community_messages (room_slug, user_id, text, timestamp, google_name, google_picture)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -8307,6 +8574,11 @@ def community_room_messages(slug):
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (room_slug, session['user_id'], text, datetime.now().isoformat(), session.get('user_name'), session.get('user_picture')))
             conn.commit()
+            _api_cache_invalidate_prefixes("community_room:", "community:", "recent_users:")
+        else:
+            cached = _api_cache_get(cache_key)
+            if cached is not None:
+                return jsonify(cached)
 
         c.execute("""
             SELECT m.id, m.room_slug, m.user_id, m.text, m.timestamp, m.google_name, m.google_picture,
@@ -8346,7 +8618,10 @@ def community_room_messages(slug):
                 "user_role": normalize_role(row_pick(row, 'role', 9) or 'user'),
                 "avatar_decoration": row_pick(row, 'avatar_decoration', 10) or ""
             })
-        return jsonify({"room": room_slug, "messages": messages})
+        pinned = get_community_pin(c, db_type, room_slug=room_slug, hidden_user_ids=hidden_public_users)
+        payload = {"room": room_slug, "messages": messages, "pinned": pinned}
+        _api_cache_set(cache_key, payload, ttl=3)
+        return jsonify(payload)
     except Exception as e:
         logger.error(f"Community room messages error: {e}")
         return jsonify({"error": "community_room_failed"}), 500
@@ -9109,6 +9384,10 @@ def get_comments(verse_id):
         hidden_public_users = set()
         if viewer_id:
             hidden_public_users = get_user_safety_filters(c, db_type, viewer_id)["hidden_public_users"]
+        cache_key = f"comments:{int(viewer_id or 0)}:{int(verse_id)}"
+        cached = _api_cache_get(cache_key)
+        if cached is not None:
+            return jsonify(cached)
 
         if db_type == 'postgres':
             c.execute("""
@@ -9135,6 +9414,7 @@ def get_comments(verse_id):
 
         rows = c.fetchall()
         if not rows:
+            _api_cache_set(cache_key, [], ttl=3)
             return jsonify([])
 
         prepared = []
@@ -9196,13 +9476,13 @@ def get_comments(verse_id):
         comments = []
         for item in prepared:
             uid = item["user_id"]
-            cache_key = int(uid) if uid is not None else None
-            if cache_key is not None and cache_key in equipped_cache:
-                equipped = equipped_cache[cache_key]
+            equipped_user_key = int(uid) if uid is not None else None
+            if equipped_user_key is not None and equipped_user_key in equipped_cache:
+                equipped = equipped_cache[equipped_user_key]
             else:
                 equipped = get_user_equipped_items(c, db_type, uid)
-                if cache_key is not None:
-                    equipped_cache[cache_key] = equipped
+                if equipped_user_key is not None:
+                    equipped_cache[equipped_user_key] = equipped
 
             replies = replies_map.get(item["id"], [])
             comments.append({
@@ -9224,6 +9504,7 @@ def get_comments(verse_id):
                 "equipped_chat_effect": equipped["chat_effect"]
             })
 
+        _api_cache_set(cache_key, comments, ttl=3)
         return jsonify(comments)
     except Exception as e:
         logger.error(f"Get comments error: {e}")
@@ -9310,6 +9591,16 @@ def post_comment():
     
     if not text:
         return jsonify({"error": "Empty comment"}), 400
+    limited, retry_after = check_rate_limit(session['user_id'], 'comment_post', 8, 30)
+    if limited:
+        return jsonify({
+            "error": "rate_limited",
+            "message": "Too many comments. Please wait a moment.",
+            "retry_after": retry_after
+        }), 429
+    blocked, mod_message = moderate_user_content(text)
+    if blocked:
+        return jsonify({"error": "content_blocked", "message": mod_message}), 400
     
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
@@ -9336,6 +9627,7 @@ def post_comment():
                 message="Posted a comment",
                 extras={"comment_id": comment_id, "verse_id": verse_id}
             )
+        _api_cache_invalidate_prefixes("comments:", "recent_users:")
         return jsonify({"success": True, "id": comment_id})
     except Exception as e:
         logger.error(f"Post comment error: {e}")
@@ -9350,6 +9642,7 @@ def get_community_messages():
     
     try:
         ensure_user_safety_tables(c, db_type)
+        ensure_community_pin_table(c, db_type)
         conn.commit()
         viewer_id = session.get('user_id')
         hidden_public_users = set()
@@ -9357,6 +9650,10 @@ def get_community_messages():
             hidden_public_users = get_user_safety_filters(c, db_type, viewer_id)["hidden_public_users"]
 
         room_slug = (request.args.get('room') or '').strip().lower()
+        cache_key = f"community:{int(viewer_id or 0)}:{room_slug or 'general'}"
+        cached = _api_cache_get(cache_key)
+        if cached is not None:
+            return jsonify(cached)
         if room_slug and room_slug != 'general':
             ensure_research_feature_tables(c, db_type)
             conn.commit()
@@ -9400,7 +9697,10 @@ def get_community_messages():
                     "replies": [],
                     "reply_count": 0
                 })
-            return jsonify(payload)
+            pinned = get_community_pin(c, db_type, room_slug=room_slug, hidden_user_ids=hidden_public_users)
+            result = {"messages": payload, "pinned": pinned, "room": room_slug}
+            _api_cache_set(cache_key, result, ttl=3)
+            return jsonify(result)
 
         ensure_comment_social_tables(c, db_type)
         conn.commit()
@@ -9428,7 +9728,10 @@ def get_community_messages():
         
         rows = c.fetchall()
         if not rows:
-            return jsonify([])
+            pinned = get_community_pin(c, db_type, room_slug='general', hidden_user_ids=hidden_public_users)
+            result = {"messages": [], "pinned": pinned, "room": "general"}
+            _api_cache_set(cache_key, result, ttl=3)
+            return jsonify(result)
 
         prepared = []
         msg_ids = []
@@ -9489,13 +9792,13 @@ def get_community_messages():
         messages = []
         for item in prepared:
             uid = item["user_id"]
-            cache_key = int(uid) if uid is not None else None
-            if cache_key is not None and cache_key in equipped_cache:
-                equipped = equipped_cache[cache_key]
+            equipped_user_key = int(uid) if uid is not None else None
+            if equipped_user_key is not None and equipped_user_key in equipped_cache:
+                equipped = equipped_cache[equipped_user_key]
             else:
                 equipped = get_user_equipped_items(c, db_type, uid)
-                if cache_key is not None:
-                    equipped_cache[cache_key] = equipped
+                if equipped_user_key is not None:
+                    equipped_cache[equipped_user_key] = equipped
 
             replies = replies_map.get(item["id"], [])
             messages.append({
@@ -9517,7 +9820,10 @@ def get_community_messages():
                 "equipped_chat_effect": equipped["chat_effect"]
             })
 
-        return jsonify(messages)
+        pinned = get_community_pin(c, db_type, room_slug='general', hidden_user_ids=hidden_public_users)
+        result = {"messages": messages, "pinned": pinned, "room": "general"}
+        _api_cache_set(cache_key, result, ttl=3)
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Get community error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -9549,6 +9855,16 @@ def post_community_message():
     
     if not text:
         return jsonify({"error": "Empty message"}), 400
+    limited, retry_after = check_rate_limit(session['user_id'], 'community_post', 8, 30)
+    if limited:
+        return jsonify({
+            "error": "rate_limited",
+            "message": "Too many messages. Please wait a moment.",
+            "retry_after": retry_after
+        }), 429
+    blocked, mod_message = moderate_user_content(text)
+    if blocked:
+        return jsonify({"error": "content_blocked", "message": mod_message}), 400
     
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
@@ -9566,6 +9882,7 @@ def post_community_message():
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (room_slug, session['user_id'], text, datetime.now().isoformat(), session.get('user_name'), session.get('user_picture')))
             conn.commit()
+            _api_cache_invalidate_prefixes("community_room:", "community:", "recent_users:")
             return jsonify({"success": True})
 
         if db_type == 'postgres':
@@ -9589,6 +9906,7 @@ def post_community_message():
                 message="Posted a community message",
                 extras={"message_id": message_id}
             )
+        _api_cache_invalidate_prefixes("community:", "community_room:", "recent_users:")
         return jsonify({"success": True})
     except Exception as e:
         logger.error(f"Post community error: {e}")
@@ -9681,6 +9999,10 @@ def recent_users():
         conn.commit()
         limit = max(1, min(12, int(request.args.get('limit', 8))))
         uid = session['user_id']
+        cache_key = f"recent_users:{int(uid)}:{limit}"
+        cached = _api_cache_get(cache_key)
+        if cached is not None:
+            return jsonify(cached)
         hidden_users = get_user_safety_filters(c, db_type, uid)["hidden_dm_users"]
         if db_type == 'postgres':
             c.execute(f"""
@@ -9733,6 +10055,7 @@ def recent_users():
                 })
             if len(results) >= limit:
                 break
+        _api_cache_set(cache_key, results, ttl=4)
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -9921,6 +10244,7 @@ def safety_block():
                 c.execute("DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?", (uid, target_user_id))
 
         conn.commit()
+        _api_cache_invalidate_prefixes("comments:", "community:", "community_room:", "recent_users:")
         state = get_user_safety_state(c, db_type, uid, target_user_id)
         return jsonify({"success": True, **state})
     except Exception as e:
@@ -9990,6 +10314,7 @@ def safety_mute():
                 """, (uid, target_user_id, scope))
 
         conn.commit()
+        _api_cache_invalidate_prefixes("comments:", "community:", "community_room:", "recent_users:")
         state = get_user_safety_state(c, db_type, uid, target_user_id)
         return jsonify({"success": True, "scope": scope, **state})
     except Exception as e:
@@ -10043,6 +10368,177 @@ def safety_report():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (session['user_id'], target_user_id, target_type, target_id, reason, details, 'open', now))
         conn.commit()
+        _api_cache_invalidate_prefixes(f"safety_reports:{int(session['user_id'])}:")
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/safety/my-reports')
+def safety_my_reports():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    limit = max(1, min(200, int(request.args.get('limit', 50))))
+    cache_key = f"safety_reports:{uid}:{limit}"
+    cached = _api_cache_get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        if db_type == 'postgres':
+            c.execute(f"""
+                SELECT id, reported_user_id, target_type, target_id, reason, details, status, created_at,
+                       reviewed_by, reviewed_at, review_note
+                FROM user_reports
+                WHERE reporter_id = %s
+                ORDER BY created_at DESC NULLS LAST, id DESC
+                LIMIT {limit}
+            """, (uid,))
+        else:
+            c.execute(f"""
+                SELECT id, reported_user_id, target_type, target_id, reason, details, status, created_at,
+                       reviewed_by, reviewed_at, review_note
+                FROM user_reports
+                WHERE reporter_id = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT {limit}
+            """, (uid,))
+        rows = c.fetchall()
+        reports = []
+        for row in rows:
+            reports.append({
+                "id": row_pick(row, 'id', 0),
+                "reported_user_id": row_pick(row, 'reported_user_id', 1),
+                "target_type": row_pick(row, 'target_type', 2) or 'user',
+                "target_id": row_pick(row, 'target_id', 3),
+                "reason": row_pick(row, 'reason', 4) or '',
+                "details": row_pick(row, 'details', 5) or '',
+                "status": (row_pick(row, 'status', 6) or 'open').lower(),
+                "created_at": row_pick(row, 'created_at', 7),
+                "reviewed_by": row_pick(row, 'reviewed_by', 8) or '',
+                "reviewed_at": row_pick(row, 'reviewed_at', 9),
+                "review_note": row_pick(row, 'review_note', 10) or ''
+            })
+        _api_cache_set(cache_key, reports, ttl=10)
+        return jsonify(reports)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/community/pin')
+def get_community_pin_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    room_slug = (request.args.get('room') or 'general').strip().lower() or 'general'
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        ensure_community_pin_table(c, db_type)
+        conn.commit()
+        hidden_public_users = get_user_safety_filters(c, db_type, session['user_id'])["hidden_public_users"]
+        pinned = get_community_pin(c, db_type, room_slug=room_slug, hidden_user_ids=hidden_public_users)
+        return jsonify({"pinned": pinned})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/community/pin', methods=['POST'])
+def set_community_pin_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    if not require_min_role('host'):
+        return jsonify({"error": "Host+ required"}), 403
+    data = request.get_json(silent=True) or {}
+    room_slug = (data.get('room') or 'general').strip().lower() or 'general'
+    message_type = (data.get('message_type') or ('community' if room_slug == 'general' else 'research')).strip().lower()
+    try:
+        message_id = int(data.get('message_id') or 0)
+    except Exception:
+        message_id = 0
+    note = str(data.get('note') or '').strip()[:240]
+    if message_id <= 0:
+        return jsonify({"error": "message_id required"}), 400
+    if message_type not in ('community', 'research'):
+        return jsonify({"error": "Invalid message_type"}), 400
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_community_pin_table(c, db_type)
+        ensure_research_feature_tables(c, db_type)
+        conn.commit()
+
+        exists = False
+        if message_type == 'research':
+            if db_type == 'postgres':
+                c.execute("SELECT id FROM research_community_messages WHERE id = %s AND room_slug = %s", (message_id, room_slug))
+            else:
+                c.execute("SELECT id FROM research_community_messages WHERE id = ? AND room_slug = ?", (message_id, room_slug))
+            exists = c.fetchone() is not None
+        else:
+            if db_type == 'postgres':
+                c.execute("SELECT id FROM community_messages WHERE id = %s", (message_id,))
+            else:
+                c.execute("SELECT id FROM community_messages WHERE id = ?", (message_id,))
+            exists = c.fetchone() is not None
+        if not exists:
+            return jsonify({"error": "Message not found"}), 404
+
+        now = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO community_pins (room_slug, message_type, message_id, pinned_by, note, pinned_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (room_slug)
+                DO UPDATE SET
+                    message_type = EXCLUDED.message_type,
+                    message_id = EXCLUDED.message_id,
+                    pinned_by = EXCLUDED.pinned_by,
+                    note = EXCLUDED.note,
+                    pinned_at = EXCLUDED.pinned_at
+            """, (room_slug, message_type, message_id, session['user_id'], note, now))
+        else:
+            c.execute("""
+                INSERT OR REPLACE INTO community_pins (room_slug, message_type, message_id, pinned_by, note, pinned_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (room_slug, message_type, message_id, session['user_id'], note, now))
+        conn.commit()
+        _api_cache_invalidate_prefixes("community:", "community_room:")
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/community/pin', methods=['DELETE'])
+def clear_community_pin_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    if not require_min_role('host'):
+        return jsonify({"error": "Host+ required"}), 403
+    room_slug = (request.args.get('room') or 'general').strip().lower() or 'general'
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_community_pin_table(c, db_type)
+        conn.commit()
+        if db_type == 'postgres':
+            c.execute("DELETE FROM community_pins WHERE room_slug = %s", (room_slug,))
+        else:
+            c.execute("DELETE FROM community_pins WHERE room_slug = ?", (room_slug,))
+        conn.commit()
+        _api_cache_invalidate_prefixes("community:", "community_room:")
         return jsonify({"success": True})
     except Exception as e:
         conn.rollback()
@@ -10274,6 +10770,16 @@ def dm_send():
         return jsonify({"error": "Invalid recipient"}), 400
     if not message:
         return jsonify({"error": "Empty message"}), 400
+    limited, retry_after = check_rate_limit(session['user_id'], 'dm_send', 20, 60)
+    if limited:
+        return jsonify({
+            "error": "rate_limited",
+            "message": "Too many direct messages. Please wait a bit.",
+            "retry_after": retry_after
+        }), 429
+    blocked, mod_message = moderate_user_content(message)
+    if blocked:
+        return jsonify({"error": "content_blocked", "message": mod_message}), 400
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     try:
@@ -10425,6 +10931,13 @@ def add_comment_reaction():
         return jsonify({"error": "Invalid reaction"}), 400
     if not item_id:
         return jsonify({"error": "item_id required"}), 400
+    limited, retry_after = check_rate_limit(session['user_id'], 'reaction_toggle', 30, 20)
+    if limited:
+        return jsonify({
+            "error": "rate_limited",
+            "message": "Too many reactions. Slow down.",
+            "retry_after": retry_after
+        }), 429
 
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
@@ -10492,6 +11005,7 @@ def add_comment_reaction():
 
         conn.commit()
         counts = get_reaction_counts(c, db_type, item_type, int(item_id))
+        _api_cache_invalidate_prefixes("comments:", "community:")
         return jsonify({"success": True, "active": active, "reactions": counts})
     except Exception as e:
         logger.error(f"Add reaction error: {e}")
@@ -10515,6 +11029,16 @@ def post_comment_reply():
         return jsonify({"error": "parent_id required"}), 400
     if not text:
         return jsonify({"error": "Empty reply"}), 400
+    limited, retry_after = check_rate_limit(session['user_id'], 'reply_post', 10, 30)
+    if limited:
+        return jsonify({
+            "error": "rate_limited",
+            "message": "Too many replies. Please wait a moment.",
+            "retry_after": retry_after
+        }), 429
+    blocked, mod_message = moderate_user_content(text)
+    if blocked:
+        return jsonify({"error": "content_blocked", "message": mod_message}), 400
 
     is_banned, _, _ = check_ban_status(session['user_id'])
     if is_banned:
@@ -10575,6 +11099,7 @@ def post_comment_reply():
         conn.commit()
         hidden_public_users = get_user_safety_filters(c, db_type, uid)["hidden_public_users"]
         replies = get_replies_for_parent(c, db_type, parent_type, parent_id_int, hidden_user_ids=hidden_public_users)
+        _api_cache_invalidate_prefixes("comments:", "community:")
         return jsonify({"success": True, "replies": replies, "reply_count": len(replies)})
     except Exception as e:
         logger.error(f"Post reply error: {e}")
