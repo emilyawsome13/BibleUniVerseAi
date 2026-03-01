@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory, flash, render_template_string
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory, flash, render_template_string, Response, stream_with_context
 import sqlite3
 import time
 import threading
@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 from functools import wraps
 from urllib.parse import quote
+import queue
+from difflib import SequenceMatcher
 
 # Load environment variables from .env file (for local development)
 try:
@@ -232,6 +234,9 @@ _API_RESPONSE_CACHE = {}
 _API_RESPONSE_CACHE_LOCK = threading.Lock()
 _RATE_LIMIT_BUCKETS = {}
 _RATE_LIMIT_LOCK = threading.Lock()
+REALTIME_HEARTBEAT_SECONDS = max(5, int(os.environ.get('REALTIME_HEARTBEAT_SECONDS', '20')))
+_REALTIME_SUBSCRIBERS = {}
+_REALTIME_SUBSCRIBERS_LOCK = threading.Lock()
 MOD_BLOCKLIST = [
     token.strip().lower()
     for token in str(os.environ.get(
@@ -240,6 +245,47 @@ MOD_BLOCKLIST = [
     )).split(',')
     if token.strip()
 ]
+
+NOTIF_TYPE_TO_PREF = {
+    'dm': 'dm_enabled',
+    'direct_message': 'dm_enabled',
+    'community': 'community_enabled',
+    'comment': 'community_enabled',
+    'reports': 'reports_enabled',
+    'report': 'reports_enabled',
+    'announcement': 'system_enabled',
+    'push': 'system_enabled',
+    'system': 'system_enabled'
+}
+
+I18N_SERVER_CATALOGS = {
+    "en": {
+        "groupsLabel": "Groups",
+        "prayerLabel": "Prayer",
+        "podsLabel": "Pods",
+        "semanticSearchLabel": "Smart Search",
+        "realtimeStatusLive": "Live updates connected",
+        "realtimeStatusOffline": "Live updates reconnecting",
+        "notifPrefDM": "Direct Messages",
+        "notifPrefCommunity": "Community",
+        "notifPrefReports": "Reports",
+        "notifPrefSystem": "System",
+        "offlineModeLabel": "Offline Mode Ready"
+    },
+    "es": {
+        "groupsLabel": "Grupos",
+        "prayerLabel": "Oración",
+        "podsLabel": "Pods",
+        "semanticSearchLabel": "Búsqueda inteligente",
+        "realtimeStatusLive": "Actualizaciones en vivo conectadas",
+        "realtimeStatusOffline": "Reconectando actualizaciones en vivo",
+        "notifPrefDM": "Mensajes directos",
+        "notifPrefCommunity": "Comunidad",
+        "notifPrefReports": "Reportes",
+        "notifPrefSystem": "Sistema",
+        "offlineModeLabel": "Modo sin conexión listo"
+    }
+}
 
 FALLBACK_BOOKS = [
     {"id": "GEN", "name": "Genesis"},
@@ -495,7 +541,16 @@ def ensure_performance_indexes(c, db_type):
         "CREATE INDEX IF NOT EXISTS idx_presence_seen ON user_presence(last_seen)",
         "CREATE INDEX IF NOT EXISTS idx_research_room_ts ON research_community_messages(room_slug, timestamp)",
         "CREATE INDEX IF NOT EXISTS idx_research_user_ts ON research_community_messages(user_id, timestamp)",
-        "CREATE INDEX IF NOT EXISTS idx_community_pins_type_msg ON community_pins(message_type, message_id)"
+        "CREATE INDEX IF NOT EXISTS idx_community_pins_type_msg ON community_pins(message_type, message_id)",
+        "CREATE INDEX IF NOT EXISTS idx_groups_owner ON faith_groups(owner_user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_group_members_user ON faith_group_members(user_id, group_id)",
+        "CREATE INDEX IF NOT EXISTS idx_group_prayers_group ON group_prayer_requests(group_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_group_prayers_user ON group_prayer_requests(user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_pod_members_user ON reading_pod_members(user_id, pod_id)",
+        "CREATE INDEX IF NOT EXISTS idx_plan_checkins_user ON reading_plan_checkins(user_id, checked_at)",
+        "CREATE INDEX IF NOT EXISTS idx_plan_checkins_pod ON reading_plan_checkins(pod_id, checked_at)",
+        "CREATE INDEX IF NOT EXISTS idx_mod_events_user ON moderation_events(user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_mod_events_status ON moderation_events(status, created_at)"
     ]
 
     for stmt in statements:
@@ -577,6 +632,443 @@ def moderate_user_content(text):
     if repeated:
         return True, "Message appears to be spam."
     return False, ""
+
+def _realtime_subscribe(user_id):
+    q = queue.Queue(maxsize=200)
+    uid = int(user_id)
+    with _REALTIME_SUBSCRIBERS_LOCK:
+        _REALTIME_SUBSCRIBERS.setdefault(uid, []).append(q)
+    return q
+
+def _realtime_unsubscribe(user_id, q):
+    uid = int(user_id)
+    with _REALTIME_SUBSCRIBERS_LOCK:
+        buckets = _REALTIME_SUBSCRIBERS.get(uid) or []
+        if q in buckets:
+            buckets.remove(q)
+        if not buckets:
+            _REALTIME_SUBSCRIBERS.pop(uid, None)
+
+def _realtime_current_user_ids():
+    with _REALTIME_SUBSCRIBERS_LOCK:
+        return list(_REALTIME_SUBSCRIBERS.keys())
+
+def publish_realtime_event(user_ids, event_type, payload=None):
+    event = str(event_type or '').strip() or 'message'
+    data = payload if isinstance(payload, dict) else {}
+    packet = {"event": event, "payload": data, "ts": datetime.now().isoformat()}
+
+    if user_ids is None:
+        targets = _realtime_current_user_ids()
+    elif isinstance(user_ids, (list, tuple, set)):
+        targets = []
+        for u in user_ids:
+            try:
+                targets.append(int(u))
+            except Exception:
+                continue
+    else:
+        try:
+            targets = [int(user_ids)]
+        except Exception:
+            targets = []
+
+    if not targets:
+        return
+
+    with _REALTIME_SUBSCRIBERS_LOCK:
+        for uid in targets:
+            queues = _REALTIME_SUBSCRIBERS.get(uid) or []
+            for q in list(queues):
+                try:
+                    q.put_nowait(packet)
+                except Exception:
+                    # Drop oldest message to keep stream responsive.
+                    try:
+                        q.get_nowait()
+                        q.put_nowait(packet)
+                    except Exception:
+                        pass
+
+def ensure_growth_feature_tables(c, db_type):
+    if _is_schema_ready(db_type, "growth_features"):
+        return
+
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS faith_groups (
+                id SERIAL PRIMARY KEY,
+                slug TEXT UNIQUE,
+                name TEXT NOT NULL,
+                description TEXT,
+                is_private INTEGER DEFAULT 0,
+                owner_user_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS faith_group_members (
+                id SERIAL PRIMARY KEY,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                role TEXT DEFAULT 'member',
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(group_id, user_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_prayer_requests (
+                id SERIAL PRIMARY KEY,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                request_text TEXT NOT NULL,
+                status TEXT DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                answered_at TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_prayer_replies (
+                id SERIAL PRIMARY KEY,
+                prayer_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_pods (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                owner_user_id INTEGER NOT NULL,
+                group_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_pod_members (
+                id SERIAL PRIMARY KEY,
+                pod_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                streak INTEGER DEFAULT 0,
+                progress_score REAL DEFAULT 0,
+                UNIQUE(pod_id, user_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_plan_checkins (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                pod_id INTEGER,
+                plan_id INTEGER,
+                day_number INTEGER,
+                checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                note TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                user_id INTEGER PRIMARY KEY,
+                dm_enabled INTEGER DEFAULT 1,
+                community_enabled INTEGER DEFAULT 1,
+                reports_enabled INTEGER DEFAULT 1,
+                system_enabled INTEGER DEFAULT 1,
+                digest_mode TEXT DEFAULT 'instant',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS moderation_events (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER,
+                source TEXT,
+                event_type TEXT NOT NULL,
+                score REAL DEFAULT 0,
+                meta_json JSONB,
+                status TEXT DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS moderation_actions (
+                id SERIAL PRIMARY KEY,
+                target_user_id INTEGER,
+                action TEXT NOT NULL,
+                reason TEXT,
+                created_by TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                meta_json JSONB
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS faith_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT UNIQUE,
+                name TEXT NOT NULL,
+                description TEXT,
+                is_private INTEGER DEFAULT 0,
+                owner_user_id INTEGER NOT NULL,
+                created_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS faith_group_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                role TEXT DEFAULT 'member',
+                joined_at TEXT,
+                UNIQUE(group_id, user_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_prayer_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                request_text TEXT NOT NULL,
+                status TEXT DEFAULT 'open',
+                created_at TEXT,
+                updated_at TEXT,
+                answered_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_prayer_replies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                prayer_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                created_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_pods (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                owner_user_id INTEGER NOT NULL,
+                group_id INTEGER,
+                created_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_pod_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pod_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                joined_at TEXT,
+                streak INTEGER DEFAULT 0,
+                progress_score REAL DEFAULT 0,
+                UNIQUE(pod_id, user_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reading_plan_checkins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                pod_id INTEGER,
+                plan_id INTEGER,
+                day_number INTEGER,
+                checked_at TEXT,
+                note TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                user_id INTEGER PRIMARY KEY,
+                dm_enabled INTEGER DEFAULT 1,
+                community_enabled INTEGER DEFAULT 1,
+                reports_enabled INTEGER DEFAULT 1,
+                system_enabled INTEGER DEFAULT 1,
+                digest_mode TEXT DEFAULT 'instant',
+                updated_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS moderation_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                source TEXT,
+                event_type TEXT NOT NULL,
+                score REAL DEFAULT 0,
+                meta_json TEXT,
+                status TEXT DEFAULT 'open',
+                created_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS moderation_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target_user_id INTEGER,
+                action TEXT NOT NULL,
+                reason TEXT,
+                created_by TEXT,
+                created_at TEXT,
+                meta_json TEXT
+            )
+        """)
+
+    # Seed one default group for instant onboarding.
+    now_iso = datetime.now().isoformat()
+    if db_type == 'postgres':
+        c.execute("""
+            INSERT INTO faith_groups (slug, name, description, is_private, owner_user_id, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (slug) DO NOTHING
+        """, ('global-prayer', 'Global Prayer', 'Public prayer and support requests', 0, 1, now_iso))
+    else:
+        c.execute("""
+            INSERT OR IGNORE INTO faith_groups (slug, name, description, is_private, owner_user_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, ('global-prayer', 'Global Prayer', 'Public prayer and support requests', 0, 1, now_iso))
+
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "growth_features")
+
+def get_notification_preferences(c, db_type, user_id):
+    ensure_growth_feature_tables(c, db_type)
+    uid = int(user_id)
+    if db_type == 'postgres':
+        c.execute("""
+            INSERT INTO notification_preferences (user_id)
+            VALUES (%s)
+            ON CONFLICT (user_id) DO NOTHING
+        """, (uid,))
+        c.execute("""
+            SELECT dm_enabled, community_enabled, reports_enabled, system_enabled, digest_mode
+            FROM notification_preferences
+            WHERE user_id = %s
+        """, (uid,))
+    else:
+        c.execute("""
+            INSERT OR IGNORE INTO notification_preferences (user_id, updated_at)
+            VALUES (?, ?)
+        """, (uid, datetime.now().isoformat()))
+        c.execute("""
+            SELECT dm_enabled, community_enabled, reports_enabled, system_enabled, digest_mode
+            FROM notification_preferences
+            WHERE user_id = ?
+        """, (uid,))
+    row = c.fetchone()
+    if not row:
+        return {
+            "dm_enabled": True,
+            "community_enabled": True,
+            "reports_enabled": True,
+            "system_enabled": True,
+            "digest_mode": "instant"
+        }
+    return {
+        "dm_enabled": bool(row_pick(row, 'dm_enabled', 0, 1)),
+        "community_enabled": bool(row_pick(row, 'community_enabled', 1, 1)),
+        "reports_enabled": bool(row_pick(row, 'reports_enabled', 2, 1)),
+        "system_enabled": bool(row_pick(row, 'system_enabled', 3, 1)),
+        "digest_mode": str(row_pick(row, 'digest_mode', 4, 'instant') or 'instant').strip().lower()
+    }
+
+def queue_notification(c, db_type, user_id, title, message, notif_type='system', source='system'):
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER,
+                title TEXT,
+                message TEXT,
+                notif_type TEXT DEFAULT 'announcement',
+                source TEXT DEFAULT 'admin',
+                is_read INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                sent_at TIMESTAMP
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                title TEXT,
+                message TEXT,
+                notif_type TEXT DEFAULT 'announcement',
+                source TEXT DEFAULT 'admin',
+                is_read INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                sent_at TEXT
+            )
+        """)
+    prefs = get_notification_preferences(c, db_type, user_id)
+    pref_key = NOTIF_TYPE_TO_PREF.get(str(notif_type or '').strip().lower(), 'system_enabled')
+    if not prefs.get(pref_key, True):
+        return False
+    if prefs.get('digest_mode') == 'off':
+        return False
+
+    now_iso = datetime.now().isoformat()
+    if db_type == 'postgres':
+        c.execute("""
+            INSERT INTO user_notifications (user_id, title, message, notif_type, source, is_read, created_at, sent_at)
+            VALUES (%s, %s, %s, %s, %s, 0, %s, %s)
+        """, (int(user_id), str(title or 'Notification')[:120], str(message or '')[:1000], str(notif_type or 'system')[:40], str(source or 'system')[:40], now_iso, now_iso))
+    else:
+        c.execute("""
+            INSERT INTO user_notifications (user_id, title, message, notif_type, source, is_read, created_at, sent_at)
+            VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+        """, (int(user_id), str(title or 'Notification')[:120], str(message or '')[:1000], str(notif_type or 'system')[:40], str(source or 'system')[:40], now_iso, now_iso))
+    return True
+
+def record_moderation_event(c, db_type, user_id, source, event_type, score=1.0, meta=None):
+    ensure_growth_feature_tables(c, db_type)
+    payload = json.dumps(meta or {})
+    now_iso = datetime.now().isoformat()
+    if db_type == 'postgres':
+        c.execute("""
+            INSERT INTO moderation_events (user_id, source, event_type, score, meta_json, status, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (int(user_id) if user_id else None, str(source or '')[:60], str(event_type or '')[:80], float(score or 0), payload, 'open', now_iso))
+    else:
+        c.execute("""
+            INSERT INTO moderation_events (user_id, source, event_type, score, meta_json, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (int(user_id) if user_id else None, str(source or '')[:60], str(event_type or '')[:80], float(score or 0), payload, 'open', now_iso))
+
+def record_moderation_event_quick(user_id, source, event_type, score=1.0, meta=None):
+    conn = None
+    try:
+        conn, db_type = get_db()
+        c = get_cursor(conn, db_type)
+        record_moderation_event(c, db_type, user_id, source, event_type, score=score, meta=meta)
+        conn.commit()
+    except Exception:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+def _semantic_score_verse(query_tokens, verse):
+    text = _normalize_mem_text(verse.get("text"))
+    ref = _normalize_bible_book_name(verse.get("ref"))
+    book = _normalize_bible_book_name(verse.get("book"))
+    hay_tokens = set((text + " " + ref + " " + book).split())
+    if not hay_tokens:
+        return 0.0
+    hits = len([t for t in query_tokens if t in hay_tokens])
+    overlap = hits / max(1, len(set(query_tokens)))
+    phrase = " ".join(query_tokens)
+    similarity = SequenceMatcher(None, phrase, text[:min(len(text), 500)]).ratio() if phrase else 0.0
+    return round((overlap * 0.75) + (similarity * 0.25), 6)
 
 def ensure_research_feature_tables(c, db_type):
     if _is_schema_ready(db_type, "research_features"):
@@ -5151,184 +5643,184 @@ def verify_role_code():
 DEFAULT_SHOP_ITEMS = [
     # ==================== AVATAR FRAMES ====================
     # Common Frames (200-500 XP)
-    {"item_id": "frame_wood", "name": "Wooden Frame", "description": "A simple wooden frame", "category": "frame", "price": 200, "rarity": "common", "icon": "🪵", "effects": {"frame_color": "#8B4513", "glow": False}},
-    {"item_id": "frame_stone", "name": "Stone Ring", "description": "Solid as a rock", "category": "frame", "price": 350, "rarity": "common", "icon": "🪨", "effects": {"frame_color": "#808080", "glow": False}},
+    {"item_id": "frame_wood", "name": "Wooden Frame", "description": "A simple wooden frame", "category": "frame", "price": 200, "rarity": "common", "icon": "??", "effects": {"frame_color": "#8B4513", "glow": False}},
+    {"item_id": "frame_stone", "name": "Stone Ring", "description": "Solid as a rock", "category": "frame", "price": 350, "rarity": "common", "icon": "??", "effects": {"frame_color": "#808080", "glow": False}},
     
     # Rare Frames (1k-3k XP)
-    {"item_id": "frame_bronze", "name": "Bronze Ring", "description": "A warm bronze frame", "category": "frame", "price": 1000, "rarity": "rare", "icon": "🥉", "effects": {"frame_color": "#CD7F32", "glow": False}},
-    {"item_id": "frame_heart", "name": "Love Heart", "description": "A loving heart frame", "category": "frame", "price": 1500, "rarity": "rare", "icon": "💖", "effects": {"frame_style": "heart", "animation": "pulse"}},
-    {"item_id": "frame_cross", "name": "Holy Cross", "description": "A blessed cross frame", "category": "frame", "price": 2500, "rarity": "rare", "icon": "✝️", "effects": {"frame_style": "cross", "glow": True}},
+    {"item_id": "frame_bronze", "name": "Bronze Ring", "description": "A warm bronze frame", "category": "frame", "price": 1000, "rarity": "rare", "icon": "??", "effects": {"frame_color": "#CD7F32", "glow": False}},
+    {"item_id": "frame_heart", "name": "Love Heart", "description": "A loving heart frame", "category": "frame", "price": 1500, "rarity": "rare", "icon": "??", "effects": {"frame_style": "heart", "animation": "pulse"}},
+    {"item_id": "frame_cross", "name": "Holy Cross", "description": "A blessed cross frame", "category": "frame", "price": 2500, "rarity": "rare", "icon": "??", "effects": {"frame_style": "cross", "glow": True}},
     
     # Epic Frames (5k-8k XP)
-    {"item_id": "frame_silver", "name": "Silver Crown", "description": "An elegant silver frame", "category": "frame", "price": 5000, "rarity": "epic", "icon": "🥈", "effects": {"frame_color": "#C0C0C0", "glow": True}},
-    {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "🌿", "effects": {"frame_style": "nature", "animation": "sway"}},
-    {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "❄️", "effects": {"frame_color": "#00CED1", "glow": True}},
-    {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"frame_style": "fire", "animation": "flicker"}},
+    {"item_id": "frame_silver", "name": "Silver Crown", "description": "An elegant silver frame", "category": "frame", "price": 5000, "rarity": "epic", "icon": "??", "effects": {"frame_color": "#C0C0C0", "glow": True}},
+    {"item_id": "frame_nature", "name": "Nature's Embrace", "description": "Wrapped in leaves and vines", "category": "frame", "price": 6000, "rarity": "epic", "icon": "??", "effects": {"frame_style": "nature", "animation": "sway"}},
+    {"item_id": "frame_ice", "name": "Frost Edge", "description": "Cool and crystalline", "category": "frame", "price": 7500, "rarity": "epic", "icon": "??", "effects": {"frame_color": "#00CED1", "glow": True}},
+    {"item_id": "frame_fire", "name": "Flame Border", "description": "Burning with passion", "category": "frame", "price": 8000, "rarity": "epic", "icon": "??", "effects": {"frame_style": "fire", "animation": "flicker"}},
     
     # Legendary Frames (12k-20k XP)
-    {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "👑", "effects": {"frame_color": "#FFD700", "glow": True}},
-    {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "✨", "effects": {"frame_style": "stars", "animation": "twinkle"}},
-    {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "🪽", "effects": {"frame_style": "wings", "animation": "float"}},
+    {"item_id": "frame_gold", "name": "Golden Halo", "description": "A radiant golden frame for your avatar", "category": "frame", "price": 12000, "rarity": "legendary", "icon": "??", "effects": {"frame_color": "#FFD700", "glow": True}},
+    {"item_id": "frame_stars", "name": "Starry Night", "description": "Sparkling with cosmic energy", "category": "frame", "price": 18000, "rarity": "legendary", "icon": "?", "effects": {"frame_style": "stars", "animation": "twinkle"}},
+    {"item_id": "frame_angel", "name": "Angel Wings", "description": "Beautiful angel wings frame", "category": "frame", "price": 20000, "rarity": "legendary", "icon": "??", "effects": {"frame_style": "wings", "animation": "float"}},
     
     # Mythic Frames (50k-100k XP) - ULTRA RARE
-    {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "😇", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
-    {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "🌌", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
-    {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
+    {"item_id": "frame_divine", "name": "Divine Radiance", "description": "Blessed by the heavens themselves", "category": "frame", "price": 50000, "rarity": "mythic", "icon": "??", "effects": {"frame_style": "divine", "animation": "holy_glow", "particles": True}},
+    {"item_id": "frame_cosmic", "name": "Cosmic Entity", "description": "Power from beyond the stars", "category": "frame", "price": 75000, "rarity": "mythic", "icon": "??", "effects": {"frame_style": "cosmic", "animation": "galaxy_spin", "particles": True}},
+    {"item_id": "frame_infinity", "name": "Infinity Loop", "description": "Eternal and unbreakable", "category": "frame", "price": 100000, "rarity": "mythic", "icon": "??", "effects": {"frame_style": "infinity", "animation": "eternal", "glow": True}},
     
     # Transcendent Frames (180k+ XP) - ABOVE MYTHIC
-    {"item_id": "frame_seraphic", "name": "Seraphic Crown", "description": "An ascended halo beyond mythic", "category": "frame", "price": 180000, "rarity": "transcendent", "icon": "👼", "effects": {"frame_style": "seraphic", "animation": "prismatic_aura", "particles": True}},
+    {"item_id": "frame_seraphic", "name": "Seraphic Crown", "description": "An ascended halo beyond mythic", "category": "frame", "price": 180000, "rarity": "transcendent", "icon": "??", "effects": {"frame_style": "seraphic", "animation": "prismatic_aura", "particles": True}},
     
     # ==================== NAME COLORS ====================
     # Common Colors (100-500 XP)
-    {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔵", "effects": {"color": "#0A84FF", "glow": False}},
-    {"item_id": "color_red", "name": "Ruby Red", "description": "Passionate red name", "category": "name_color", "price": 100, "rarity": "common", "icon": "🔴", "effects": {"color": "#FF375F", "glow": False}},
-    {"item_id": "color_pink", "name": "Pretty Pink", "description": "Sweet pink name", "category": "name_color", "price": 250, "rarity": "common", "icon": "🩷", "effects": {"color": "#FF69B4", "glow": False}},
-    {"item_id": "color_orange", "name": "Sunset Orange", "description": "Warm like the sunset", "category": "name_color", "price": 400, "rarity": "common", "icon": "🟠", "effects": {"color": "#FF9500", "glow": False}},
-    {"item_id": "color_teal", "name": "Tropical Teal", "description": "Refreshing tropical color", "category": "name_color", "price": 500, "rarity": "common", "icon": "🩵", "effects": {"color": "#00CED1", "glow": False}},
+    {"item_id": "color_blue", "name": "Ocean Blue", "description": "Deep sea blue name", "category": "name_color", "price": 100, "rarity": "common", "icon": "??", "effects": {"color": "#0A84FF", "glow": False}},
+    {"item_id": "color_red", "name": "Ruby Red", "description": "Passionate red name", "category": "name_color", "price": 100, "rarity": "common", "icon": "??", "effects": {"color": "#FF375F", "glow": False}},
+    {"item_id": "color_pink", "name": "Pretty Pink", "description": "Sweet pink name", "category": "name_color", "price": 250, "rarity": "common", "icon": "??", "effects": {"color": "#FF69B4", "glow": False}},
+    {"item_id": "color_orange", "name": "Sunset Orange", "description": "Warm like the sunset", "category": "name_color", "price": 400, "rarity": "common", "icon": "??", "effects": {"color": "#FF9500", "glow": False}},
+    {"item_id": "color_teal", "name": "Tropical Teal", "description": "Refreshing tropical color", "category": "name_color", "price": 500, "rarity": "common", "icon": "??", "effects": {"color": "#00CED1", "glow": False}},
     
     # Rare Colors (1.5k-3k XP)
-    {"item_id": "color_purple", "name": "Royal Purple", "description": "Majestic purple name", "category": "name_color", "price": 1500, "rarity": "rare", "icon": "🟣", "effects": {"color": "#BF5AF2", "glow": True}},
-    {"item_id": "color_green", "name": "Emerald Green", "description": "Rich emerald name", "category": "name_color", "price": 2000, "rarity": "rare", "icon": "🟢", "effects": {"color": "#30D158", "glow": True}},
-    {"item_id": "color_cyan", "name": "Cyber Cyan", "description": "Digital world cyan", "category": "name_color", "price": 2800, "rarity": "rare", "icon": "💎", "effects": {"color": "#00FFFF", "glow": True}},
+    {"item_id": "color_purple", "name": "Royal Purple", "description": "Majestic purple name", "category": "name_color", "price": 1500, "rarity": "rare", "icon": "??", "effects": {"color": "#BF5AF2", "glow": True}},
+    {"item_id": "color_green", "name": "Emerald Green", "description": "Rich emerald name", "category": "name_color", "price": 2000, "rarity": "rare", "icon": "??", "effects": {"color": "#30D158", "glow": True}},
+    {"item_id": "color_cyan", "name": "Cyber Cyan", "description": "Digital world cyan", "category": "name_color", "price": 2800, "rarity": "rare", "icon": "??", "effects": {"color": "#00FFFF", "glow": True}},
     
     # Epic Colors (5k-8k XP)
-    {"item_id": "color_neon", "name": "Neon Glow", "description": "Electric neon effect", "category": "name_color", "price": 5000, "rarity": "epic", "icon": "⚡", "effects": {"color": "#39FF14", "glow": True, "animation": "pulse"}},
-    {"item_id": "color_plasma", "name": "Plasma Pink", "description": "Glowing plasma energy", "category": "name_color", "price": 6500, "rarity": "epic", "icon": "🌸", "effects": {"color": "#FF00FF", "glow": True, "animation": "pulse"}},
-    {"item_id": "color_gold", "name": "Golden Name", "description": "Shine with golden text", "category": "name_color", "price": 8000, "rarity": "epic", "icon": "🌟", "effects": {"color": "#FFD700", "glow": True}},
+    {"item_id": "color_neon", "name": "Neon Glow", "description": "Electric neon effect", "category": "name_color", "price": 5000, "rarity": "epic", "icon": "?", "effects": {"color": "#39FF14", "glow": True, "animation": "pulse"}},
+    {"item_id": "color_plasma", "name": "Plasma Pink", "description": "Glowing plasma energy", "category": "name_color", "price": 6500, "rarity": "epic", "icon": "??", "effects": {"color": "#FF00FF", "glow": True, "animation": "pulse"}},
+    {"item_id": "color_gold", "name": "Golden Name", "description": "Shine with golden text", "category": "name_color", "price": 8000, "rarity": "epic", "icon": "??", "effects": {"color": "#FFD700", "glow": True}},
     
     # Legendary Colors (12k-20k XP)
-    {"item_id": "color_rainbow", "name": "Rainbow Name", "description": "Cycle through all colors", "category": "name_color", "price": 15000, "rarity": "legendary", "icon": "🌈", "effects": {"gradient": True, "colors": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]}},
-    {"item_id": "color_aurora", "name": "Aurora Borealis", "description": "Dancing northern lights", "category": "name_color", "price": 18000, "rarity": "legendary", "icon": "🎆", "effects": {"gradient": True, "colors": ["#00FF87", "#60EFFF", "#0061FF"], "animation": "shimmer"}},
+    {"item_id": "color_rainbow", "name": "Rainbow Name", "description": "Cycle through all colors", "category": "name_color", "price": 15000, "rarity": "legendary", "icon": "??", "effects": {"gradient": True, "colors": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]}},
+    {"item_id": "color_aurora", "name": "Aurora Borealis", "description": "Dancing northern lights", "category": "name_color", "price": 18000, "rarity": "legendary", "icon": "??", "effects": {"gradient": True, "colors": ["#00FF87", "#60EFFF", "#0061FF"], "animation": "shimmer"}},
     
     # Mythic Colors (50k-100k XP) - ULTRA RARE
-    {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "🔥", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
-    {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "🌑", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
-    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 190000, "rarity": "transcendent", "icon": "👑", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
+    {"item_id": "color_phoenix", "name": "Phoenix Fire", "description": "Rise from the ashes", "category": "name_color", "price": 50000, "rarity": "mythic", "icon": "??", "effects": {"gradient": True, "colors": ["#FF0000", "#FF6600", "#FFCC00"], "animation": "flame"}},
+    {"item_id": "color_void", "name": "Void Walker", "description": "Darkness beyond comprehension", "category": "name_color", "price": 75000, "rarity": "mythic", "icon": "??", "effects": {"color": "#1a0033", "glow": True, "shadow": True, "animation": "void_pulse"}},
+    {"item_id": "color_godly", "name": "Godly Aura", "description": "Divine presence itself", "category": "name_color", "price": 190000, "rarity": "transcendent", "icon": "??", "effects": {"gradient": True, "colors": ["#FFD700", "#FFFFFF", "#FFD700"], "animation": "divine_radiance"}},
     
     # Transcendent Colors
-    {"item_id": "color_celestial", "name": "Celestial Prism", "description": "Starlight forged into your name", "category": "name_color", "price": 170000, "rarity": "transcendent", "icon": "🌠", "effects": {"gradient": True, "colors": ["#FFFFFF", "#8AFFF5", "#C58CFF", "#FFF5B6"], "animation": "celestial_shift"}},
-    {"item_id": "color_edenlight", "name": "Edenlight", "description": "Soft living light from Eden", "category": "name_color", "price": 110000, "rarity": "mythic", "icon": "🌿", "effects": {"gradient": True, "colors": ["#D9FFB2", "#7DFFF8"], "animation": "eden_bloom"}},
+    {"item_id": "color_celestial", "name": "Celestial Prism", "description": "Starlight forged into your name", "category": "name_color", "price": 170000, "rarity": "transcendent", "icon": "??", "effects": {"gradient": True, "colors": ["#FFFFFF", "#8AFFF5", "#C58CFF", "#FFF5B6"], "animation": "celestial_shift"}},
+    {"item_id": "color_edenlight", "name": "Edenlight", "description": "Soft living light from Eden", "category": "name_color", "price": 110000, "rarity": "mythic", "icon": "??", "effects": {"gradient": True, "colors": ["#D9FFB2", "#7DFFF8"], "animation": "eden_bloom"}},
     
     # ==================== TITLES ====================
     # Common Titles (500-1k XP)
-    {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "🔍", "effects": {"title": "Seeker", "prefix": True}},
-    {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "✉️", "effects": {"title": "Messenger", "prefix": True}},
-    {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "🙏", "effects": {"title": "Disciple", "prefix": True}},
-    {"item_id": "title_servant", "name": "Servant", "description": "Faithful in the small things", "category": "title", "price": 1200, "rarity": "common", "icon": "🕯️", "effects": {"title": "Servant", "prefix": True}},
+    {"item_id": "title_seeker", "name": "Seeker", "description": "One who searches for truth", "category": "title", "price": 500, "rarity": "common", "icon": "??", "effects": {"title": "Seeker", "prefix": True}},
+    {"item_id": "title_messenger", "name": "Messenger", "description": "Carrier of the Word", "category": "title", "price": 800, "rarity": "common", "icon": "??", "effects": {"title": "Messenger", "prefix": True}},
+    {"item_id": "title_disciple", "name": "Disciple", "description": "A devoted follower", "category": "title", "price": 1000, "rarity": "common", "icon": "??", "effects": {"title": "Disciple", "prefix": True}},
+    {"item_id": "title_servant", "name": "Servant", "description": "Faithful in the small things", "category": "title", "price": 1200, "rarity": "common", "icon": "???", "effects": {"title": "Servant", "prefix": True}},
     
     # Rare Titles (2k-4k XP)
-    {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "🎵", "effects": {"title": "Worshiper", "prefix": True}},
-    {"item_id": "title_scholar", "name": "Bible Scholar", "description": "Show your dedication to study", "category": "title", "price": 3000, "rarity": "rare", "icon": "📖", "effects": {"title": "Bible Scholar", "prefix": True}},
-    {"item_id": "title_warrior", "name": "Prayer Warrior", "description": "A warrior in prayer", "category": "title", "price": 4000, "rarity": "rare", "icon": "⚔️", "effects": {"title": "Prayer Warrior", "prefix": True}},
+    {"item_id": "title_worshiper", "name": "Worshiper", "description": "Heart of worship", "category": "title", "price": 2000, "rarity": "rare", "icon": "??", "effects": {"title": "Worshiper", "prefix": True}},
+    {"item_id": "title_scholar", "name": "Bible Scholar", "description": "Show your dedication to study", "category": "title", "price": 3000, "rarity": "rare", "icon": "??", "effects": {"title": "Bible Scholar", "prefix": True}},
+    {"item_id": "title_warrior", "name": "Prayer Warrior", "description": "A warrior in prayer", "category": "title", "price": 4000, "rarity": "rare", "icon": "??", "effects": {"title": "Prayer Warrior", "prefix": True}},
     
     # Epic Titles (8k-15k XP)
-    {"item_id": "title_pastor", "name": "Pastor", "description": "Shepherd of the flock", "category": "title", "price": 8000, "rarity": "epic", "icon": "🐑", "effects": {"title": "Pastor", "prefix": True}},
-    {"item_id": "title_evangelist", "name": "Evangelist", "description": "Bearer of good news", "category": "title", "price": 12000, "rarity": "epic", "icon": "📢", "effects": {"title": "Evangelist", "prefix": True}},
-    {"item_id": "title_reverend", "name": "Reverend", "description": "Worthy of respect", "category": "title", "price": 15000, "rarity": "epic", "icon": "⛪", "effects": {"title": "Reverend", "prefix": True}},
+    {"item_id": "title_pastor", "name": "Pastor", "description": "Shepherd of the flock", "category": "title", "price": 8000, "rarity": "epic", "icon": "??", "effects": {"title": "Pastor", "prefix": True}},
+    {"item_id": "title_evangelist", "name": "Evangelist", "description": "Bearer of good news", "category": "title", "price": 12000, "rarity": "epic", "icon": "??", "effects": {"title": "Evangelist", "prefix": True}},
+    {"item_id": "title_reverend", "name": "Reverend", "description": "Worthy of respect", "category": "title", "price": 15000, "rarity": "epic", "icon": "?", "effects": {"title": "Reverend", "prefix": True}},
     
     # Legendary Titles (20k-35k XP)
-    {"item_id": "title_prophet", "name": "Prophet", "description": "Speaker of truth", "category": "title", "price": 20000, "rarity": "legendary", "icon": "🔮", "effects": {"title": "Prophet", "prefix": True}},
-    {"item_id": "title_apostle", "name": "Apostle", "description": "One who is sent forth", "category": "title", "price": 28000, "rarity": "legendary", "icon": "📜", "effects": {"title": "Apostle", "prefix": True}},
-    {"item_id": "title_saint", "name": "Saint", "description": "Recognized for righteousness", "category": "title", "price": 35000, "rarity": "legendary", "icon": "😇", "effects": {"title": "Saint", "prefix": True, "glow": True}},
+    {"item_id": "title_prophet", "name": "Prophet", "description": "Speaker of truth", "category": "title", "price": 20000, "rarity": "legendary", "icon": "??", "effects": {"title": "Prophet", "prefix": True}},
+    {"item_id": "title_apostle", "name": "Apostle", "description": "One who is sent forth", "category": "title", "price": 28000, "rarity": "legendary", "icon": "??", "effects": {"title": "Apostle", "prefix": True}},
+    {"item_id": "title_saint", "name": "Saint", "description": "Recognized for righteousness", "category": "title", "price": 35000, "rarity": "legendary", "icon": "??", "effects": {"title": "Saint", "prefix": True, "glow": True}},
     
     # Mythic Titles (60k-150k XP) - ULTRA RARE
-    {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "🗡️", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
-    {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "✨", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
-    {"item_id": "title_god", "name": "Throne Keeper", "description": "Guardian near the eternal throne", "category": "title", "price": 190000, "rarity": "transcendent", "icon": "🛐", "effects": {"title": "Throne Keeper", "prefix": True, "glow": True}},
+    {"item_id": "title_archangel", "name": "Archangel", "description": "Messenger of the divine", "category": "title", "price": 60000, "rarity": "mythic", "icon": "???", "effects": {"title": "Archangel", "prefix": True, "glow": True}},
+    {"item_id": "title_messiah", "name": "Messiah", "description": "The anointed one", "category": "title", "price": 100000, "rarity": "mythic", "icon": "?", "effects": {"title": "Messiah", "prefix": True, "glow": True}},
+    {"item_id": "title_god", "name": "Throne Keeper", "description": "Guardian near the eternal throne", "category": "title", "price": 190000, "rarity": "transcendent", "icon": "??", "effects": {"title": "Throne Keeper", "prefix": True, "glow": True}},
     
     # Transcendent Titles
-    {"item_id": "title_thronekeeper", "name": "Creator", "description": "Crowned at the highest rank", "category": "title", "price": 260000, "rarity": "transcendent", "icon": "👑", "effects": {"title": "Creator", "prefix": True, "glow": True}},
-    {"item_id": "title_alphaomega", "name": "Alpha Omega", "description": "Beginning and end", "category": "title", "price": 300000, "rarity": "transcendent", "icon": "☀️", "effects": {"title": "Alpha Omega", "prefix": True, "glow": True}},
+    {"item_id": "title_thronekeeper", "name": "Creator", "description": "Crowned at the highest rank", "category": "title", "price": 260000, "rarity": "transcendent", "icon": "??", "effects": {"title": "Creator", "prefix": True, "glow": True}},
+    {"item_id": "title_alphaomega", "name": "Alpha Omega", "description": "Beginning and end", "category": "title", "price": 300000, "rarity": "transcendent", "icon": "??", "effects": {"title": "Alpha Omega", "prefix": True, "glow": True}},
     
     # ==================== BADGES ====================
     # Common Badges (200-800 XP)
-    {"item_id": "badge_seed", "name": "Seed Planter", "description": "Just starting to grow", "category": "badge", "price": 200, "rarity": "common", "icon": "🌱", "effects": {"badge": "seed", "color": "#90EE90"}},
-    {"item_id": "badge_cross", "name": "Faithful", "description": "Steadfast in faith", "category": "badge", "price": 500, "rarity": "common", "icon": "✝️", "effects": {"badge": "cross", "color": "#8B4513"}},
-    {"item_id": "badge_verified", "name": "Verified", "description": "A verified member", "category": "badge", "price": 800, "rarity": "common", "icon": "✓", "effects": {"badge": "verified", "color": "#0A84FF"}},
+    {"item_id": "badge_seed", "name": "Seed Planter", "description": "Just starting to grow", "category": "badge", "price": 200, "rarity": "common", "icon": "??", "effects": {"badge": "seed", "color": "#90EE90"}},
+    {"item_id": "badge_cross", "name": "Faithful", "description": "Steadfast in faith", "category": "badge", "price": 500, "rarity": "common", "icon": "??", "effects": {"badge": "cross", "color": "#8B4513"}},
+    {"item_id": "badge_verified", "name": "Verified", "description": "A verified member", "category": "badge", "price": 800, "rarity": "common", "icon": "?", "effects": {"badge": "verified", "color": "#0A84FF"}},
     
     # Rare Badges (2k-4k XP)
-    {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "💝", "effects": {"badge": "heart", "color": "#FF375F"}},
-    {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "⭐", "effects": {"badge": "star", "color": "#FFD700"}},
-    {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "🙏", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
-    {"item_id": "badge_anchor", "name": "Anchor", "description": "Steady and unshaken", "category": "badge", "price": 4500, "rarity": "rare", "icon": "⚓", "effects": {"badge": "anchor", "color": "#7AB8FF"}},
+    {"item_id": "badge_heart", "name": "Loved", "description": "Spreading love", "category": "badge", "price": 2000, "rarity": "rare", "icon": "??", "effects": {"badge": "heart", "color": "#FF375F"}},
+    {"item_id": "badge_star", "name": "Star Member", "description": "Shining star of the community", "category": "badge", "price": 3000, "rarity": "rare", "icon": "?", "effects": {"badge": "star", "color": "#FFD700"}},
+    {"item_id": "badge_prayer", "name": "Prayer Warrior", "description": "Warrior in prayer", "category": "badge", "price": 4000, "rarity": "rare", "icon": "??", "effects": {"badge": "prayer", "color": "#BF5AF2"}},
+    {"item_id": "badge_anchor", "name": "Anchor", "description": "Steady and unshaken", "category": "badge", "price": 4500, "rarity": "rare", "icon": "?", "effects": {"badge": "anchor", "color": "#7AB8FF"}},
     
     # Epic Badges (6k-10k XP)
-    {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "🕊️", "effects": {"badge": "dove", "color": "#FFFFFF"}},
-    {"item_id": "badge_bible", "name": "Scripture Master", "description": "Knows the Word", "category": "badge", "price": 8500, "rarity": "epic", "icon": "📖", "effects": {"badge": "bible", "color": "#30D158"}},
-    {"item_id": "badge_guardian", "name": "Guardian", "description": "Protector of the faith", "category": "badge", "price": 10000, "rarity": "epic", "icon": "🛡️", "effects": {"badge": "guardian", "color": "#4169E1"}},
+    {"item_id": "badge_dove", "name": "Peace Dove", "description": "Bringer of peace", "category": "badge", "price": 6000, "rarity": "epic", "icon": "???", "effects": {"badge": "dove", "color": "#FFFFFF"}},
+    {"item_id": "badge_bible", "name": "Scripture Master", "description": "Knows the Word", "category": "badge", "price": 8500, "rarity": "epic", "icon": "??", "effects": {"badge": "bible", "color": "#30D158"}},
+    {"item_id": "badge_guardian", "name": "Guardian", "description": "Protector of the faith", "category": "badge", "price": 10000, "rarity": "epic", "icon": "???", "effects": {"badge": "guardian", "color": "#4169E1"}},
     
     # Legendary Badges (15k-25k XP)
-    {"item_id": "badge_crown", "name": "Crowned", "description": "Royal recognition", "category": "badge", "price": 15000, "rarity": "legendary", "icon": "👑", "effects": {"badge": "crown", "color": "#FFD700"}},
-    {"item_id": "badge_lion", "name": "Lion of Judah", "description": "Strong and courageous", "category": "badge", "price": 22000, "rarity": "legendary", "icon": "🦁", "effects": {"badge": "lion", "color": "#FF8C00"}},
-    {"item_id": "badge_trinity", "name": "Holy Trinity", "description": "Father, Son, and Holy Spirit", "category": "badge", "price": 25000, "rarity": "legendary", "icon": "☘️", "effects": {"badge": "trinity", "color": "#00FF7F"}},
+    {"item_id": "badge_crown", "name": "Crowned", "description": "Royal recognition", "category": "badge", "price": 15000, "rarity": "legendary", "icon": "??", "effects": {"badge": "crown", "color": "#FFD700"}},
+    {"item_id": "badge_lion", "name": "Lion of Judah", "description": "Strong and courageous", "category": "badge", "price": 22000, "rarity": "legendary", "icon": "??", "effects": {"badge": "lion", "color": "#FF8C00"}},
+    {"item_id": "badge_trinity", "name": "Holy Trinity", "description": "Father, Son, and Holy Spirit", "category": "badge", "price": 25000, "rarity": "legendary", "icon": "??", "effects": {"badge": "trinity", "color": "#00FF7F"}},
     
     # Mythic Badges (40k-80k XP) - ULTRA RARE
-    {"item_id": "badge_immortal", "name": "Immortal", "description": "Timeless in faith", "category": "badge", "price": 40000, "rarity": "mythic", "icon": "🔮", "effects": {"badge": "immortal", "color": "#9400D3"}},
-    {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "👁️", "effects": {"badge": "omniscient", "color": "#FF1493"}},
-    {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "✨", "effects": {"badge": "divine", "color": "#FFD700"}},
+    {"item_id": "badge_immortal", "name": "Immortal", "description": "Timeless in faith", "category": "badge", "price": 40000, "rarity": "mythic", "icon": "??", "effects": {"badge": "immortal", "color": "#9400D3"}},
+    {"item_id": "badge_omniscient", "name": "Omniscient", "description": "All-knowing wisdom", "category": "badge", "price": 60000, "rarity": "mythic", "icon": "???", "effects": {"badge": "omniscient", "color": "#FF1493"}},
+    {"item_id": "badge_divine", "name": "Divine Being", "description": "Touched by the divine", "category": "badge", "price": 80000, "rarity": "mythic", "icon": "?", "effects": {"badge": "divine", "color": "#FFD700"}},
     
     # Transcendent Badges
-    {"item_id": "badge_omega", "name": "Omega Witness", "description": "Mark of the end and beginning", "category": "badge", "price": 210000, "rarity": "transcendent", "icon": "☄️", "effects": {"badge": "omega", "color": "#7DFFF8"}},
+    {"item_id": "badge_omega", "name": "Omega Witness", "description": "Mark of the end and beginning", "category": "badge", "price": 210000, "rarity": "transcendent", "icon": "??", "effects": {"badge": "omega", "color": "#7DFFF8"}},
     
     # ==================== CHAT EFFECTS ====================
     # Rare Chat Effects (3k-5k XP)
-    {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "💫", "effects": {"effect": "glow", "color": "#FFD700"}},
-    {"item_id": "chat_shadow", "name": "Shadow Text", "description": "Dark mysterious messages", "category": "chat_effect", "price": 4500, "rarity": "rare", "icon": "🌑", "effects": {"effect": "shadow", "color": "#333333"}},
+    {"item_id": "chat_glow", "name": "Glowing Messages", "description": "Your messages glow", "category": "chat_effect", "price": 3500, "rarity": "rare", "icon": "??", "effects": {"effect": "glow", "color": "#FFD700"}},
+    {"item_id": "chat_shadow", "name": "Shadow Text", "description": "Dark mysterious messages", "category": "chat_effect", "price": 4500, "rarity": "rare", "icon": "??", "effects": {"effect": "shadow", "color": "#333333"}},
     
     # Epic Chat Effects (8k-12k XP)
-    {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "🔥", "effects": {"effect": "fire", "animation": "flicker"}},
-    {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "✨", "effects": {"effect": "sparkle", "animation": "twinkle"}},
-    {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "❄️", "effects": {"effect": "ice", "animation": "freeze"}},
+    {"item_id": "chat_fire", "name": "Fire Messages", "description": "Burning passion in every message", "category": "chat_effect", "price": 8000, "rarity": "epic", "icon": "??", "effects": {"effect": "fire", "animation": "flicker"}},
+    {"item_id": "chat_sparkle", "name": "Sparkle Messages", "description": "Your messages sparkle", "category": "chat_effect", "price": 10000, "rarity": "epic", "icon": "?", "effects": {"effect": "sparkle", "animation": "twinkle"}},
+    {"item_id": "chat_ice", "name": "Frozen Messages", "description": "Cool icy text effect", "category": "chat_effect", "price": 12000, "rarity": "epic", "icon": "??", "effects": {"effect": "ice", "animation": "freeze"}},
     
     # Legendary Chat Effects (15k-25k XP)
-    {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "🌈", "effects": {"effect": "rainbow", "gradient": True}},
-    {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "📜", "effects": {"effect": "gold", "animation": "shimmer"}},
-    {"item_id": "chat_halo", "name": "Halo Speech", "description": "Soft holy glow around words", "category": "chat_effect", "price": 32000, "rarity": "legendary", "icon": "💠", "effects": {"effect": "glow", "animation": "halo"}},
+    {"item_id": "chat_rainbow", "name": "Rainbow Text", "description": "Colorful message text", "category": "chat_effect", "price": 18000, "rarity": "legendary", "icon": "??", "effects": {"effect": "rainbow", "gradient": True}},
+    {"item_id": "chat_gold", "name": "Golden Words", "description": "Every word is precious", "category": "chat_effect", "price": 25000, "rarity": "legendary", "icon": "??", "effects": {"effect": "gold", "animation": "shimmer"}},
+    {"item_id": "chat_halo", "name": "Halo Speech", "description": "Soft holy glow around words", "category": "chat_effect", "price": 32000, "rarity": "legendary", "icon": "??", "effects": {"effect": "glow", "animation": "halo"}},
     
     # Mythic Chat Effects (50k-100k XP) - ULTRA RARE
-    {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "🌌", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
-    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 200000, "rarity": "transcendent", "icon": "⚡", "effects": {"effect": "godly", "animation": "divine_thunder"}},
+    {"item_id": "chat_universe", "name": "Universal Voice", "description": "Echoes across dimensions", "category": "chat_effect", "price": 50000, "rarity": "mythic", "icon": "??", "effects": {"effect": "universe", "animation": "cosmic_wave"}},
+    {"item_id": "chat_godly", "name": "Godly Speech", "description": "Words of ultimate power", "category": "chat_effect", "price": 200000, "rarity": "transcendent", "icon": "?", "effects": {"effect": "godly", "animation": "divine_thunder"}},
     
     # Transcendent Chat Effects
-    {"item_id": "chat_revelation", "name": "Revelation Voice", "description": "Speech wrapped in celestial prophecy", "category": "chat_effect", "price": 190000, "rarity": "transcendent", "icon": "📡", "effects": {"effect": "revelation", "animation": "oracle_wave"}},
-    {"item_id": "chat_thunder_sigil", "name": "Thunder Sigil", "description": "Electrified transcendent speech", "category": "chat_effect", "price": 280000, "rarity": "transcendent", "icon": "🌩️", "effects": {"effect": "godly", "animation": "storm_sigil"}},
+    {"item_id": "chat_revelation", "name": "Revelation Voice", "description": "Speech wrapped in celestial prophecy", "category": "chat_effect", "price": 190000, "rarity": "transcendent", "icon": "??", "effects": {"effect": "revelation", "animation": "oracle_wave"}},
+    {"item_id": "chat_thunder_sigil", "name": "Thunder Sigil", "description": "Electrified transcendent speech", "category": "chat_effect", "price": 280000, "rarity": "transcendent", "icon": "???", "effects": {"effect": "godly", "animation": "storm_sigil"}},
     
     # ==================== PROFILE BACKGROUNDS ====================
     # Rare Backgrounds (3k-5k XP)
-    {"item_id": "bg_golden", "name": "Golden Hour", "description": "Warm golden background", "category": "profile_bg", "price": 3000, "rarity": "rare", "icon": "🌅", "effects": {"bg_style": "gradient", "colors": ["#FFD700", "#FFA500"]}},
-    {"item_id": "bg_ocean", "name": "Ocean Waves", "description": "Calming ocean vibes", "category": "profile_bg", "price": 4500, "rarity": "rare", "icon": "🌊", "effects": {"bg_style": "waves", "animation": "flow"}},
-    {"item_id": "bg_nature", "name": "Garden of Eden", "description": "Lush paradise", "category": "profile_bg", "price": 5000, "rarity": "rare", "icon": "🌳", "effects": {"bg_style": "nature", "colors": ["#228B22", "#90EE90"]}},
+    {"item_id": "bg_golden", "name": "Golden Hour", "description": "Warm golden background", "category": "profile_bg", "price": 3000, "rarity": "rare", "icon": "??", "effects": {"bg_style": "gradient", "colors": ["#FFD700", "#FFA500"]}},
+    {"item_id": "bg_ocean", "name": "Ocean Waves", "description": "Calming ocean vibes", "category": "profile_bg", "price": 4500, "rarity": "rare", "icon": "??", "effects": {"bg_style": "waves", "animation": "flow"}},
+    {"item_id": "bg_nature", "name": "Garden of Eden", "description": "Lush paradise", "category": "profile_bg", "price": 5000, "rarity": "rare", "icon": "??", "effects": {"bg_style": "nature", "colors": ["#228B22", "#90EE90"]}},
     
     # Epic Backgrounds (8k-12k XP)
-    {"item_id": "bg_clouds", "name": "Heavenly Clouds", "description": "Walk on clouds", "category": "profile_bg", "price": 8000, "rarity": "epic", "icon": "☁️", "effects": {"bg_style": "clouds", "animation": "float"}},
-    {"item_id": "bg_night", "name": "Starry Night", "description": "Beautiful night sky", "category": "profile_bg", "price": 10000, "rarity": "epic", "icon": "🌌", "effects": {"bg_style": "stars", "animation": "twinkle"}},
-    {"item_id": "bg_fire", "name": "Holy Fire", "description": "Divine flames", "category": "profile_bg", "price": 12000, "rarity": "epic", "icon": "🔥", "effects": {"bg_style": "fire", "animation": "flicker"}},
+    {"item_id": "bg_clouds", "name": "Heavenly Clouds", "description": "Walk on clouds", "category": "profile_bg", "price": 8000, "rarity": "epic", "icon": "??", "effects": {"bg_style": "clouds", "animation": "float"}},
+    {"item_id": "bg_night", "name": "Starry Night", "description": "Beautiful night sky", "category": "profile_bg", "price": 10000, "rarity": "epic", "icon": "??", "effects": {"bg_style": "stars", "animation": "twinkle"}},
+    {"item_id": "bg_fire", "name": "Holy Fire", "description": "Divine flames", "category": "profile_bg", "price": 12000, "rarity": "epic", "icon": "??", "effects": {"bg_style": "fire", "animation": "flicker"}},
     
     # Legendary Backgrounds (18k-30k XP)
-    {"item_id": "bg_paradise", "name": "Paradise Lost", "description": "Eden before the fall", "category": "profile_bg", "price": 18000, "rarity": "legendary", "icon": "🏞️", "effects": {"bg_style": "paradise", "colors": ["#00FF87", "#60EFFF"]}},
-    {"item_id": "bg_celestial", "name": "Celestial Realm", "description": "Heaven on Earth", "category": "profile_bg", "price": 25000, "rarity": "legendary", "icon": "🏛️", "effects": {"bg_style": "celestial", "animation": "holy_light"}},
-    {"item_id": "bg_eternity", "name": "Eternal Void", "description": "Beyond time and space", "category": "profile_bg", "price": 30000, "rarity": "legendary", "icon": "🕳️", "effects": {"bg_style": "void", "animation": "dark_matter"}},
+    {"item_id": "bg_paradise", "name": "Paradise Lost", "description": "Eden before the fall", "category": "profile_bg", "price": 18000, "rarity": "legendary", "icon": "???", "effects": {"bg_style": "paradise", "colors": ["#00FF87", "#60EFFF"]}},
+    {"item_id": "bg_celestial", "name": "Celestial Realm", "description": "Heaven on Earth", "category": "profile_bg", "price": 25000, "rarity": "legendary", "icon": "???", "effects": {"bg_style": "celestial", "animation": "holy_light"}},
+    {"item_id": "bg_eternity", "name": "Eternal Void", "description": "Beyond time and space", "category": "profile_bg", "price": 30000, "rarity": "legendary", "icon": "???", "effects": {"bg_style": "void", "animation": "dark_matter"}},
     
     # Mythic Backgrounds (60k-120k XP) - ULTRA RARE
-    {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "🪑", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
-    {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "♾️", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
-    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 260000, "rarity": "transcendent", "icon": "👑", "effects": {"bg_style": "gradient", "colors": ["#FBE38A", "#B884FF", "#7DFFF8"], "animation": "omnipotence"}},
+    {"item_id": "bg_divine", "name": "Divine Throne", "description": "Sit at the right hand", "category": "profile_bg", "price": 60000, "rarity": "mythic", "icon": "??", "effects": {"bg_style": "divine", "animation": "throne_glow"}},
+    {"item_id": "bg_infinity", "name": "Infinite Cosmos", "description": "All of creation", "category": "profile_bg", "price": 100000, "rarity": "mythic", "icon": "??", "effects": {"bg_style": "infinity", "animation": "cosmic_dance"}},
+    {"item_id": "bg_godly", "name": "Godly Presence", "description": "The presence of the Almighty", "category": "profile_bg", "price": 260000, "rarity": "transcendent", "icon": "??", "effects": {"bg_style": "gradient", "colors": ["#FBE38A", "#B884FF", "#7DFFF8"], "animation": "omnipotence"}},
     
     # Transcendent Backgrounds
-    {"item_id": "bg_new_jerusalem", "name": "New Jerusalem", "description": "A radiant city of eternal light", "category": "profile_bg", "price": 240000, "rarity": "transcendent", "icon": "🌆", "effects": {"bg_style": "gradient", "colors": ["#7DFFF8", "#B884FF", "#FFE38A"], "animation": "heavenfall"}},
-    {"item_id": "bg_covenant_light", "name": "Covenant Light", "description": "Soft covenant glow and calm sky", "category": "profile_bg", "price": 140000, "rarity": "mythic", "icon": "🕊️", "effects": {"bg_style": "gradient", "colors": ["#9BE7FF", "#D3B7FF"], "animation": "gentle_shift"}},
+    {"item_id": "bg_new_jerusalem", "name": "New Jerusalem", "description": "A radiant city of eternal light", "category": "profile_bg", "price": 240000, "rarity": "transcendent", "icon": "??", "effects": {"bg_style": "gradient", "colors": ["#7DFFF8", "#B884FF", "#FFE38A"], "animation": "heavenfall"}},
+    {"item_id": "bg_covenant_light", "name": "Covenant Light", "description": "Soft covenant glow and calm sky", "category": "profile_bg", "price": 140000, "rarity": "mythic", "icon": "???", "effects": {"bg_style": "gradient", "colors": ["#9BE7FF", "#D3B7FF"], "animation": "gentle_shift"}},
     
     # ==================== BOOSTS / CONSUMABLES ====================
     # Epic Boosts
-    {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "⚡", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
-    {"item_id": "ability_triple_xp", "name": "Triple XP Boost", "description": "3x XP for 6 hours", "category": "consumable", "price": 8000, "rarity": "legendary", "icon": "🚀", "effects": {"boost": "triple_xp", "duration": "6h", "multiplier": 3}},
+    {"item_id": "ability_double_xp", "name": "Double XP Boost", "description": "2x XP for 24 hours", "category": "consumable", "price": 4000, "rarity": "epic", "icon": "?", "effects": {"boost": "double_xp", "duration": "24h", "multiplier": 2}},
+    {"item_id": "ability_triple_xp", "name": "Triple XP Boost", "description": "3x XP for 6 hours", "category": "consumable", "price": 8000, "rarity": "legendary", "icon": "??", "effects": {"boost": "triple_xp", "duration": "6h", "multiplier": 3}},
     
     # Mythic Boosts
-    {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "💫", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
-    {"item_id": "ability_sevenfold_xp", "name": "Sevenfold XP Boost", "description": "7x XP for 45 minutes", "category": "consumable", "price": 65000, "rarity": "mythic", "icon": "🌀", "effects": {"boost": "sevenfold_xp", "duration": "45m", "multiplier": 7}},
+    {"item_id": "ability_quintuple_xp", "name": "Quintuple XP Boost", "description": "5x XP for 1 hour", "category": "consumable", "price": 25000, "rarity": "mythic", "icon": "??", "effects": {"boost": "quintuple_xp", "duration": "1h", "multiplier": 5}},
+    {"item_id": "ability_sevenfold_xp", "name": "Sevenfold XP Boost", "description": "7x XP for 45 minutes", "category": "consumable", "price": 65000, "rarity": "mythic", "icon": "??", "effects": {"boost": "sevenfold_xp", "duration": "45m", "multiplier": 7}},
     
     # Transcendent Boosts
-    {"item_id": "ability_ascension_xp", "name": "Ascension XP Boost", "description": "10x XP for 30 minutes", "category": "consumable", "price": 120000, "rarity": "transcendent", "icon": "🧬", "effects": {"boost": "ascension_xp", "duration": "30m", "multiplier": 10}},
+    {"item_id": "ability_ascension_xp", "name": "Ascension XP Boost", "description": "10x XP for 30 minutes", "category": "consumable", "price": 120000, "rarity": "transcendent", "icon": "??", "effects": {"boost": "ascension_xp", "duration": "30m", "multiplier": 10}},
 ]
 
 def init_shop_items():
@@ -5703,7 +6195,7 @@ def get_user_inventory():
                         "description": row_pick(boost_row, 'description', 2, 'Currently active'),
                         "category": row_pick(boost_row, 'category', 3, 'consumable'),
                         "rarity": row_pick(boost_row, 'rarity', 4, 'transcendent'),
-                        "icon": row_pick(boost_row, 'icon', 5, '⚡'),
+                        "icon": row_pick(boost_row, 'icon', 5, '?'),
                         "effects": boost_effects
                     })
         conn.commit()
@@ -6059,7 +6551,7 @@ def track_verse_read():
             "current_streak": current_streak,
             "longest_streak": longest_streak,
             "total_verses_read": total_read,
-            "message": f"📖 +{total_xp} XP! {current_streak} day streak!"
+            "message": f"?? +{total_xp} XP! {current_streak} day streak!"
         })
     except Exception as e:
         logger.error(f"Error tracking verse read: {e}")
@@ -6123,7 +6615,7 @@ def memorize_verse():
             "success": True,
             "xp_earned": 100,
             "total_memorized": total_memorized,
-            "message": f"🧠 +100 XP! Verse memorized! ({total_memorized} total)"
+            "message": f"?? +100 XP! Verse memorized! ({total_memorized} total)"
         })
     except Exception as e:
         logger.error(f"Error memorizing verse: {e}")
@@ -6173,7 +6665,7 @@ def add_study_note():
         return jsonify({
             "success": True,
             "xp_earned": xp,
-            "message": f"📝 +{xp} XP! Study note added!"
+            "message": f"?? +{xp} XP! Study note added!"
         })
     except Exception as e:
         logger.error(f"Error adding study note: {e}")
@@ -6220,7 +6712,7 @@ def add_prayer_journal():
         return jsonify({
             "success": True,
             "xp_earned": 75,
-            "message": "🙏 +75 XP! Prayer recorded!"
+            "message": "?? +75 XP! Prayer recorded!"
         })
     except Exception as e:
         logger.error(f"Error adding prayer: {e}")
@@ -6300,7 +6792,7 @@ def reading_progress():
                 "success": True,
                 "books_completed": len(books_completed),
                 "total_chapters": total_chapters,
-                "message": f"📚 Progress updated! {len(books_completed)} books completed!"
+                "message": f"?? Progress updated! {len(books_completed)} books completed!"
             })
         
         else:  # GET
@@ -6390,9 +6882,9 @@ def submit_trivia_answer():
             streak_bonus = min(current_streak * 3, 30)
             total_xp = base_xp + streak_bonus
             award_xp_to_user(user_id, total_xp, f"Trivia correct (streak: {current_streak})")
-            message = f"✅ +{total_xp} XP! Correct! Streak: {current_streak}"
+            message = f"? +{total_xp} XP! Correct! Streak: {current_streak}"
         else:
-            message = "❌ Not quite! Try again!"
+            message = "? Not quite! Try again!"
             total_xp = 0
         
         conn.commit()
@@ -6549,7 +7041,7 @@ def track_topic_study():
             "total_verses_studied": total_verses,
             "total_study_time": total_time,
             "topic_completed": is_completed,
-            "message": f"📚 +{xp} XP! Studied {topic}!"
+            "message": f"?? +{xp} XP! Studied {topic}!"
         })
     except Exception as e:
         logger.error(f"Error tracking topic study: {e}")
@@ -8403,6 +8895,708 @@ def study_pack_export():
     finally:
         conn.close()
 
+def _is_group_member(c, db_type, group_id, user_id):
+    if db_type == 'postgres':
+        c.execute("SELECT 1 FROM faith_group_members WHERE group_id = %s AND user_id = %s LIMIT 1", (int(group_id), int(user_id)))
+    else:
+        c.execute("SELECT 1 FROM faith_group_members WHERE group_id = ? AND user_id = ? LIMIT 1", (int(group_id), int(user_id)))
+    return c.fetchone() is not None
+
+def _is_pod_member(c, db_type, pod_id, user_id):
+    if db_type == 'postgres':
+        c.execute("SELECT 1 FROM reading_pod_members WHERE pod_id = %s AND user_id = %s LIMIT 1", (int(pod_id), int(user_id)))
+    else:
+        c.execute("SELECT 1 FROM reading_pod_members WHERE pod_id = ? AND user_id = ? LIMIT 1", (int(pod_id), int(user_id)))
+    return c.fetchone() is not None
+
+@app.route('/api/realtime/stream')
+def realtime_stream():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    user_id = int(session['user_id'])
+    mailbox = _realtime_subscribe(user_id)
+
+    @stream_with_context
+    def _event_stream():
+        try:
+            yield "retry: 2500\n"
+            yield f"data: {json.dumps({'event': 'hello', 'payload': {'user_id': user_id}, 'ts': datetime.now().isoformat()})}\n\n"
+            while True:
+                try:
+                    packet = mailbox.get(timeout=REALTIME_HEARTBEAT_SECONDS)
+                    yield f"data: {json.dumps(packet)}\n\n"
+                except queue.Empty:
+                    yield f"data: {json.dumps({'event': 'heartbeat', 'payload': {}, 'ts': datetime.now().isoformat()})}\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            _realtime_unsubscribe(user_id, mailbox)
+
+    return Response(_event_stream(), mimetype='text/event-stream', headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "Connection": "keep-alive"
+    })
+
+@app.route('/api/i18n/catalog')
+def i18n_catalog():
+    lang = (request.args.get('lang') or 'en').strip().lower()
+    base = I18N_SERVER_CATALOGS.get('en', {})
+    localized = I18N_SERVER_CATALOGS.get(lang, {})
+    return jsonify({
+        "lang": lang,
+        "catalog": {**base, **localized},
+        "available": sorted(list(I18N_SERVER_CATALOGS.keys()))
+    })
+
+@app.route('/api/notifications/preferences', methods=['GET', 'POST'])
+def notifications_preferences():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        uid = int(session['user_id'])
+        prefs = get_notification_preferences(c, db_type, uid)
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            merged = {
+                "dm_enabled": bool(data.get('dm_enabled', prefs['dm_enabled'])),
+                "community_enabled": bool(data.get('community_enabled', prefs['community_enabled'])),
+                "reports_enabled": bool(data.get('reports_enabled', prefs['reports_enabled'])),
+                "system_enabled": bool(data.get('system_enabled', prefs['system_enabled'])),
+                "digest_mode": str(data.get('digest_mode', prefs['digest_mode']) or 'instant').strip().lower()
+            }
+            if merged["digest_mode"] not in ('instant', 'daily', 'off'):
+                merged["digest_mode"] = 'instant'
+            now_iso = datetime.now().isoformat()
+            if db_type == 'postgres':
+                c.execute("""
+                    UPDATE notification_preferences
+                    SET dm_enabled = %s, community_enabled = %s, reports_enabled = %s, system_enabled = %s,
+                        digest_mode = %s, updated_at = %s
+                    WHERE user_id = %s
+                """, (int(merged["dm_enabled"]), int(merged["community_enabled"]), int(merged["reports_enabled"]), int(merged["system_enabled"]), merged["digest_mode"], now_iso, uid))
+            else:
+                c.execute("""
+                    UPDATE notification_preferences
+                    SET dm_enabled = ?, community_enabled = ?, reports_enabled = ?, system_enabled = ?,
+                        digest_mode = ?, updated_at = ?
+                    WHERE user_id = ?
+                """, (int(merged["dm_enabled"]), int(merged["community_enabled"]), int(merged["reports_enabled"]), int(merged["system_enabled"]), merged["digest_mode"], now_iso, uid))
+            conn.commit()
+            prefs = merged
+        return jsonify({"preferences": prefs})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/groups', methods=['GET', 'POST'])
+def groups_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            name = (data.get('name') or '').strip()[:80]
+            description = (data.get('description') or '').strip()[:400]
+            is_private = 1 if bool(data.get('is_private')) else 0
+            if len(name) < 2:
+                return jsonify({"error": "Group name too short"}), 400
+            slug_seed = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-') or f"group-{uid}"
+            slug = f"{slug_seed}-{int(time.time())}"
+            now_iso = datetime.now().isoformat()
+            if db_type == 'postgres':
+                c.execute("""
+                    INSERT INTO faith_groups (slug, name, description, is_private, owner_user_id, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (slug, name, description, is_private, uid, now_iso))
+                row = c.fetchone()
+                group_id = row['id'] if row else None
+                if group_id:
+                    c.execute("""
+                        INSERT INTO faith_group_members (group_id, user_id, role, joined_at)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (group_id, user_id) DO NOTHING
+                    """, (group_id, uid, 'owner', now_iso))
+            else:
+                c.execute("""
+                    INSERT INTO faith_groups (slug, name, description, is_private, owner_user_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (slug, name, description, is_private, uid, now_iso))
+                group_id = c.lastrowid
+                c.execute("""
+                    INSERT OR IGNORE INTO faith_group_members (group_id, user_id, role, joined_at)
+                    VALUES (?, ?, ?, ?)
+                """, (group_id, uid, 'owner', now_iso))
+            conn.commit()
+            return jsonify({"success": True, "group_id": group_id})
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT g.id, g.slug, g.name, g.description, g.is_private, g.owner_user_id, g.created_at,
+                       COALESCE(m.role, '') AS member_role,
+                       EXISTS(SELECT 1 FROM faith_group_members fm WHERE fm.group_id = g.id AND fm.user_id = %s) AS is_member
+                FROM faith_groups g
+                LEFT JOIN faith_group_members m ON m.group_id = g.id AND m.user_id = %s
+                WHERE g.is_private = 0
+                   OR EXISTS(SELECT 1 FROM faith_group_members fm2 WHERE fm2.group_id = g.id AND fm2.user_id = %s)
+                ORDER BY g.created_at DESC NULLS LAST, g.id DESC
+                LIMIT 200
+            """, (uid, uid, uid))
+        else:
+            c.execute("""
+                SELECT g.id, g.slug, g.name, g.description, g.is_private, g.owner_user_id, g.created_at,
+                       COALESCE(m.role, '') AS member_role,
+                       EXISTS(SELECT 1 FROM faith_group_members fm WHERE fm.group_id = g.id AND fm.user_id = ?) AS is_member
+                FROM faith_groups g
+                LEFT JOIN faith_group_members m ON m.group_id = g.id AND m.user_id = ?
+                WHERE g.is_private = 0
+                   OR EXISTS(SELECT 1 FROM faith_group_members fm2 WHERE fm2.group_id = g.id AND fm2.user_id = ?)
+                ORDER BY g.created_at DESC, g.id DESC
+                LIMIT 200
+            """, (uid, uid, uid))
+        groups = []
+        for row in c.fetchall():
+            groups.append({
+                "id": row_pick(row, 'id', 0),
+                "slug": row_pick(row, 'slug', 1),
+                "name": row_pick(row, 'name', 2),
+                "description": row_pick(row, 'description', 3) or '',
+                "is_private": bool(row_pick(row, 'is_private', 4, 0)),
+                "owner_user_id": row_pick(row, 'owner_user_id', 5),
+                "created_at": row_pick(row, 'created_at', 6),
+                "member_role": row_pick(row, 'member_role', 7) or '',
+                "is_member": bool(row_pick(row, 'is_member', 8, 0))
+            })
+        return jsonify({"groups": groups})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/groups/<int:group_id>/join', methods=['POST'])
+def join_group_api(group_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        now_iso = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("SELECT id FROM faith_groups WHERE id = %s", (group_id,))
+            if not c.fetchone():
+                return jsonify({"error": "Group not found"}), 404
+            c.execute("""
+                INSERT INTO faith_group_members (group_id, user_id, role, joined_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (group_id, user_id) DO NOTHING
+            """, (group_id, uid, 'member', now_iso))
+        else:
+            c.execute("SELECT id FROM faith_groups WHERE id = ?", (group_id,))
+            if not c.fetchone():
+                return jsonify({"error": "Group not found"}), 404
+            c.execute("""
+                INSERT OR IGNORE INTO faith_group_members (group_id, user_id, role, joined_at)
+                VALUES (?, ?, ?, ?)
+            """, (group_id, uid, 'member', now_iso))
+        conn.commit()
+        return jsonify({"success": True, "group_id": group_id})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/groups/<int:group_id>/prayers', methods=['GET', 'POST'])
+def group_prayers_api(group_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        if not _is_group_member(c, db_type, group_id, uid):
+            return jsonify({"error": "Join group first"}), 403
+
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            title = (data.get('title') or '').strip()[:140]
+            request_text = (data.get('request_text') or '').strip()[:2000]
+            if len(title) < 2 or len(request_text) < 2:
+                return jsonify({"error": "Title and prayer text are required"}), 400
+            blocked, mod_msg = moderate_user_content(request_text)
+            if blocked:
+                record_moderation_event(c, db_type, uid, "group_prayer", "content_blocked", 4.0, {"group_id": group_id, "reason": mod_msg})
+                conn.commit()
+                return jsonify({"error": "content_blocked", "message": mod_msg}), 400
+            now_iso = datetime.now().isoformat()
+            if db_type == 'postgres':
+                c.execute("""
+                    INSERT INTO group_prayer_requests (group_id, user_id, title, request_text, status, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (group_id, uid, title, request_text, 'open', now_iso, now_iso))
+            else:
+                c.execute("""
+                    INSERT INTO group_prayer_requests (group_id, user_id, title, request_text, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (group_id, uid, title, request_text, 'open', now_iso, now_iso))
+            conn.commit()
+            publish_realtime_event(None, "group_prayer_new", {"group_id": group_id})
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT p.id, p.group_id, p.user_id, p.title, p.request_text, p.status, p.created_at, p.updated_at, p.answered_at,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture
+                FROM group_prayer_requests p
+                LEFT JOIN users u ON u.id = p.user_id
+                WHERE p.group_id = %s
+                ORDER BY p.created_at DESC NULLS LAST, p.id DESC
+                LIMIT 200
+            """, (group_id,))
+        else:
+            c.execute("""
+                SELECT p.id, p.group_id, p.user_id, p.title, p.request_text, p.status, p.created_at, p.updated_at, p.answered_at,
+                       u.name, COALESCE(u.custom_picture, u.picture) AS picture
+                FROM group_prayer_requests p
+                LEFT JOIN users u ON u.id = p.user_id
+                WHERE p.group_id = ?
+                ORDER BY p.created_at DESC, p.id DESC
+                LIMIT 200
+            """, (group_id,))
+        prayers = []
+        for row in c.fetchall():
+            prayer_id = row_pick(row, 'id', 0)
+            if db_type == 'postgres':
+                c.execute("""
+                    SELECT r.id, r.user_id, r.text, r.created_at, u.name
+                    FROM group_prayer_replies r
+                    LEFT JOIN users u ON u.id = r.user_id
+                    WHERE r.prayer_id = %s
+                    ORDER BY r.created_at ASC NULLS LAST, r.id ASC
+                    LIMIT 50
+                """, (prayer_id,))
+            else:
+                c.execute("""
+                    SELECT r.id, r.user_id, r.text, r.created_at, u.name
+                    FROM group_prayer_replies r
+                    LEFT JOIN users u ON u.id = r.user_id
+                    WHERE r.prayer_id = ?
+                    ORDER BY r.created_at ASC, r.id ASC
+                    LIMIT 50
+                """, (prayer_id,))
+            replies = [{
+                "id": row_pick(r, 'id', 0),
+                "user_id": row_pick(r, 'user_id', 1),
+                "text": row_pick(r, 'text', 2) or '',
+                "created_at": row_pick(r, 'created_at', 3),
+                "user_name": row_pick(r, 'name', 4) or "Anonymous"
+            } for r in c.fetchall()]
+            prayers.append({
+                "id": prayer_id,
+                "group_id": row_pick(row, 'group_id', 1),
+                "user_id": row_pick(row, 'user_id', 2),
+                "title": row_pick(row, 'title', 3) or '',
+                "request_text": row_pick(row, 'request_text', 4) or '',
+                "status": row_pick(row, 'status', 5) or 'open',
+                "created_at": row_pick(row, 'created_at', 6),
+                "updated_at": row_pick(row, 'updated_at', 7),
+                "answered_at": row_pick(row, 'answered_at', 8),
+                "user_name": row_pick(row, 'name', 9) or "Anonymous",
+                "user_picture": row_pick(row, 'picture', 10) or '',
+                "replies": replies
+            })
+        return jsonify({"prayers": prayers})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/prayers/<int:prayer_id>/reply', methods=['POST'])
+def reply_prayer_api(prayer_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    data = request.get_json(silent=True) or {}
+    text = (data.get('text') or '').strip()[:1200]
+    if len(text) < 2:
+        return jsonify({"error": "Reply too short"}), 400
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        if db_type == 'postgres':
+            c.execute("SELECT group_id, user_id FROM group_prayer_requests WHERE id = %s", (prayer_id,))
+        else:
+            c.execute("SELECT group_id, user_id FROM group_prayer_requests WHERE id = ?", (prayer_id,))
+        row = c.fetchone()
+        if not row:
+            return jsonify({"error": "Prayer not found"}), 404
+        group_id = int(row_pick(row, 'group_id', 0))
+        prayer_owner_id = int(row_pick(row, 'user_id', 1) or 0)
+        if not _is_group_member(c, db_type, group_id, uid):
+            return jsonify({"error": "Join group first"}), 403
+        now_iso = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO group_prayer_replies (prayer_id, user_id, text, created_at)
+                VALUES (%s, %s, %s, %s)
+            """, (prayer_id, uid, text, now_iso))
+        else:
+            c.execute("""
+                INSERT INTO group_prayer_replies (prayer_id, user_id, text, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (prayer_id, uid, text, now_iso))
+        if prayer_owner_id and prayer_owner_id != uid:
+            queue_notification(c, db_type, prayer_owner_id, "Prayer Reply", "Someone replied to your prayer request.", notif_type='community', source='group')
+        conn.commit()
+        if prayer_owner_id and prayer_owner_id != uid:
+            publish_realtime_event([prayer_owner_id], "notification_new", {"type": "community"})
+        publish_realtime_event(None, "group_prayer_reply", {"prayer_id": prayer_id, "group_id": group_id})
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/prayers/<int:prayer_id>/status', methods=['POST'])
+def prayer_status_api(prayer_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    data = request.get_json(silent=True) or {}
+    next_status = str(data.get('status') or '').strip().lower()
+    if next_status not in ('open', 'answered'):
+        return jsonify({"error": "Invalid status"}), 400
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        now_iso = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("SELECT user_id FROM group_prayer_requests WHERE id = %s", (prayer_id,))
+        else:
+            c.execute("SELECT user_id FROM group_prayer_requests WHERE id = ?", (prayer_id,))
+        row = c.fetchone()
+        if not row:
+            return jsonify({"error": "Prayer not found"}), 404
+        owner_id = int(row_pick(row, 'user_id', 0) or 0)
+        if owner_id != uid and not require_min_role('host'):
+            return jsonify({"error": "Not allowed"}), 403
+        answered_at = now_iso if next_status == 'answered' else None
+        if db_type == 'postgres':
+            c.execute("""
+                UPDATE group_prayer_requests
+                SET status = %s, answered_at = %s, updated_at = %s
+                WHERE id = %s
+            """, (next_status, answered_at, now_iso, prayer_id))
+        else:
+            c.execute("""
+                UPDATE group_prayer_requests
+                SET status = ?, answered_at = ?, updated_at = ?
+                WHERE id = ?
+            """, (next_status, answered_at, now_iso, prayer_id))
+        conn.commit()
+        publish_realtime_event(None, "group_prayer_status", {"prayer_id": prayer_id, "status": next_status})
+        return jsonify({"success": True, "status": next_status})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/reading-pods', methods=['GET', 'POST'])
+def reading_pods_api():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            name = (data.get('name') or '').strip()[:80]
+            description = (data.get('description') or '').strip()[:300]
+            group_id = data.get('group_id')
+            group_id = int(group_id) if str(group_id or '').isdigit() else None
+            if len(name) < 2:
+                return jsonify({"error": "Pod name too short"}), 400
+            now_iso = datetime.now().isoformat()
+            if db_type == 'postgres':
+                c.execute("""
+                    INSERT INTO reading_pods (name, description, owner_user_id, group_id, created_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (name, description, uid, group_id, now_iso))
+                row = c.fetchone()
+                pod_id = row['id'] if row else None
+                if pod_id:
+                    c.execute("""
+                        INSERT INTO reading_pod_members (pod_id, user_id, joined_at, streak, progress_score)
+                        VALUES (%s, %s, %s, 0, 0)
+                        ON CONFLICT (pod_id, user_id) DO NOTHING
+                    """, (pod_id, uid, now_iso))
+            else:
+                c.execute("""
+                    INSERT INTO reading_pods (name, description, owner_user_id, group_id, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (name, description, uid, group_id, now_iso))
+                pod_id = c.lastrowid
+                c.execute("""
+                    INSERT OR IGNORE INTO reading_pod_members (pod_id, user_id, joined_at, streak, progress_score)
+                    VALUES (?, ?, ?, 0, 0)
+                """, (pod_id, uid, now_iso))
+            conn.commit()
+            return jsonify({"success": True, "pod_id": pod_id})
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT p.id, p.name, p.description, p.owner_user_id, p.group_id, p.created_at,
+                       EXISTS(SELECT 1 FROM reading_pod_members m WHERE m.pod_id = p.id AND m.user_id = %s) AS is_member
+                FROM reading_pods p
+                ORDER BY p.created_at DESC NULLS LAST, p.id DESC
+                LIMIT 200
+            """, (uid,))
+        else:
+            c.execute("""
+                SELECT p.id, p.name, p.description, p.owner_user_id, p.group_id, p.created_at,
+                       EXISTS(SELECT 1 FROM reading_pod_members m WHERE m.pod_id = p.id AND m.user_id = ?) AS is_member
+                FROM reading_pods p
+                ORDER BY p.created_at DESC, p.id DESC
+                LIMIT 200
+            """, (uid,))
+        pods = []
+        for row in c.fetchall():
+            pod_id = row_pick(row, 'id', 0)
+            if db_type == 'postgres':
+                c.execute("SELECT COUNT(*) AS cnt FROM reading_pod_members WHERE pod_id = %s", (pod_id,))
+            else:
+                c.execute("SELECT COUNT(*) AS cnt FROM reading_pod_members WHERE pod_id = ?", (pod_id,))
+            cnt_row = c.fetchone()
+            member_count = int(row_pick(cnt_row, 'cnt', 0, 0) or 0)
+            pods.append({
+                "id": pod_id,
+                "name": row_pick(row, 'name', 1) or '',
+                "description": row_pick(row, 'description', 2) or '',
+                "owner_user_id": row_pick(row, 'owner_user_id', 3),
+                "group_id": row_pick(row, 'group_id', 4),
+                "created_at": row_pick(row, 'created_at', 5),
+                "is_member": bool(row_pick(row, 'is_member', 6, 0)),
+                "member_count": member_count
+            })
+        return jsonify({"pods": pods})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/reading-pods/<int:pod_id>/join', methods=['POST'])
+def join_pod_api(pod_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        now_iso = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("SELECT id FROM reading_pods WHERE id = %s", (pod_id,))
+            if not c.fetchone():
+                return jsonify({"error": "Pod not found"}), 404
+            c.execute("""
+                INSERT INTO reading_pod_members (pod_id, user_id, joined_at, streak, progress_score)
+                VALUES (%s, %s, %s, 0, 0)
+                ON CONFLICT (pod_id, user_id) DO NOTHING
+            """, (pod_id, uid, now_iso))
+        else:
+            c.execute("SELECT id FROM reading_pods WHERE id = ?", (pod_id,))
+            if not c.fetchone():
+                return jsonify({"error": "Pod not found"}), 404
+            c.execute("""
+                INSERT OR IGNORE INTO reading_pod_members (pod_id, user_id, joined_at, streak, progress_score)
+                VALUES (?, ?, ?, 0, 0)
+            """, (pod_id, uid, now_iso))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/reading-pods/<int:pod_id>/checkin', methods=['POST'])
+def pod_checkin_api(pod_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    data = request.get_json(silent=True) or {}
+    day_number = int(data.get('day_number') or 0)
+    plan_id = data.get('plan_id')
+    plan_id = int(plan_id) if str(plan_id or '').isdigit() else None
+    note = (data.get('note') or '').strip()[:280]
+    if day_number <= 0:
+        return jsonify({"error": "day_number required"}), 400
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        if not _is_pod_member(c, db_type, pod_id, uid):
+            return jsonify({"error": "Join pod first"}), 403
+        now_iso = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO reading_plan_checkins (user_id, pod_id, plan_id, day_number, checked_at, note)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (uid, pod_id, plan_id, day_number, now_iso, note))
+            c.execute("""
+                UPDATE reading_pod_members
+                SET progress_score = COALESCE(progress_score, 0) + 1,
+                    streak = LEAST(COALESCE(streak, 0) + 1, 365)
+                WHERE pod_id = %s AND user_id = %s
+            """, (pod_id, uid))
+        else:
+            c.execute("""
+                INSERT INTO reading_plan_checkins (user_id, pod_id, plan_id, day_number, checked_at, note)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (uid, pod_id, plan_id, day_number, now_iso, note))
+            c.execute("""
+                UPDATE reading_pod_members
+                SET progress_score = COALESCE(progress_score, 0) + 1,
+                    streak = MIN(COALESCE(streak, 0) + 1, 365)
+                WHERE pod_id = ? AND user_id = ?
+            """, (pod_id, uid))
+        conn.commit()
+        publish_realtime_event(None, "pod_checkin", {"pod_id": pod_id, "user_id": uid, "day_number": day_number})
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/reading-pods/<int:pod_id>/leaderboard')
+def pod_leaderboard_api(pod_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    uid = int(session['user_id'])
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+        if not _is_pod_member(c, db_type, pod_id, uid):
+            return jsonify({"error": "Join pod first"}), 403
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT m.user_id, m.streak, m.progress_score, u.name
+                FROM reading_pod_members m
+                LEFT JOIN users u ON u.id = m.user_id
+                WHERE m.pod_id = %s
+                ORDER BY m.progress_score DESC NULLS LAST, m.streak DESC NULLS LAST, m.user_id ASC
+                LIMIT 100
+            """, (pod_id,))
+        else:
+            c.execute("""
+                SELECT m.user_id, m.streak, m.progress_score, u.name
+                FROM reading_pod_members m
+                LEFT JOIN users u ON u.id = m.user_id
+                WHERE m.pod_id = ?
+                ORDER BY m.progress_score DESC, m.streak DESC, m.user_id ASC
+                LIMIT 100
+            """, (pod_id,))
+        board = [{
+            "user_id": row_pick(row, 'user_id', 0),
+            "streak": int(row_pick(row, 'streak', 1, 0) or 0),
+            "progress_score": float(row_pick(row, 'progress_score', 2, 0) or 0),
+            "user_name": row_pick(row, 'name', 3) or f"User #{row_pick(row, 'user_id', 0)}"
+        } for row in c.fetchall()]
+        return jsonify({"leaderboard": board})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/search/semantic')
+def semantic_search():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({"results": [], "count": 0})
+    limit = max(1, min(120, int(request.args.get('limit', 40))))
+    uid = int(session['user_id'])
+    cache_key = f"semantic:{uid}:{q.lower()}:{limit}"
+    cached = _api_cache_get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        tokens = [t for t in _normalize_mem_text(q).split() if t]
+        for topic, words in RESEARCH_TOPIC_MAP.items():
+            if topic in q.lower() or any(t in topic for t in tokens):
+                tokens.extend(words)
+        tokens = list(dict.fromkeys([t for t in tokens if t]))
+        if not tokens:
+            return jsonify({"results": [], "count": 0})
+
+        c.execute("""
+            SELECT id, reference, text, translation, source, timestamp, book
+            FROM verses
+            ORDER BY id DESC
+            LIMIT 3000
+        """)
+        scored = []
+        for row in c.fetchall():
+            verse = {
+                "id": row_pick(row, 'id', 0),
+                "ref": row_pick(row, 'reference', 1),
+                "text": row_pick(row, 'text', 2) or '',
+                "trans": row_pick(row, 'translation', 3),
+                "source": row_pick(row, 'source', 4),
+                "timestamp": row_pick(row, 'timestamp', 5),
+                "book": row_pick(row, 'book', 6)
+            }
+            score = _semantic_score_verse(tokens, verse)
+            if score >= 0.08:
+                verse["score"] = score
+                scored.append(verse)
+        scored.sort(key=lambda v: (v.get("score", 0), str(v.get("timestamp") or "")), reverse=True)
+        payload = {"results": scored[:limit], "count": len(scored), "query": q}
+        _api_cache_set(cache_key, payload, ttl=8)
+        return jsonify(payload)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/api/admin/data-health')
 def admin_data_health():
     if 'user_id' not in session:
@@ -8558,6 +9752,7 @@ def community_room_messages(slug):
                 return jsonify({"error": "Empty message"}), 400
             limited, retry_after = check_rate_limit(session['user_id'], 'community_room_post', 8, 30)
             if limited:
+                record_moderation_event_quick(session['user_id'], 'community_room', 'rate_limited', 1.5, {"room": room_slug, "retry_after": retry_after})
                 return jsonify({
                     "error": "rate_limited",
                     "message": "Too many messages. Please slow down.",
@@ -8565,6 +9760,7 @@ def community_room_messages(slug):
                 }), 429
             blocked, mod_message = moderate_user_content(text)
             if blocked:
+                record_moderation_event_quick(session['user_id'], 'community_room', 'content_blocked', 4.0, {"room": room_slug, "message": mod_message})
                 return jsonify({"error": "content_blocked", "message": mod_message}), 400
             c.execute("""
                 INSERT INTO research_community_messages (room_slug, user_id, text, timestamp, google_name, google_picture)
@@ -8574,6 +9770,7 @@ def community_room_messages(slug):
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (room_slug, session['user_id'], text, datetime.now().isoformat(), session.get('user_name'), session.get('user_picture')))
             conn.commit()
+            publish_realtime_event(None, "community_room_new", {"room": room_slug})
             _api_cache_invalidate_prefixes("community_room:", "community:", "recent_users:")
         else:
             cached = _api_cache_get(cache_key)
@@ -9593,6 +10790,7 @@ def post_comment():
         return jsonify({"error": "Empty comment"}), 400
     limited, retry_after = check_rate_limit(session['user_id'], 'comment_post', 8, 30)
     if limited:
+        record_moderation_event_quick(session['user_id'], 'comment', 'rate_limited', 1.5, {"retry_after": retry_after})
         return jsonify({
             "error": "rate_limited",
             "message": "Too many comments. Please wait a moment.",
@@ -9600,6 +10798,7 @@ def post_comment():
         }), 429
     blocked, mod_message = moderate_user_content(text)
     if blocked:
+        record_moderation_event_quick(session['user_id'], 'comment', 'content_blocked', 4.0, {"message": mod_message})
         return jsonify({"error": "content_blocked", "message": mod_message}), 400
     
     conn, db_type = get_db()
@@ -9627,6 +10826,7 @@ def post_comment():
                 message="Posted a comment",
                 extras={"comment_id": comment_id, "verse_id": verse_id}
             )
+            publish_realtime_event(None, "comment_new", {"verse_id": verse_id, "comment_id": comment_id})
         _api_cache_invalidate_prefixes("comments:", "recent_users:")
         return jsonify({"success": True, "id": comment_id})
     except Exception as e:
@@ -9857,6 +11057,7 @@ def post_community_message():
         return jsonify({"error": "Empty message"}), 400
     limited, retry_after = check_rate_limit(session['user_id'], 'community_post', 8, 30)
     if limited:
+        record_moderation_event_quick(session['user_id'], 'community', 'rate_limited', 1.5, {"retry_after": retry_after})
         return jsonify({
             "error": "rate_limited",
             "message": "Too many messages. Please wait a moment.",
@@ -9864,6 +11065,7 @@ def post_community_message():
         }), 429
     blocked, mod_message = moderate_user_content(text)
     if blocked:
+        record_moderation_event_quick(session['user_id'], 'community', 'content_blocked', 4.0, {"message": mod_message})
         return jsonify({"error": "content_blocked", "message": mod_message}), 400
     
     conn, db_type = get_db()
@@ -9882,6 +11084,7 @@ def post_community_message():
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (room_slug, session['user_id'], text, datetime.now().isoformat(), session.get('user_name'), session.get('user_picture')))
             conn.commit()
+            publish_realtime_event(None, "community_room_new", {"room": room_slug})
             _api_cache_invalidate_prefixes("community_room:", "community:", "recent_users:")
             return jsonify({"success": True})
 
@@ -9906,6 +11109,7 @@ def post_community_message():
                 message="Posted a community message",
                 extras={"message_id": message_id}
             )
+            publish_realtime_event(None, "community_new", {"message_id": message_id, "room": "general"})
         _api_cache_invalidate_prefixes("community:", "community_room:", "recent_users:")
         return jsonify({"success": True})
     except Exception as e:
@@ -10772,6 +11976,7 @@ def dm_send():
         return jsonify({"error": "Empty message"}), 400
     limited, retry_after = check_rate_limit(session['user_id'], 'dm_send', 20, 60)
     if limited:
+        record_moderation_event_quick(session['user_id'], 'dm', 'rate_limited', 1.5, {"retry_after": retry_after, "recipient_id": recipient_id})
         return jsonify({
             "error": "rate_limited",
             "message": "Too many direct messages. Please wait a bit.",
@@ -10779,6 +11984,7 @@ def dm_send():
         }), 429
     blocked, mod_message = moderate_user_content(message)
     if blocked:
+        record_moderation_event_quick(session['user_id'], 'dm', 'content_blocked', 4.0, {"recipient_id": recipient_id, "message": mod_message})
         return jsonify({"error": "content_blocked", "message": mod_message}), 400
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
@@ -10799,7 +12005,11 @@ def dm_send():
                 INSERT INTO direct_messages (sender_id, recipient_id, message, created_at, is_read)
                 VALUES (?, ?, ?, ?, 0)
             """, (session['user_id'], recipient_id, message, now))
+        queue_notification(c, db_type, recipient_id, "New Direct Message", "You received a new direct message.", notif_type='dm', source='dm')
         conn.commit()
+        publish_realtime_event([recipient_id], "dm_new", {"sender_id": int(session['user_id'])})
+        publish_realtime_event([recipient_id], "notification_new", {"type": "dm"})
+        publish_realtime_event([session['user_id']], "dm_sent", {"recipient_id": recipient_id})
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -10933,6 +12143,7 @@ def add_comment_reaction():
         return jsonify({"error": "item_id required"}), 400
     limited, retry_after = check_rate_limit(session['user_id'], 'reaction_toggle', 30, 20)
     if limited:
+        record_moderation_event_quick(session['user_id'], 'reaction', 'rate_limited', 1.0, {"retry_after": retry_after})
         return jsonify({
             "error": "rate_limited",
             "message": "Too many reactions. Slow down.",
@@ -11005,6 +12216,7 @@ def add_comment_reaction():
 
         conn.commit()
         counts = get_reaction_counts(c, db_type, item_type, int(item_id))
+        publish_realtime_event(None, "reaction_update", {"item_type": item_type, "item_id": int(item_id)})
         _api_cache_invalidate_prefixes("comments:", "community:")
         return jsonify({"success": True, "active": active, "reactions": counts})
     except Exception as e:
@@ -11031,6 +12243,7 @@ def post_comment_reply():
         return jsonify({"error": "Empty reply"}), 400
     limited, retry_after = check_rate_limit(session['user_id'], 'reply_post', 10, 30)
     if limited:
+        record_moderation_event_quick(session['user_id'], 'reply', 'rate_limited', 1.5, {"retry_after": retry_after})
         return jsonify({
             "error": "rate_limited",
             "message": "Too many replies. Please wait a moment.",
@@ -11038,6 +12251,7 @@ def post_comment_reply():
         }), 429
     blocked, mod_message = moderate_user_content(text)
     if blocked:
+        record_moderation_event_quick(session['user_id'], 'reply', 'content_blocked', 4.0, {"message": mod_message})
         return jsonify({"error": "content_blocked", "message": mod_message}), 400
 
     is_banned, _, _ = check_ban_status(session['user_id'])
@@ -11099,6 +12313,7 @@ def post_comment_reply():
         conn.commit()
         hidden_public_users = get_user_safety_filters(c, db_type, uid)["hidden_public_users"]
         replies = get_replies_for_parent(c, db_type, parent_type, parent_id_int, hidden_user_ids=hidden_public_users)
+        publish_realtime_event(None, "reply_new", {"parent_type": parent_type, "parent_id": parent_id_int})
         _api_cache_invalidate_prefixes("comments:", "community:")
         return jsonify({"success": True, "replies": replies, "reply_count": len(replies)})
     except Exception as e:
@@ -11468,6 +12683,8 @@ def get_notifications():
                     sent_at TEXT
                 )
             """)
+        ensure_growth_feature_tables(c, db_type)
+        prefs = get_notification_preferences(c, db_type, session['user_id'])
         if db_type == 'postgres':
             c.execute("""
                 SELECT id, title, message, notif_type, source, is_read, created_at
@@ -11513,6 +12730,9 @@ def get_notifications():
                     ts = _parse_ts(created_at)
                     if ts and (now - ts).total_seconds() > ttl_seconds:
                         continue
+                pref_key = NOTIF_TYPE_TO_PREF.get(str(n_type or '').strip().lower(), 'system_enabled')
+                if not prefs.get(pref_key, True):
+                    continue
                 out.append({
                     "id": row['id'],
                     "title": row['title'] or 'Notification',
@@ -11529,6 +12749,9 @@ def get_notifications():
                     ts = _parse_ts(created_at)
                     if ts and (now - ts).total_seconds() > ttl_seconds:
                         continue
+                pref_key = NOTIF_TYPE_TO_PREF.get(str(n_type or '').strip().lower(), 'system_enabled')
+                if not prefs.get(pref_key, True):
+                    continue
                 out.append({
                     "id": row[0],
                     "title": row[1] or 'Notification',
@@ -11913,4 +13136,7 @@ def get_user_data_summary():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+
+
+
 

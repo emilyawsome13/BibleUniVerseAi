@@ -930,6 +930,9 @@
         <div class="nav-item perm-reports hidden" onclick="showSection('reports'); toggleMenu();" data-section="reports">
             <span>&#128680;</span> Reports
         </div>
+        <div class="nav-item perm-moderation hidden" onclick="showSection('moderation'); toggleMenu();" data-section="moderation">
+            <span>&#129302;</span> Moderation AI
+        </div>
         <div class="nav-item perm-delete-comments hidden" onclick="showSection('comments'); toggleMenu();" data-section="comments">
             <span>&#128172;</span> Comments
         </div>
@@ -1203,6 +1206,27 @@
             </div>
         </div>
 
+        <div id="moderation-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#129302; Moderation Queue</div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-success" onclick="loadModerationQueue()">Refresh</button>
+                        <button class="btn btn-secondary" onclick="exportData('moderation')">Export CSV</button>
+                    </div>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" class="search-box" id="moderationSearch" placeholder="&#128269; Search source/user/type..." onkeyup="filterModerationQueue()">
+                    <select class="filter-select" id="moderationStatusFilter" onchange="filterModerationQueue()">
+                        <option value="open">Open</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div id="moderationContent"><div class="loading"><div class="spinner"></div>Loading moderation queue...</div></div>
+            </div>
+        </div>
+
         <!-- Comments Section -->
         <div id="comments-section" class="hidden">
             <div class="panel">
@@ -1399,6 +1423,7 @@
         let allRestrictions = [];
         let allBans = [];
         let allReports = [];
+        let allModerationEvents = [];
         let allAuditLogs = [];
         let insightsData = null;
         let activeSection = 'dashboard';
@@ -1452,6 +1477,9 @@
                 if (permissions.includes('manage_user_safety')) {
                     document.querySelectorAll('.perm-manage-safety').forEach(el => el.classList.remove('hidden'));
                 }
+                if (permissions.includes('view_moderation') || permissions.includes('manage_moderation')) {
+                    document.querySelectorAll('.perm-moderation').forEach(el => el.classList.remove('hidden'));
+                }
             } catch (err) {
                 console.error('Failed to load permissions:', err);
             }
@@ -1466,6 +1494,7 @@
                 loadRestrictions(),
                 loadBans(),
                 loadReports(),
+                loadModerationQueue(),
                 loadComments(),
                 loadRecentActivity(),
                 loadAnnouncements(),
@@ -1492,6 +1521,7 @@
                 if (activeSection === 'restrictions') await loadRestrictions();
                 if (activeSection === 'bans') await loadBans();
                 if (activeSection === 'reports') await loadReports();
+                if (activeSection === 'moderation') await loadModerationQueue();
                 if (activeSection === 'comments') await loadComments();
                 if (activeSection === 'audit') await loadAuditLogs();
                 if (activeSection === 'settings') await loadSettings();
@@ -2353,6 +2383,103 @@
             }
         }
 
+        async function loadModerationQueue() {
+            if (!(permissions.includes('view_moderation') || permissions.includes('manage_moderation'))) return;
+            const container = document.getElementById('moderationContent');
+            if (!container) return;
+            const status = (document.getElementById('moderationStatusFilter')?.value || 'open').trim().toLowerCase();
+            try {
+                const res = await fetch(`/admin/api/moderation/queue?status=${encodeURIComponent(status)}&limit=500`);
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    container.innerHTML = `<div class="error-box">${escapeHtml(data.error || 'Failed to load moderation queue')}</div>`;
+                    return;
+                }
+                allModerationEvents = Array.isArray(data.events) ? data.events : [];
+                filterModerationQueue();
+            } catch (_) {
+                container.innerHTML = '<div class="error-box">Failed to load moderation queue</div>';
+            }
+        }
+
+        function filterModerationQueue() {
+            const container = document.getElementById('moderationContent');
+            if (!container) return;
+            const status = (document.getElementById('moderationStatusFilter')?.value || 'open').trim().toLowerCase();
+            const search = (document.getElementById('moderationSearch')?.value || '').trim().toLowerCase();
+            const rows = (allModerationEvents || []).filter(e => {
+                const st = String(e.status || 'open').toLowerCase();
+                if (status !== 'all' && st !== status) return false;
+                if (!search) return true;
+                const haystack = [
+                    e.id, e.user_id, e.user_name, e.user_email, e.source, e.event_type, e.status,
+                    JSON.stringify(e.meta || {})
+                ].map(v => String(v || '').toLowerCase()).join(' ');
+                return haystack.includes(search);
+            });
+
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state">No moderation events found</div>';
+                return;
+            }
+
+            const canManage = permissions.includes('manage_moderation');
+            let html = '<table><thead><tr><th>When</th><th>User</th><th>Source</th><th>Event</th><th>Score</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            rows.forEach(e => {
+                const st = String(e.status || 'open').toLowerCase();
+                const statusClass = st === 'resolved' ? 'status-active' : 'status-warning';
+                const user = `${escapeHtml(e.user_name || `User #${e.user_id || '?'}`)}<br><small style="color:#888">${escapeHtml(e.user_email || `ID:${e.user_id || '-'}`)}</small>`;
+                const eventText = `<strong>${escapeHtml(e.event_type || '')}</strong><br><small style="color:#aab4c5">${escapeHtml(JSON.stringify(e.meta || {}).slice(0, 220))}</small>`;
+                const actions = canManage
+                    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn btn-success" onclick="moderationTakeAction('${e.id}', ${e.user_id || 'null'}, 'mark_reviewed')">Resolve</button>
+                        <button class="btn btn-warning" onclick="moderationTakeAction('${e.id}', ${e.user_id || 'null'}, 'dismiss')">Dismiss</button>
+                        <button class="btn btn-secondary" onclick="moderationTakeAction('${e.id}', ${e.user_id || 'null'}, 'escalate')">Escalate</button>
+                    </div>`
+                    : '<span style="color:#888">View only</span>';
+                html += `<tr>
+                    <td>${formatLocalTime(e.created_at)}</td>
+                    <td>${user}</td>
+                    <td>${escapeHtml(e.source || '-')}</td>
+                    <td>${eventText}</td>
+                    <td>${escapeHtml(String(e.score || 0))}</td>
+                    <td><span class="status-badge ${statusClass}" style="text-transform:uppercase;">${escapeHtml(st)}</span></td>
+                    <td>${actions}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function moderationTakeAction(eventId, userId, action) {
+            if (!permissions.includes('manage_moderation')) {
+                showToast('Permission denied');
+                return;
+            }
+            const reason = prompt('Optional moderation note:', '') || '';
+            try {
+                const res = await fetch('/admin/api/moderation/action', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action,
+                        target_user_id: userId || null,
+                        reason,
+                        event_ids: [eventId]
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Moderation action failed');
+                    return;
+                }
+                showToast('Moderation action saved');
+                await loadModerationQueue();
+            } catch (_) {
+                showToast('Moderation action failed');
+            }
+        }
+
         async function loadComments() {
             if (!permissions.includes('delete_comments')) return;
             
@@ -2783,6 +2910,12 @@
             } else if (type === 'reports') {
                 headers = ['id', 'created_at', 'status', 'target_type', 'target_id', 'reason', 'details', 'reporter_id', 'reporter_name', 'reporter_email', 'reported_user_id', 'reported_name', 'reported_email', 'reviewed_by', 'reviewed_at', 'review_note'];
                 rows = allReports || [];
+            } else if (type === 'moderation') {
+                headers = ['id', 'created_at', 'status', 'user_id', 'user_name', 'user_email', 'source', 'event_type', 'score', 'meta'];
+                rows = (allModerationEvents || []).map(e => ({
+                    ...e,
+                    meta: JSON.stringify(e.meta || {})
+                }));
             } else if (type === 'audit') {
                 headers = ['id', 'timestamp', 'admin_id', 'admin_name', 'action', 'status', 'target_user_id', 'target_name', 'target_email', 'target_role', 'location_ip', 'location_country', 'location_region', 'location_city', 'reason', 'duration', 'details', 'extras'];
                 rows = allAuditLogs || [];
@@ -3057,7 +3190,7 @@
             
             const titles = {
                 dashboard: 'Dashboard', users: 'Users', restrictions: 'Restrictions',
-                bans: 'Banned Users', reports: 'Reports', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
+                bans: 'Banned Users', reports: 'Reports', moderation: 'Moderation AI', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
             
@@ -3067,6 +3200,7 @@
             if (section === 'restrictions') loadRestrictions();
             if (section === 'bans') loadBans();
             if (section === 'reports') loadReports();
+            if (section === 'moderation') loadModerationQueue();
             if (section === 'users') loadUsers();
         }
 

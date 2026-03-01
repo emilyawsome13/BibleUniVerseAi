@@ -2995,6 +2995,59 @@
         .report-status-open { color: #ffcf88; background: rgba(160, 96, 18, 0.28); }
         .report-status-resolved { color: #9af0b8; background: rgba(32, 115, 65, 0.28); }
         .report-status-dismissed { color: #ffb5bf; background: rgba(130, 42, 56, 0.28); }
+        .growth-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            width: 100%;
+        }
+        .growth-card {
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .growth-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        .growth-list {
+            max-height: 190px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .growth-row {
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 7px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+        }
+        .live-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+        .live-pill.online {
+            color: #9af0b8;
+            border-color: rgba(57, 200, 103, 0.4);
+            background: rgba(39, 130, 73, 0.22);
+        }
 
         .toggle {
             width: 50px;
@@ -6148,6 +6201,78 @@
                 </div>
             </div>
 
+            <div class="setting-item" style="align-items:flex-start;">
+                <div style="width:100%;">
+                    <div class="setting-label">Realtime + Notification Controls</div>
+                    <div class="setting-desc">Live event stream, category-level notifications, and advanced engagement tools.</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                        <span id="realtimeStatusPill" class="live-pill">Live updates reconnecting</span>
+                        <button class="btn btn-secondary" onclick="reconnectRealtime()" style="padding:6px 10px;font-size:11px;">Reconnect Live</button>
+                        <button class="btn btn-secondary" onclick="loadNotificationPreferences(true)" style="padding:6px 10px;font-size:11px;">Refresh Prefs</button>
+                    </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-secondary);">
+                        <label><input type="checkbox" id="notifPrefDM"> Direct Messages</label>
+                        <label><input type="checkbox" id="notifPrefCommunity"> Community</label>
+                        <label><input type="checkbox" id="notifPrefReports"> Reports</label>
+                        <label><input type="checkbox" id="notifPrefSystem"> System</label>
+                        <select id="notifDigestMode" class="setting-select" style="max-width:150px;padding:6px 8px;font-size:11px;">
+                            <option value="instant">Instant</option>
+                            <option value="daily">Daily Digest</option>
+                            <option value="off">Off</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="saveNotificationPreferences()" style="padding:6px 10px;font-size:11px;">Save Prefs</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-item" style="align-items:flex-start;">
+                <div style="width:100%;">
+                    <div class="setting-label">Growth Labs</div>
+                    <div class="setting-desc">Groups + prayer spaces, reading accountability pods, and semantic verse search.</div>
+                    <div class="growth-grid" style="margin-top:10px;">
+                        <div class="growth-card">
+                            <div class="growth-title">Groups + Prayer</div>
+                            <div style="display:flex;gap:6px;">
+                                <input class="setting-select" id="newGroupName" placeholder="New group name" style="padding:6px 8px;font-size:11px;">
+                                <button class="btn btn-primary" onclick="createGrowthGroup()" style="padding:6px 10px;font-size:11px;">Create</button>
+                            </div>
+                            <div class="growth-list" id="growthGroupsList"><div class="growth-row">Loading groups...</div></div>
+                            <div style="display:flex;gap:6px;">
+                                <input class="setting-select" id="growthPrayerTitle" placeholder="Prayer title" style="padding:6px 8px;font-size:11px;">
+                                <button class="btn btn-secondary" onclick="loadGrowthGroups(true)" style="padding:6px 10px;font-size:11px;">Refresh</button>
+                            </div>
+                            <textarea class="setting-select" id="growthPrayerText" placeholder="Prayer request..." style="min-height:62px;padding:6px 8px;font-size:11px;"></textarea>
+                            <button class="btn btn-primary" onclick="postGrowthPrayer()" style="padding:6px 10px;font-size:11px;">Post Prayer</button>
+                            <div class="growth-list" id="growthPrayersList"><div class="growth-row">Select a group to view prayers.</div></div>
+                        </div>
+
+                        <div class="growth-card">
+                            <div class="growth-title">Reading Pods</div>
+                            <div style="display:flex;gap:6px;">
+                                <input class="setting-select" id="newPodName" placeholder="New pod name" style="padding:6px 8px;font-size:11px;">
+                                <button class="btn btn-primary" onclick="createReadingPod()" style="padding:6px 10px;font-size:11px;">Create</button>
+                            </div>
+                            <div class="growth-list" id="growthPodsList"><div class="growth-row">Loading pods...</div></div>
+                            <div style="display:flex;gap:6px;">
+                                <input class="setting-select" id="podCheckinDay" type="number" min="1" placeholder="Day #" style="padding:6px 8px;font-size:11px;">
+                                <button class="btn btn-success" onclick="checkinReadingPod()" style="padding:6px 10px;font-size:11px;">Check-in</button>
+                                <button class="btn btn-secondary" onclick="loadReadingPods(true)" style="padding:6px 10px;font-size:11px;">Refresh</button>
+                            </div>
+                            <div class="growth-list" id="growthPodBoard"><div class="growth-row">Join a pod to view leaderboard.</div></div>
+                        </div>
+
+                        <div class="growth-card">
+                            <div class="growth-title">Semantic Search</div>
+                            <div style="display:flex;gap:6px;">
+                                <input class="setting-select" id="semanticSearchInput" placeholder="e.g., anxiety and peace" style="padding:6px 8px;font-size:11px;flex:1;">
+                                <button class="btn btn-primary" onclick="runSemanticSearch()" style="padding:6px 10px;font-size:11px;">Search</button>
+                            </div>
+                            <div class="growth-list" id="semanticSearchResults"><div class="growth-row">Search by meaning to find related verses.</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Extra Settings -->
             <div style="margin: 20px 0 10px; padding-top: 15px; border-top: 1px solid var(--glass-border);">
                 <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">✨ Extra Features</div>
@@ -6369,6 +6494,15 @@
         let safetyReportsLoadedAt = 0;
         let communityPinnedMessage = null;
         let communityPinSignature = '';
+        let realtimeSource = null;
+        let realtimeConnected = false;
+        let realtimeLastEventAt = 0;
+        let notificationPrefsCache = null;
+        let growthGroupsCache = [];
+        let growthPodsCache = [];
+        let growthSelectedGroupId = null;
+        let growthSelectedPodId = null;
+        let serverI18nCatalog = {};
         
         // Text to Speech
         const TTS = {
@@ -6461,12 +6595,16 @@
         const DM_MESSAGES_POLL_INTERVAL_MS = 1800;
         const DM_TYPING_POLL_INTERVAL_MS = 2200;
         const ONLINE_USERS_POLL_INTERVAL_MS = 15000;
+        const REALTIME_STALE_AFTER_MS = 45000;
+        const NOTIFICATION_POLL_ACTIVE_MS = 30000;
+        const NOTIFICATION_POLL_REALTIME_MS = 90000;
         let verseFetchInFlight = false;
         let lastStatusRefreshAt = 0;
         let lastStatusVerseId = null;
         let initDone = false;
         let latestNotificationId = null;
         let isAdmin = false;
+        let onlineUsersInterval = null;
         let favoritesCollection = null;
         let currentCommentsView = 'verse';
         let openReplyKey = null;
@@ -6536,6 +6674,30 @@
             verseCheckInterval = null;
         }
 
+        function isRealtimeFresh() {
+            return realtimeConnected && (Date.now() - realtimeLastEventAt) < REALTIME_STALE_AFTER_MS;
+        }
+
+        function refreshNotificationPollingMode() {
+            if (notificationPollInterval) {
+                clearInterval(notificationPollInterval);
+                notificationPollInterval = null;
+            }
+            const intervalMs = isRealtimeFresh() ? NOTIFICATION_POLL_REALTIME_MS : NOTIFICATION_POLL_ACTIVE_MS;
+            notificationPollInterval = setInterval(() => {
+                if (document.hidden) return;
+                pollNotifications();
+            }, intervalMs);
+        }
+
+        function startOnlineUsersLoop() {
+            if (onlineUsersInterval) clearInterval(onlineUsersInterval);
+            onlineUsersInterval = setInterval(() => {
+                if (document.hidden) return;
+                if (currentTab === 'comments') updateOnlineUsers();
+            }, 30000);
+        }
+
         async function init() {
             if (initDone) return;
             initDone = true;
@@ -6555,9 +6717,15 @@
             
             // Initialize new features
             initDailyChallenge();
-            await loadBibleBooks();
-            await loadBiblePicks(true);
-            await loadCommunityRooms();
+            await Promise.allSettled([
+                loadBibleBooks(),
+                loadBiblePicks(true),
+                loadCommunityRooms(),
+                loadServerI18nCatalog(settings.language),
+                loadNotificationPreferences(true),
+                loadGrowthGroups(true),
+                loadReadingPods(true)
+            ]);
             initServiceWorker();
             loadVerseOfDay();
             renderRecHistory();
@@ -6575,13 +6743,17 @@
             pingPresence();
             if (presencePingInterval) clearInterval(presencePingInterval);
             presencePingInterval = setInterval(pingPresence, 45000);
-            pollNotifications();
-            if (notificationPollInterval) clearInterval(notificationPollInterval);
-            notificationPollInterval = setInterval(pollNotifications, 30000);
+            connectRealtimeStream();
+            pollNotifications(true);
+            refreshNotificationPollingMode();
+            startOnlineUsersLoop();
             handleDeepLinkParams();
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) stopVersePolling();
-                else startVersePolling();
+                else {
+                    startVersePolling();
+                    refreshNotificationPollingMode();
+                }
             });
             const verseContainer = document.querySelector('.verse-container');
             if (verseContainer) {
@@ -6596,6 +6768,461 @@
         function initServiceWorker() {
             if (!('serviceWorker' in navigator)) return;
             navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+        }
+
+        function updateRealtimeStatusPill() {
+            const pill = document.getElementById('realtimeStatusPill');
+            if (!pill) return;
+            if (realtimeConnected) {
+                pill.classList.add('online');
+                pill.textContent = serverI18nCatalog.realtimeStatusLive || 'Live updates connected';
+            } else {
+                pill.classList.remove('online');
+                pill.textContent = serverI18nCatalog.realtimeStatusOffline || 'Live updates reconnecting';
+            }
+        }
+
+        function handleRealtimePacket(packet) {
+            if (!packet || typeof packet !== 'object') return;
+            const eventName = String(packet.event || '').toLowerCase();
+            realtimeLastEventAt = Date.now();
+            if (eventName === 'heartbeat' || eventName === 'hello') return;
+            if (eventName.startsWith('dm_')) {
+                if (currentCommentsView === 'dm') {
+                    loadDmThreads(true);
+                    loadDmMessages(true);
+                }
+                pollNotifications(true);
+                return;
+            }
+            if (eventName.includes('community')) {
+                if (currentCommentsView === 'community') loadCommunityMessages(true);
+                pollNotifications(true);
+                return;
+            }
+            if (eventName.includes('comment') || eventName.includes('reply') || eventName.includes('reaction')) {
+                if (currentCommentsView === 'verse') loadComments(true);
+                if (currentCommentsView === 'community') loadCommunityMessages(true);
+                return;
+            }
+            if (eventName.includes('group_prayer')) {
+                if (growthSelectedGroupId) loadGrowthPrayers(growthSelectedGroupId, true);
+                return;
+            }
+            if (eventName.includes('pod')) {
+                if (growthSelectedPodId) loadReadingPodBoard(growthSelectedPodId, true);
+                return;
+            }
+            if (eventName === 'notification_new') {
+                pollNotifications(true);
+            }
+        }
+
+        function connectRealtimeStream() {
+            if (typeof EventSource === 'undefined') return;
+            if (realtimeSource) {
+                try { realtimeSource.close(); } catch (_) {}
+                realtimeSource = null;
+            }
+            const source = new EventSource('/api/realtime/stream');
+            realtimeSource = source;
+            source.onopen = () => {
+                realtimeConnected = true;
+                realtimeLastEventAt = Date.now();
+                updateRealtimeStatusPill();
+                refreshNotificationPollingMode();
+            };
+            source.onmessage = (ev) => {
+                try {
+                    const packet = JSON.parse(ev.data || '{}');
+                    handleRealtimePacket(packet);
+                } catch (_) {}
+            };
+            source.onerror = () => {
+                realtimeConnected = false;
+                updateRealtimeStatusPill();
+                refreshNotificationPollingMode();
+            };
+        }
+
+        function reconnectRealtime() {
+            connectRealtimeStream();
+            showToast('Reconnecting live updates...');
+        }
+
+        async function loadServerI18nCatalog(lang = null) {
+            const targetLang = (lang || settings.language || 'en').trim().toLowerCase();
+            try {
+                const res = await fetch(`/api/i18n/catalog?lang=${encodeURIComponent(targetLang)}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) return;
+                serverI18nCatalog = data.catalog || {};
+                updateRealtimeStatusPill();
+            } catch (_) {}
+        }
+
+        async function loadNotificationPreferences(force = false) {
+            if (!force && notificationPrefsCache) return;
+            try {
+                const res = await fetch('/api/notifications/preferences', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) return;
+                const p = data.preferences || {};
+                notificationPrefsCache = p;
+                const dm = document.getElementById('notifPrefDM');
+                const comm = document.getElementById('notifPrefCommunity');
+                const rep = document.getElementById('notifPrefReports');
+                const sys = document.getElementById('notifPrefSystem');
+                const digest = document.getElementById('notifDigestMode');
+                if (dm) dm.checked = !!p.dm_enabled;
+                if (comm) comm.checked = !!p.community_enabled;
+                if (rep) rep.checked = !!p.reports_enabled;
+                if (sys) sys.checked = !!p.system_enabled;
+                if (digest) digest.value = p.digest_mode || 'instant';
+            } catch (_) {}
+        }
+
+        async function saveNotificationPreferences() {
+            const body = {
+                dm_enabled: !!document.getElementById('notifPrefDM')?.checked,
+                community_enabled: !!document.getElementById('notifPrefCommunity')?.checked,
+                reports_enabled: !!document.getElementById('notifPrefReports')?.checked,
+                system_enabled: !!document.getElementById('notifPrefSystem')?.checked,
+                digest_mode: (document.getElementById('notifDigestMode')?.value || 'instant')
+            };
+            try {
+                const res = await fetch('/api/notifications/preferences', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Save failed');
+                    return;
+                }
+                notificationPrefsCache = data.preferences || body;
+                showToast('Notification preferences saved');
+            } catch (_) {
+                showToast('Save failed');
+            }
+        }
+
+        async function loadGrowthGroups(force = false) {
+            if (!force && growthGroupsCache.length) return;
+            const list = document.getElementById('growthGroupsList');
+            if (!list) return;
+            try {
+                const res = await fetch('/api/groups', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    list.innerHTML = `<div class="growth-row">${escapeHtml(data.error || 'Failed to load groups')}</div>`;
+                    return;
+                }
+                growthGroupsCache = Array.isArray(data.groups) ? data.groups : [];
+                if (growthSelectedGroupId && !growthGroupsCache.some(g => Number(g.id) === Number(growthSelectedGroupId))) {
+                    growthSelectedGroupId = null;
+                }
+                list.innerHTML = growthGroupsCache.map(g => {
+                    const active = Number(g.id) === Number(growthSelectedGroupId);
+                    return `<div class="growth-row" style="${active ? 'border-color:rgba(48,209,88,0.45);' : ''}">
+                        <div><strong>${escapeHtml(g.name || 'Group')}</strong> ${g.is_member ? '' : '<span style="color:#ffcf88;">(not joined)</span>'}</div>
+                        <div style="display:flex; gap:6px; margin-top:4px;">
+                            <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="selectGrowthGroup(${g.id})">Open</button>
+                            ${g.is_member ? '' : `<button class="btn btn-primary" style="padding:4px 8px;font-size:11px;" onclick="joinGrowthGroup(${g.id})">Join</button>`}
+                        </div>
+                    </div>`;
+                }).join('') || '<div class="growth-row">No groups yet.</div>';
+            } catch (_) {
+                list.innerHTML = '<div class="growth-row">Failed to load groups.</div>';
+            }
+        }
+
+        async function createGrowthGroup() {
+            const input = document.getElementById('newGroupName');
+            const name = (input?.value || '').trim();
+            if (name.length < 2) return showToast('Group name too short');
+            try {
+                const res = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Create failed');
+                    return;
+                }
+                if (input) input.value = '';
+                growthSelectedGroupId = data.group_id || null;
+                await loadGrowthGroups(true);
+                if (growthSelectedGroupId) loadGrowthPrayers(growthSelectedGroupId, true);
+                showToast('Group created');
+            } catch (_) {
+                showToast('Create failed');
+            }
+        }
+
+        async function joinGrowthGroup(groupId) {
+            try {
+                const res = await fetch(`/api/groups/${groupId}/join`, { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Join failed');
+                    return;
+                }
+                growthSelectedGroupId = groupId;
+                await loadGrowthGroups(true);
+                await loadGrowthPrayers(groupId, true);
+                showToast('Joined group');
+            } catch (_) {
+                showToast('Join failed');
+            }
+        }
+
+        function selectGrowthGroup(groupId) {
+            growthSelectedGroupId = groupId;
+            loadGrowthGroups(true);
+            loadGrowthPrayers(groupId, true);
+        }
+
+        async function loadGrowthPrayers(groupId, force = false) {
+            const list = document.getElementById('growthPrayersList');
+            if (!list || !groupId) return;
+            if (force) list.innerHTML = '<div class="growth-row">Loading prayers...</div>';
+            try {
+                const res = await fetch(`/api/groups/${groupId}/prayers`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    list.innerHTML = `<div class="growth-row">${escapeHtml(data.error || 'Failed to load prayers')}</div>`;
+                    return;
+                }
+                const rows = Array.isArray(data.prayers) ? data.prayers : [];
+                list.innerHTML = rows.map(p => {
+                    const replies = Array.isArray(p.replies) ? p.replies : [];
+                    return `<div class="growth-row">
+                        <div><strong>${escapeHtml(p.title || 'Prayer')}</strong> <span style="color:#9af0b8;text-transform:uppercase;font-size:10px;">${escapeHtml(p.status || 'open')}</span></div>
+                        <div style="margin-top:2px;">${escapeHtml((p.request_text || '').slice(0, 220))}</div>
+                        <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">
+                            <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="replyGrowthPrayer(${p.id})">Reply</button>
+                            <button class="btn btn-warning" style="padding:4px 8px;font-size:11px;" onclick="setGrowthPrayerStatus(${p.id}, '${p.status === 'answered' ? 'open' : 'answered'}')">${p.status === 'answered' ? 'Reopen' : 'Mark Answered'}</button>
+                        </div>
+                        ${replies.length ? `<div style="margin-top:5px;color:var(--text-tertiary);font-size:11px;">Replies: ${replies.length}</div>` : ''}
+                    </div>`;
+                }).join('') || '<div class="growth-row">No prayers yet.</div>';
+            } catch (_) {
+                list.innerHTML = '<div class="growth-row">Failed to load prayers.</div>';
+            }
+        }
+
+        async function postGrowthPrayer() {
+            if (!growthSelectedGroupId) return showToast('Select a group first');
+            const title = (document.getElementById('growthPrayerTitle')?.value || '').trim();
+            const requestText = (document.getElementById('growthPrayerText')?.value || '').trim();
+            if (title.length < 2 || requestText.length < 2) return showToast('Title and prayer text required');
+            try {
+                const res = await fetch(`/api/groups/${growthSelectedGroupId}/prayers`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ title, request_text: requestText })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.message || data.error || 'Post failed');
+                    return;
+                }
+                const t = document.getElementById('growthPrayerTitle');
+                const r = document.getElementById('growthPrayerText');
+                if (t) t.value = '';
+                if (r) r.value = '';
+                await loadGrowthPrayers(growthSelectedGroupId, true);
+                showToast('Prayer posted');
+            } catch (_) {
+                showToast('Post failed');
+            }
+        }
+
+        async function replyGrowthPrayer(prayerId) {
+            const text = prompt('Reply text:', '') || '';
+            const trimmed = text.trim();
+            if (trimmed.length < 2) return;
+            try {
+                const res = await fetch(`/api/prayers/${prayerId}/reply`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text: trimmed })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Reply failed');
+                    return;
+                }
+                if (growthSelectedGroupId) await loadGrowthPrayers(growthSelectedGroupId, true);
+                showToast('Reply posted');
+            } catch (_) {
+                showToast('Reply failed');
+            }
+        }
+
+        async function setGrowthPrayerStatus(prayerId, status) {
+            try {
+                const res = await fetch(`/api/prayers/${prayerId}/status`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Update failed');
+                    return;
+                }
+                if (growthSelectedGroupId) await loadGrowthPrayers(growthSelectedGroupId, true);
+                showToast('Prayer updated');
+            } catch (_) {
+                showToast('Update failed');
+            }
+        }
+
+        async function loadReadingPods(force = false) {
+            if (!force && growthPodsCache.length) return;
+            const list = document.getElementById('growthPodsList');
+            if (!list) return;
+            try {
+                const res = await fetch('/api/reading-pods', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    list.innerHTML = `<div class="growth-row">${escapeHtml(data.error || 'Failed to load pods')}</div>`;
+                    return;
+                }
+                growthPodsCache = Array.isArray(data.pods) ? data.pods : [];
+                if (growthSelectedPodId && !growthPodsCache.some(p => Number(p.id) === Number(growthSelectedPodId))) {
+                    growthSelectedPodId = null;
+                }
+                list.innerHTML = growthPodsCache.map(p => {
+                    const active = Number(p.id) === Number(growthSelectedPodId);
+                    return `<div class="growth-row" style="${active ? 'border-color:rgba(48,209,88,0.45);' : ''}">
+                        <div><strong>${escapeHtml(p.name || 'Pod')}</strong> • ${escapeHtml(String(p.member_count || 0))} members</div>
+                        <div style="display:flex; gap:6px; margin-top:4px;">
+                            <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="selectReadingPod(${p.id})">Open</button>
+                            ${p.is_member ? '' : `<button class="btn btn-primary" style="padding:4px 8px;font-size:11px;" onclick="joinReadingPod(${p.id})">Join</button>`}
+                        </div>
+                    </div>`;
+                }).join('') || '<div class="growth-row">No pods yet.</div>';
+            } catch (_) {
+                list.innerHTML = '<div class="growth-row">Failed to load pods.</div>';
+            }
+        }
+
+        async function createReadingPod() {
+            const input = document.getElementById('newPodName');
+            const name = (input?.value || '').trim();
+            if (name.length < 2) return showToast('Pod name too short');
+            try {
+                const res = await fetch('/api/reading-pods', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Create failed');
+                    return;
+                }
+                if (input) input.value = '';
+                growthSelectedPodId = data.pod_id || null;
+                await loadReadingPods(true);
+                if (growthSelectedPodId) loadReadingPodBoard(growthSelectedPodId, true);
+                showToast('Pod created');
+            } catch (_) {
+                showToast('Create failed');
+            }
+        }
+
+        async function joinReadingPod(podId) {
+            try {
+                const res = await fetch(`/api/reading-pods/${podId}/join`, { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Join failed');
+                    return;
+                }
+                growthSelectedPodId = podId;
+                await loadReadingPods(true);
+                await loadReadingPodBoard(podId, true);
+                showToast('Joined pod');
+            } catch (_) {
+                showToast('Join failed');
+            }
+        }
+
+        function selectReadingPod(podId) {
+            growthSelectedPodId = podId;
+            loadReadingPods(true);
+            loadReadingPodBoard(podId, true);
+        }
+
+        async function checkinReadingPod() {
+            if (!growthSelectedPodId) return showToast('Select a pod first');
+            const day = parseInt((document.getElementById('podCheckinDay')?.value || '').trim(), 10);
+            if (!Number.isFinite(day) || day <= 0) return showToast('Enter a valid day number');
+            try {
+                const res = await fetch(`/api/reading-pods/${growthSelectedPodId}/checkin`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ day_number: day })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Check-in failed');
+                    return;
+                }
+                await loadReadingPodBoard(growthSelectedPodId, true);
+                showToast('Check-in saved');
+            } catch (_) {
+                showToast('Check-in failed');
+            }
+        }
+
+        async function loadReadingPodBoard(podId, force = false) {
+            const list = document.getElementById('growthPodBoard');
+            if (!list || !podId) return;
+            if (force) list.innerHTML = '<div class="growth-row">Loading leaderboard...</div>';
+            try {
+                const res = await fetch(`/api/reading-pods/${podId}/leaderboard`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    list.innerHTML = `<div class="growth-row">${escapeHtml(data.error || 'Failed to load leaderboard')}</div>`;
+                    return;
+                }
+                const rows = Array.isArray(data.leaderboard) ? data.leaderboard : [];
+                list.innerHTML = rows.map((u, idx) => `<div class="growth-row">#${idx + 1} <strong>${escapeHtml(u.user_name || 'User')}</strong> • Score ${escapeHtml(String(u.progress_score || 0))} • Streak ${escapeHtml(String(u.streak || 0))}</div>`).join('') || '<div class="growth-row">No check-ins yet.</div>';
+            } catch (_) {
+                list.innerHTML = '<div class="growth-row">Failed to load leaderboard.</div>';
+            }
+        }
+
+        async function runSemanticSearch() {
+            const input = document.getElementById('semanticSearchInput');
+            const box = document.getElementById('semanticSearchResults');
+            const q = (input?.value || '').trim();
+            if (!box) return;
+            if (q.length < 2) {
+                box.innerHTML = '<div class="growth-row">Enter at least 2 characters.</div>';
+                return;
+            }
+            box.innerHTML = '<div class="growth-row">Searching...</div>';
+            try {
+                const res = await fetch(`/api/search/semantic?q=${encodeURIComponent(q)}&limit=40`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    box.innerHTML = `<div class="growth-row">${escapeHtml(data.error || 'Search failed')}</div>`;
+                    return;
+                }
+                const rows = Array.isArray(data.results) ? data.results : [];
+                box.innerHTML = rows.map(r => `<div class="growth-row"><strong>${escapeHtml(r.ref || 'Verse')}</strong><div style="margin-top:2px;">${escapeHtml((r.text || '').slice(0, 200))}</div><div style="margin-top:3px;color:var(--text-tertiary);">score ${escapeHtml(String((r.score || 0).toFixed ? r.score.toFixed(3) : r.score || 0))}</div></div>`).join('') || '<div class="growth-row">No semantic matches found.</div>';
+            } catch (_) {
+                box.innerHTML = '<div class="growth-row">Search failed.</div>';
+            }
         }
 
         function setupTextarea(id) {
@@ -6991,7 +7618,9 @@
             } catch (_) {}
         }
 
-        async function pollNotifications() {
+        async function pollNotifications(force = false) {
+            if (!force && document.hidden) return;
+            if (!force && isRealtimeFresh()) return;
             try {
                 const res = await fetch('/api/notifications');
                 if (!res.ok) return;
@@ -7060,7 +7689,7 @@
         async function markNotificationsRead() {
             try {
                 await fetch('/api/notifications/read', { method: 'POST' });
-                pollNotifications();
+                pollNotifications(true);
             } catch (_) {}
         }
 
@@ -12512,18 +13141,19 @@ async function checkAchievement(type, value) {
             commentsRefreshInterval = setInterval(() => {
                 if (currentTab !== 'comments' || document.hidden) return;
                 const now = Date.now();
+                const realtimeFresh = isRealtimeFresh();
                 if (!isCommentsInputActive()) {
                     if (currentCommentsView === 'community') {
-                        if ((now - lastCommunityPollAt) >= COMMUNITY_POLL_INTERVAL_MS) {
+                        if (!realtimeFresh && (now - lastCommunityPollAt) >= COMMUNITY_POLL_INTERVAL_MS) {
                             lastCommunityPollAt = now;
                             loadCommunityMessages();
                         }
                     } else if (currentCommentsView === 'dm') {
-                        if ((now - lastDmThreadsPollAt) >= DM_THREADS_POLL_INTERVAL_MS) {
+                        if (!realtimeFresh && (now - lastDmThreadsPollAt) >= DM_THREADS_POLL_INTERVAL_MS) {
                             lastDmThreadsPollAt = now;
                             loadDmThreads();
                         }
-                        if (dmSelectedUserId && (now - lastDmMessagesPollAt) >= DM_MESSAGES_POLL_INTERVAL_MS) {
+                        if (!realtimeFresh && dmSelectedUserId && (now - lastDmMessagesPollAt) >= DM_MESSAGES_POLL_INTERVAL_MS) {
                             lastDmMessagesPollAt = now;
                             loadDmMessages();
                         }
@@ -12531,7 +13161,7 @@ async function checkAchievement(type, value) {
                             lastDmTypingPollAt = now;
                             updateDmTyping();
                         }
-                    } else if ((now - lastVerseCommentsPollAt) >= COMMENTS_POLL_INTERVAL_MS) {
+                    } else if (!realtimeFresh && (now - lastVerseCommentsPollAt) >= COMMENTS_POLL_INTERVAL_MS) {
                         lastVerseCommentsPollAt = now;
                         loadComments();
                     }
@@ -12549,9 +13179,6 @@ async function checkAchievement(type, value) {
                 commentsRefreshInterval = null;
             }
         }
-
-        // Simulate online users updating
-        setInterval(updateOnlineUsers, 30000);
 
         const UI_LANGUAGE_BASE = {
             settings: 'Settings',
@@ -12787,6 +13414,30 @@ async function checkAchievement(type, value) {
             return nodes;
         }
 
+        function collectTranslatableNodesWithin(rootNode) {
+            if (!rootNode) return [];
+            if (rootNode.nodeType === Node.TEXT_NODE) return [rootNode];
+            if (rootNode.nodeType !== Node.ELEMENT_NODE) return [];
+            const nodes = [];
+            const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    const parent = node.parentElement;
+                    if (!parent) return NodeFilter.FILTER_REJECT;
+                    if (parent.closest('script,style,noscript,svg')) return NodeFilter.FILTER_REJECT;
+                    if (parent.closest('[data-no-auto-translate="1"]')) return NodeFilter.FILTER_REJECT;
+                    const raw = node.nodeValue || '';
+                    const trimmed = raw.trim();
+                    if (!trimmed) return NodeFilter.FILTER_REJECT;
+                    if (/^[\d\s.,:/()+\-_%]+$/.test(trimmed)) return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
+            }
+            return nodes;
+        }
+
         function collectTranslatableAttrs() {
             const root = document.body;
             if (!root) return [];
@@ -12826,14 +13477,25 @@ async function checkAchievement(type, value) {
             });
         }
 
-        async function translateUiText(text, targetLang) {
+        function translateUiTextFromCache(text, targetLang) {
             const source = String(text || '');
             const trimmed = source.trim();
+            if (!trimmed || targetLang === 'en') return source;
+            const cacheKey = `${targetLang}::${trimmed}`;
+            if (!UI_AUTO_TRANSLATE_CACHE[cacheKey]) return source;
+            return source.replace(trimmed, UI_AUTO_TRANSLATE_CACHE[cacheKey]);
+        }
+
+        async function translateUiText(text, targetLang, options = {}) {
+            const source = String(text || '');
+            const trimmed = source.trim();
+            const cacheOnly = !!options.cacheOnly;
             if (!trimmed || targetLang === 'en') return source;
             const cacheKey = `${targetLang}::${trimmed}`;
             if (UI_AUTO_TRANSLATE_CACHE[cacheKey]) {
                 return source.replace(trimmed, UI_AUTO_TRANSLATE_CACHE[cacheKey]);
             }
+            if (cacheOnly) return source;
             if (trimmed.length > 1200) return source;
             if (UI_AUTO_TRANSLATE_PENDING.has(cacheKey)) {
                 try {
@@ -12917,6 +13579,28 @@ async function checkAchievement(type, value) {
             }
         }
 
+        function applyCachedUiTranslations(lang, revision) {
+            if (revision !== languageRevision) return;
+            const targetLang = UI_TRANSLATE_CODES[lang] || 'en';
+            if (targetLang === 'en') {
+                restoreUiLanguageBase();
+                return;
+            }
+            const nodes = collectTranslatableNodes();
+            const attrs = collectTranslatableAttrs();
+            nodes.forEach((node) => {
+                if (!node || !node.isConnected) return;
+                const base = node.__i18nBaseText !== undefined ? node.__i18nBaseText : node.nodeValue;
+                const translated = translateUiTextFromCache(base, targetLang);
+                if (translated && node.nodeValue !== translated) node.nodeValue = translated;
+            });
+            attrs.forEach((entry) => {
+                if (!entry.el || !entry.el.isConnected) return;
+                const translated = translateUiTextFromCache(entry.base, targetLang);
+                if (translated) entry.el.setAttribute(entry.attr, translated);
+            });
+        }
+
         function setupLanguageObserver() {
             if (languageObserver || !document.body) return;
             languageObserver = new MutationObserver((mutations) => {
@@ -12927,11 +13611,17 @@ async function checkAchievement(type, value) {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === Node.TEXT_NODE) {
                             prepareNodeForTranslation(node);
-                        } else if (node.nodeType === Node.ELEMENT_NODE) {
-                            node.querySelectorAll('textarea,input,span,div,p').forEach(prepareNodeForTranslation);
                             addedSomething = true;
+                        } else if (node.nodeType === Node.ELEMENT_NODE) {
+                            const newNodes = collectTranslatableNodesWithin(node);
+                            newNodes.forEach(prepareNodeForTranslation);
+                            if (newNodes.length) addedSomething = true;
                         }
                     });
+                    if (mutation.type === 'characterData' && mutation.target?.nodeType === Node.TEXT_NODE) {
+                        prepareNodeForTranslation(mutation.target);
+                        addedSomething = true;
+                    }
                     if (mutation.target && mutation.type === 'attributes') {
                         const attr = mutation.attributeName;
                         if (['placeholder','title','aria-label'].includes(attr)) {
@@ -12939,6 +13629,7 @@ async function checkAchievement(type, value) {
                             if (!el.dataset[`i18n${attr.charAt(0).toUpperCase() + attr.slice(1)}Base`]) {
                                 el.dataset[`i18n${attr.charAt(0).toUpperCase() + attr.slice(1)}Base`] = el.getAttribute(attr) || '';
                             }
+                            addedSomething = true;
                         }
                     }
                 });
@@ -13071,15 +13762,27 @@ async function checkAchievement(type, value) {
             if (typeof rerenderLibraryForLanguage === 'function') {
                 rerenderLibraryForLanguage();
             }
+            if (typeof updateRealtimeStatusPill === 'function') {
+                updateRealtimeStatusPill();
+            }
 
             setupLanguageObserver();
             languageRevision += 1;
-            autoTranslateUi(lang, languageRevision);
+            const revision = languageRevision;
+            applyCachedUiTranslations(lang, revision);
+            if (lang !== 'en') {
+                if (typeof window.requestIdleCallback === 'function') {
+                    window.requestIdleCallback(() => autoTranslateUi(lang, revision), { timeout: 300 });
+                } else {
+                    setTimeout(() => autoTranslateUi(lang, revision), 0);
+                }
+            }
         }
 
-        function changeLanguage(lang) {
+        async function changeLanguage(lang) {
             settings.language = UI_LANGUAGE_PACKS[lang] ? lang : 'en';
             applyLanguage();
+            await loadServerI18nCatalog(settings.language);
             saveSettings();
             showToast(`Language: ${settings.language.toUpperCase()}`);
         }
@@ -13089,6 +13792,10 @@ async function checkAchievement(type, value) {
             document.getElementById('settingsModal').classList.add('active');
             loadSafetyManager();
             loadMySafetyReports();
+            loadNotificationPreferences();
+            loadGrowthGroups();
+            loadReadingPods();
+            updateRealtimeStatusPill();
             AudioSys.playModal();
         }
 

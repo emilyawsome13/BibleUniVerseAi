@@ -23,12 +23,12 @@ ROLE_CODES = {
 
 # Permissions by role
 ROLE_PERMISSIONS = {
-    'host': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'view_reports', 'manage_user_safety'],
-    'mod': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments', 'view_reports', 'manage_reports', 'manage_user_safety'],
+    'host': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'view_reports', 'manage_user_safety', 'view_moderation'],
+    'mod': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments', 'view_reports', 'manage_reports', 'manage_user_safety', 'view_moderation', 'manage_moderation'],
     'co_owner': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments', 
-                 'change_roles', 'view_settings', 'manage_xp', 'view_reports', 'manage_reports', 'manage_user_safety'],
+                 'change_roles', 'view_settings', 'manage_xp', 'view_reports', 'manage_reports', 'manage_user_safety', 'view_moderation', 'manage_moderation'],
     'owner': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments',
-              'change_roles', 'view_settings', 'edit_settings', 'manage_xp', 'full_access', 'view_reports', 'manage_reports', 'manage_user_safety']
+              'change_roles', 'view_settings', 'edit_settings', 'manage_xp', 'full_access', 'view_reports', 'manage_reports', 'manage_user_safety', 'view_moderation', 'manage_moderation']
 }
 
 def get_db():
@@ -1643,6 +1643,181 @@ def admin_unmute_user_safety(user_id):
         except Exception:
             pass
         return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/api/moderation/queue')
+@admin_required
+@require_permission('view_moderation')
+def moderation_queue():
+    conn = None
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        from app import ensure_growth_feature_tables
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+
+        status = str(request.args.get('status') or 'open').strip().lower()
+        limit = min(500, max(1, int(request.args.get('limit') or 200)))
+        min_score = float(request.args.get('min_score') or 0)
+
+        if db_type == 'postgres':
+            if status == 'all':
+                c.execute(f"""
+                    SELECT e.id, e.user_id, e.source, e.event_type, e.score, e.meta_json, e.status, e.created_at,
+                           u.name, u.email
+                    FROM moderation_events e
+                    LEFT JOIN users u ON u.id = e.user_id
+                    WHERE COALESCE(e.score, 0) >= %s
+                    ORDER BY e.created_at DESC NULLS LAST, e.id DESC
+                    LIMIT {limit}
+                """, (min_score,))
+            else:
+                c.execute(f"""
+                    SELECT e.id, e.user_id, e.source, e.event_type, e.score, e.meta_json, e.status, e.created_at,
+                           u.name, u.email
+                    FROM moderation_events e
+                    LEFT JOIN users u ON u.id = e.user_id
+                    WHERE e.status = %s AND COALESCE(e.score, 0) >= %s
+                    ORDER BY e.created_at DESC NULLS LAST, e.id DESC
+                    LIMIT {limit}
+                """, (status, min_score))
+        else:
+            if status == 'all':
+                c.execute(f"""
+                    SELECT e.id, e.user_id, e.source, e.event_type, e.score, e.meta_json, e.status, e.created_at,
+                           u.name, u.email
+                    FROM moderation_events e
+                    LEFT JOIN users u ON u.id = e.user_id
+                    WHERE COALESCE(e.score, 0) >= ?
+                    ORDER BY e.created_at DESC, e.id DESC
+                    LIMIT {limit}
+                """, (min_score,))
+            else:
+                c.execute(f"""
+                    SELECT e.id, e.user_id, e.source, e.event_type, e.score, e.meta_json, e.status, e.created_at,
+                           u.name, u.email
+                    FROM moderation_events e
+                    LEFT JOIN users u ON u.id = e.user_id
+                    WHERE e.status = ? AND COALESCE(e.score, 0) >= ?
+                    ORDER BY e.created_at DESC, e.id DESC
+                    LIMIT {limit}
+                """, (status, min_score))
+
+        rows = c.fetchall()
+        events = []
+        for row in rows:
+            row = _row_to_dict(row)
+            if hasattr(row, 'keys'):
+                meta_raw = row.get('meta_json')
+                try:
+                    meta = json.loads(meta_raw) if isinstance(meta_raw, str) and meta_raw else (meta_raw or {})
+                except Exception:
+                    meta = {}
+                events.append({
+                    "id": row.get('id'),
+                    "user_id": row.get('user_id'),
+                    "source": row.get('source') or '',
+                    "event_type": row.get('event_type') or '',
+                    "score": float(row.get('score') or 0),
+                    "meta": meta,
+                    "status": row.get('status') or 'open',
+                    "created_at": row.get('created_at'),
+                    "user_name": row.get('name') or '',
+                    "user_email": row.get('email') or ''
+                })
+            else:
+                meta_raw = row[5] if len(row) > 5 else None
+                try:
+                    meta = json.loads(meta_raw) if isinstance(meta_raw, str) and meta_raw else {}
+                except Exception:
+                    meta = {}
+                events.append({
+                    "id": row[0] if len(row) > 0 else None,
+                    "user_id": row[1] if len(row) > 1 else None,
+                    "source": row[2] if len(row) > 2 and row[2] else '',
+                    "event_type": row[3] if len(row) > 3 and row[3] else '',
+                    "score": float(row[4] or 0) if len(row) > 4 else 0.0,
+                    "meta": meta,
+                    "status": row[6] if len(row) > 6 and row[6] else 'open',
+                    "created_at": row[7] if len(row) > 7 else None,
+                    "user_name": row[8] if len(row) > 8 and row[8] else '',
+                    "user_email": row[9] if len(row) > 9 and row[9] else ''
+                })
+        return jsonify({"events": events, "count": len(events)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+@admin_bp.route('/api/moderation/action', methods=['POST'])
+@admin_required
+@require_permission('manage_moderation')
+def moderation_action():
+    conn = None
+    data = request.get_json(silent=True) or {}
+    action = str(data.get('action') or '').strip().lower()
+    target_user_id = data.get('target_user_id')
+    reason = str(data.get('reason') or '').strip()[:400]
+    event_ids = data.get('event_ids') if isinstance(data.get('event_ids'), list) else []
+    if action not in ('mark_reviewed', 'dismiss', 'escalate', 'note'):
+        return jsonify({"error": "Invalid action"}), 400
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        from app import ensure_growth_feature_tables
+        ensure_growth_feature_tables(c, db_type)
+        conn.commit()
+
+        now_iso = datetime.now().isoformat()
+        created_by = str(session.get('admin_role') or 'admin')
+        target_val = int(target_user_id) if str(target_user_id or '').isdigit() else None
+        meta_payload = json.dumps({"event_ids": event_ids})
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO moderation_actions (target_user_id, action, reason, created_by, created_at, meta_json)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (target_val, action, reason, created_by, now_iso, meta_payload))
+        else:
+            c.execute("""
+                INSERT INTO moderation_actions (target_user_id, action, reason, created_by, created_at, meta_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (target_val, action, reason, created_by, now_iso, meta_payload))
+
+        next_status = 'resolved' if action in ('mark_reviewed', 'dismiss') else 'open'
+        ids = [int(i) for i in event_ids if str(i).isdigit()]
+        if ids:
+            if db_type == 'postgres':
+                placeholders = ",".join(["%s"] * len(ids))
+                c.execute(f"UPDATE moderation_events SET status = %s WHERE id IN ({placeholders})", tuple([next_status] + ids))
+            else:
+                placeholders = ",".join(["?"] * len(ids))
+                c.execute(f"UPDATE moderation_events SET status = ? WHERE id IN ({placeholders})", tuple([next_status] + ids))
+        conn.commit()
+        log_action(
+            "MODERATION_ACTION",
+            details=f"{action} moderation items",
+            target_user_id=target_val,
+            status="success",
+            extras={"action": action, "event_ids": ids, "reason": reason, "module": "moderation"}
+        )
+        return jsonify({"success": True, "updated_events": len(ids)})
+    except Exception as e:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 @admin_bp.route('/api/users/<int:user_id>/restrict', methods=['POST'])
 @admin_required
