@@ -493,6 +493,45 @@ def _mark_schema_ready(db_type, name):
     with _SCHEMA_READY_LOCK:
         _SCHEMA_READY_FLAGS.add(token)
 
+def _clear_schema_ready(db_type, name):
+    token = _schema_ready_token(db_type, name)
+    with _SCHEMA_READY_LOCK:
+        _SCHEMA_READY_FLAGS.discard(token)
+
+def _is_schema_ready_with_table(c, db_type, name, required_table):
+    if not _is_schema_ready(db_type, name):
+        return False
+    if _table_exists(c, db_type, required_table):
+        return True
+    # Schema-ready flags are process-local; if a transaction rolled back after setting
+    # the flag, we can end up with a stale true value. Clear and rebuild.
+    _clear_schema_ready(db_type, name)
+    return False
+
+def _execute_optional_ddl(c, db_type, sql, params=None, savepoint="sp_opt"):
+    params = params or ()
+    if db_type == 'postgres':
+        try:
+            c.execute(f"SAVEPOINT {savepoint}")
+            c.execute(sql, params)
+            c.execute(f"RELEASE SAVEPOINT {savepoint}")
+            return True
+        except Exception:
+            try:
+                c.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+            except Exception:
+                pass
+            try:
+                c.execute(f"RELEASE SAVEPOINT {savepoint}")
+            except Exception:
+                pass
+            return False
+    try:
+        c.execute(sql, params)
+        return True
+    except Exception:
+        return False
+
 def _tune_sqlite_connection(conn):
     global SQLITE_TUNING_APPLIED
     try:
@@ -709,7 +748,7 @@ def publish_realtime_event(user_ids, event_type, payload=None):
                         pass
 
 def ensure_growth_feature_tables(c, db_type):
-    if _is_schema_ready(db_type, "growth_features"):
+    if _is_schema_ready_with_table(c, db_type, "growth_features", "notification_preferences"):
         return
 
     if db_type == 'postgres':
@@ -995,7 +1034,7 @@ def get_notification_preferences(c, db_type, user_id, create_if_missing=True):
     }
 
 def ensure_notification_tables(c, db_type):
-    if _is_schema_ready(db_type, "notification_tables"):
+    if _is_schema_ready_with_table(c, db_type, "notification_tables", "user_notifications"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -1100,7 +1139,7 @@ def _semantic_score_verse(query_tokens, verse):
     return round((overlap * 0.75) + (similarity * 0.25), 6)
 
 def ensure_research_feature_tables(c, db_type):
-    if _is_schema_ready(db_type, "research_features"):
+    if _is_schema_ready_with_table(c, db_type, "research_features", "reading_plans"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -2624,7 +2663,7 @@ def get_hour_window():
     return start, start + timedelta(days=1)
 
 def ensure_daily_challenge_tables(c, db_type):
-    if _is_schema_ready(db_type, "daily_challenge"):
+    if _is_schema_ready_with_table(c, db_type, "daily_challenge", "daily_actions"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -2676,7 +2715,7 @@ def ensure_daily_challenge_tables(c, db_type):
     _mark_schema_ready(db_type, "daily_challenge")
 
 def ensure_achievement_tables(c, db_type):
-    if _is_schema_ready(db_type, "achievements"):
+    if _is_schema_ready_with_table(c, db_type, "achievements", "user_achievements"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -2756,7 +2795,7 @@ def record_daily_action(user_id, action, verse_id=None):
     now = datetime.now().isoformat()
 
     try:
-        schema_ready_before = _is_schema_ready(db_type, "daily_challenge")
+        schema_ready_before = _is_schema_ready_with_table(c, db_type, "daily_challenge", "daily_actions")
         ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("""
@@ -2806,7 +2845,7 @@ def log_action(admin_id, action, target_user_id=None, details=None):
 
 def ensure_comment_social_tables(c, db_type):
     """Ensure reactions/replies tables exist before use."""
-    if _is_schema_ready(db_type, "comment_social"):
+    if _is_schema_ready_with_table(c, db_type, "comment_social", "comment_reactions"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -2863,7 +2902,7 @@ def ensure_comment_social_tables(c, db_type):
 
 def ensure_dm_tables(c, db_type):
     """Ensure direct message tables exist before use."""
-    if _is_schema_ready(db_type, "dm"):
+    if _is_schema_ready_with_table(c, db_type, "dm", "direct_messages"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -2907,7 +2946,7 @@ def ensure_dm_tables(c, db_type):
     _mark_schema_ready(db_type, "dm")
 
 def ensure_community_pin_table(c, db_type):
-    if _is_schema_ready(db_type, "community_pins"):
+    if _is_schema_ready_with_table(c, db_type, "community_pins", "community_pins"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -3085,7 +3124,7 @@ def parse_optional_bool(value):
 
 def ensure_user_safety_tables(c, db_type):
     """Ensure block/mute/report tables exist before use."""
-    if _is_schema_ready(db_type, "user_safety"):
+    if _is_schema_ready_with_table(c, db_type, "user_safety", "user_blocks"):
         return
     if db_type == 'postgres':
         c.execute("""
@@ -3120,12 +3159,9 @@ def ensure_user_safety_tables(c, db_type):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        try:
-            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_by TEXT")
-            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP")
-            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS review_note TEXT")
-        except Exception:
-            pass
+        _execute_optional_ddl(c, db_type, "ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_by TEXT", savepoint="sp_user_safety_rb")
+        _execute_optional_ddl(c, db_type, "ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP", savepoint="sp_user_safety_ra")
+        _execute_optional_ddl(c, db_type, "ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS review_note TEXT", savepoint="sp_user_safety_rn")
     else:
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_blocks (
@@ -7688,7 +7724,7 @@ def get_daily_challenge():
     action = challenge.get('action', 'save')
 
     try:
-        schema_ready_before = _is_schema_ready(db_type, "daily_challenge")
+        schema_ready_before = _is_schema_ready_with_table(c, db_type, "daily_challenge", "daily_actions")
         ensure_daily_challenge_tables(c, db_type)
         if db_type == 'postgres':
             c.execute("""
@@ -7776,7 +7812,6 @@ def claim_daily_challenge():
     xp_reward = get_hourly_xp_reward(session['user_id'], period_key, challenge)
 
     try:
-        schema_ready_before = _is_schema_ready(db_type, "daily_challenge")
         ensure_daily_challenge_tables(c, db_type)
         if not schema_ready_before:
             conn.commit()
@@ -9014,7 +9049,7 @@ def notifications_preferences():
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     try:
-        growth_ready_before = _is_schema_ready(db_type, "growth_features")
+        growth_ready_before = _is_schema_ready_with_table(c, db_type, "growth_features", "notification_preferences")
         ensure_growth_feature_tables(c, db_type)
         if not growth_ready_before:
             conn.commit()
@@ -10766,6 +10801,10 @@ def get_comments(verse_id):
         return jsonify(comments)
     except Exception as e:
         logger.error(f"Get comments error: {e}")
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -12721,8 +12760,8 @@ def get_notifications():
     try:
         conn, db_type = get_db()
         c = get_cursor(conn, db_type)
-        notif_ready_before = _is_schema_ready(db_type, "notification_tables")
-        growth_ready_before = _is_schema_ready(db_type, "growth_features")
+        notif_ready_before = _is_schema_ready_with_table(c, db_type, "notification_tables", "user_notifications")
+        growth_ready_before = _is_schema_ready_with_table(c, db_type, "growth_features", "notification_preferences")
         ensure_notification_tables(c, db_type)
         ensure_growth_feature_tables(c, db_type)
         if (not notif_ready_before) or (not growth_ready_before):
