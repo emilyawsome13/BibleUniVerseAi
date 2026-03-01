@@ -236,12 +236,14 @@ _RATE_LIMIT_BUCKETS = {}
 _RATE_LIMIT_LOCK = threading.Lock()
 REALTIME_HEARTBEAT_SECONDS = max(2, min(10, int(os.environ.get('REALTIME_HEARTBEAT_SECONDS', '5'))))
 REALTIME_STREAM_MAX_SECONDS = max(8, min(28, int(os.environ.get('REALTIME_STREAM_MAX_SECONDS', '15'))))
+DISABLE_REALTIME_STREAM = str(os.environ.get('DISABLE_REALTIME_STREAM', '1')).strip().lower() in ('1', 'true', 'yes', 'on')
 _REALTIME_SUBSCRIBERS = {}
 _REALTIME_SUBSCRIBERS_LOCK = threading.Lock()
 logger.info(
-    "Realtime config heartbeat=%ss stream_max=%ss",
+    "Realtime config heartbeat=%ss stream_max=%ss disabled=%s",
     REALTIME_HEARTBEAT_SECONDS,
-    REALTIME_STREAM_MAX_SECONDS
+    REALTIME_STREAM_MAX_SECONDS,
+    DISABLE_REALTIME_STREAM
 )
 MOD_BLOCKLIST = [
     token.strip().lower()
@@ -3983,6 +3985,11 @@ class BibleGenerator:
         self.network_idx = 0
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0'})
+        # Hard-disabled by default to avoid noisy SSL/provider failures in production logs.
+        self.use_external_verse_apis = False
+        self.fetch_warning_cooldown = max(30, int(os.environ.get('VERSE_FETCH_WARNING_COOLDOWN_SECONDS', '600')))
+        self._last_fetch_issue_log_at = {}
+        self._last_fallback_log_at = 0.0
         
         # Start thread
         self.start_thread()
@@ -4036,53 +4043,93 @@ class BibleGenerator:
     
     def fetch_verse(self):
         """Fetch a new verse from API or use fallback"""
-        network = self.networks[self.network_idx]
         verse_data = None
+        now_ts = time.time()
 
-        last_error = None
-        for attempt in range(2):
-            try:
-                r = self.session.get(network["url"], timeout=10)
-                if r.status_code != 200:
-                    last_error = f"status={r.status_code}"
-                    continue
-                data = r.json()
-                if isinstance(data, list):
-                    data = data[0] if data else {}
-                    ref = f"{data.get('bookname', 'Unknown')} {data.get('chapter', '?')}:{data.get('verse', '?')}"
-                    text = str(data.get('text') or '').strip()
-                    trans = "WEB"
-                else:
-                    ref = str(data.get('reference', 'Unknown'))
-                    text = str(data.get('text', '')).strip()
-                    trans = str(data.get('translation_name', 'KJV'))
+        # Prefer using a locally stored verse first to avoid external SSL/network issues.
+        try:
+            conn, db_type = get_db()
+            c = get_cursor(conn, db_type)
+            if db_type == 'postgres':
+                c.execute("""
+                    SELECT reference, text, translation, source, book
+                    FROM verses
+                    WHERE COALESCE(text, '') <> ''
+                    ORDER BY RANDOM()
+                    LIMIT 1
+                """)
+            else:
+                c.execute("""
+                    SELECT reference, text, translation, source, book
+                    FROM verses
+                    WHERE COALESCE(text, '') <> ''
+                    ORDER BY RANDOM()
+                    LIMIT 1
+                """)
+            row = c.fetchone()
+            conn.close()
+            if row:
+                verse_data = {
+                    "ref": row_pick(row, 'reference', 0),
+                    "text": row_pick(row, 'text', 1),
+                    "trans": row_pick(row, 'translation', 2) or 'KJV',
+                    "source": row_pick(row, 'source', 3) or 'Local Pool',
+                    "book": row_pick(row, 'book', 4) or self.extract_book(row_pick(row, 'reference', 0))
+                }
+        except Exception:
+            verse_data = None
 
-                if text and ref:
-                    book = self.extract_book(ref)
-                    verse_data = {
-                        "ref": ref,
-                        "text": text,
-                        "trans": trans,
-                        "source": network["name"],
-                        "book": book
-                    }
-                    break
-                last_error = "empty_payload"
-            except requests.exceptions.RequestException as e:
-                last_error = str(e)
-            except Exception as e:
-                last_error = str(e)
-            time.sleep(0.2)
+        # Try external APIs only when explicitly enabled and local pool is empty.
+        if not verse_data and self.use_external_verse_apis:
+            network = self.networks[self.network_idx]
+            last_error = None
+            for _ in range(2):
+                try:
+                    r = self.session.get(network["url"], timeout=10)
+                    if r.status_code != 200:
+                        last_error = f"status={r.status_code}"
+                        continue
+                    data = r.json()
+                    if isinstance(data, list):
+                        data = data[0] if data else {}
+                        ref = f"{data.get('bookname', 'Unknown')} {data.get('chapter', '?')}:{data.get('verse', '?')}"
+                        text = str(data.get('text') or '').strip()
+                        trans = "WEB"
+                    else:
+                        ref = str(data.get('reference', 'Unknown'))
+                        text = str(data.get('text', '')).strip()
+                        trans = str(data.get('translation_name', 'KJV'))
 
-        if not verse_data and last_error:
-            logger.warning(f"Verse fetch issue from {network['name']}: {last_error}")
-        
-        # Rotate network for next time
-        self.network_idx = (self.network_idx + 1) % len(self.networks)
-        
+                    if text and ref:
+                        verse_data = {
+                            "ref": ref,
+                            "text": text,
+                            "trans": trans,
+                            "source": network["name"],
+                            "book": self.extract_book(ref)
+                        }
+                        break
+                    last_error = "empty_payload"
+                except requests.exceptions.RequestException as e:
+                    last_error = str(e)
+                except Exception as e:
+                    last_error = str(e)
+                time.sleep(0.2)
+
+            if not verse_data and last_error:
+                last_log = float(self._last_fetch_issue_log_at.get(network["name"], 0) or 0)
+                if (now_ts - last_log) >= self.fetch_warning_cooldown:
+                    logger.warning(f"Verse fetch issue from {network['name']}: {last_error}")
+                    self._last_fetch_issue_log_at[network["name"]] = now_ts
+
+            # Rotate network for next time
+            self.network_idx = (self.network_idx + 1) % len(self.networks)
+
         # If API failed, use fallback
         if not verse_data:
-            logger.warning("Using fallback verse")
+            if (now_ts - float(self._last_fallback_log_at or 0)) >= self.fetch_warning_cooldown:
+                logger.warning("Using fallback verse")
+                self._last_fallback_log_at = now_ts
             fallback = random.choice(self.fallback_verses)
             verse_data = {
                 "ref": fallback['ref'],
@@ -9135,6 +9182,9 @@ def _is_pod_member(c, db_type, pod_id, user_id):
 def realtime_stream():
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
+    if DISABLE_REALTIME_STREAM:
+        # Keep endpoint valid but disable long-lived streams that can trigger worker timeouts.
+        return Response(status=204)
     user_id = int(session['user_id'])
     mailbox = _realtime_subscribe(user_id)
 

@@ -6714,6 +6714,7 @@
         let realtimeErrorCount = 0;
         let realtimeReconnectTimer = null;
         let realtimePausedUntil = 0;
+        const REALTIME_STREAM_ENABLED = false;
         let notificationPrefsCache = null;
         let growthGroupsCache = [];
         let growthPodsCache = [];
@@ -7041,6 +7042,12 @@
         }
 
         function connectRealtimeStream() {
+            if (!REALTIME_STREAM_ENABLED) {
+                realtimeConnected = false;
+                updateRealtimeStatusPill();
+                refreshNotificationPollingMode();
+                return;
+            }
             if (typeof EventSource === 'undefined') return;
             if (Date.now() < realtimePausedUntil) return;
             if (realtimeReconnectTimer) {
