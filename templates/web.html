@@ -2076,6 +2076,59 @@
             border: 1px solid rgba(130, 160, 212, 0.28);
             border-radius: 13px;
             padding: 8px;
+            align-items: center;
+        }
+        .dm-search-row .dm-input {
+            min-width: 0;
+            margin: 0;
+        }
+        .dm-action-btn {
+            height: 40px;
+            border-radius: 11px;
+            border: 1px solid rgba(136, 171, 230, 0.36);
+            background: linear-gradient(145deg, rgba(26, 52, 99, 0.82), rgba(16, 36, 74, 0.84));
+            color: #eaf2ff;
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            white-space: nowrap;
+            box-shadow: 0 6px 14px rgba(5, 16, 38, 0.28);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .dm-action-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(157, 201, 255, 0.52);
+            box-shadow: 0 10px 18px rgba(12, 39, 86, 0.34);
+            filter: brightness(1.06);
+        }
+        .dm-action-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(12, 39, 86, 0.25);
+        }
+        .dm-action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            filter: none;
+            box-shadow: none;
+        }
+        .dm-action-btn-danger {
+            background: linear-gradient(145deg, rgba(110, 31, 45, 0.84), rgba(88, 23, 34, 0.88));
+            border-color: rgba(241, 106, 132, 0.36);
+            color: #ffdbe3;
+        }
+        .dm-action-btn-danger:hover {
+            border-color: rgba(255, 143, 163, 0.6);
+            box-shadow: 0 10px 18px rgba(90, 16, 33, 0.34);
+        }
+        .dm-send-btn {
+            min-width: 84px;
         }
         .dm-layout {
             grid-template-columns: 320px minmax(0, 1fr);
@@ -2368,6 +2421,64 @@
         .send-btn:hover {
             transform: scale(1.1);
             box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .clean-input-row {
+            background: rgba(6, 14, 28, 0.62);
+            border: 1px solid rgba(130, 160, 212, 0.28);
+            border-radius: 13px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .clean-input-row .comment-input {
+            background: rgba(4, 8, 16, 0.68);
+            border: 1px solid rgba(136, 171, 230, 0.34);
+            border-radius: 12px;
+            color: var(--text);
+            padding: 10px 11px;
+            font-size: 14px;
+            margin: 0;
+            min-height: 42px;
+            max-height: 140px;
+            line-height: 1.4;
+        }
+
+        .clean-input-row .comment-input:focus {
+            outline: none;
+            border-color: rgba(132, 200, 255, 0.6);
+            box-shadow: 0 0 0 2px rgba(76, 150, 255, 0.24);
+        }
+
+        .clean-input-row .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            font-size: 16px;
+            font-weight: 700;
+            transform: none;
+            box-shadow: 0 6px 14px rgba(5, 16, 38, 0.28);
+        }
+
+        .clean-input-row .send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(12, 39, 86, 0.34);
+        }
+
+        body.noir-mode .dm-action-btn,
+        body.noir-mode .clean-input-row .send-btn {
+            background: linear-gradient(145deg, rgba(26, 52, 99, 0.82), rgba(16, 36, 74, 0.84));
+            border: 1px solid rgba(136, 171, 230, 0.36);
+            border-radius: 11px;
+            color: #eaf2ff;
+        }
+
+        body.noir-mode .dm-action-btn-danger {
+            background: linear-gradient(145deg, rgba(110, 31, 45, 0.84), rgba(88, 23, 34, 0.88));
+            border-color: rgba(241, 106, 132, 0.36);
+            color: #ffdbe3;
         }
 
         .notice-card {
@@ -5291,9 +5402,9 @@
 
                         <div class="restriction-banner" id="commentRestrictionBanner"></div>
 
-                        <div class="comment-input-area" id="commentInputArea">
+                        <div class="comment-input-area clean-input-row" id="commentInputArea">
                             <textarea class="comment-input" id="commentInput" name="comment_text" autocomplete="off" data-form-type="other" placeholder="Share your thoughts on this verse... Use @ to mention" rows="1" onkeydown="handleCommentKey(event)"></textarea>
-                            <button class="send-btn" id="commentSendBtn" onclick="postComment()">&#8593;</button>
+                            <button class="send-btn dm-action-btn" id="commentSendBtn" onclick="postComment()">&#8593;</button>
                         </div>
                         <div class="dm-inline-suggestions" id="verseDmSuggestions" style="display:none;"></div>
 
@@ -5320,9 +5431,9 @@
 
                         <div class="restriction-banner" id="communityRestrictionBanner"></div>
 
-                        <div class="comment-input-area" id="communityInputArea">
+                        <div class="comment-input-area clean-input-row" id="communityInputArea">
                             <textarea class="comment-input" id="communityInput" name="community_text" autocomplete="off" data-form-type="other" placeholder="Share about life, ask for help, or offer guidance... #topic" rows="1" onkeydown="handleCommunityKey(event)"></textarea>
-                            <button class="send-btn" id="communitySendBtn" onclick="postCommunityMessage()">&#8593;</button>
+                            <button class="send-btn dm-action-btn" id="communitySendBtn" onclick="postCommunityMessage()">&#8593;</button>
                         </div>
                         <div class="dm-inline-suggestions" id="communityDmSuggestions" style="display:none;"></div>
 
@@ -5338,8 +5449,8 @@
 
                         <div class="dm-shell">
                             <div class="dm-search dm-search-row">
-                                <input type="text" id="dmSearchInput" class="dm-input" placeholder="Search by name, email, or ID...">
-                                <button class="btn btn-primary" onclick="searchDmUsers()">Find</button>
+                                <input type="text" id="dmSearchInput" class="dm-input" placeholder="Search by name, email, or ID..." onkeydown="if(event.key==='Enter')searchDmUsers()">
+                                <button class="dm-action-btn" id="dmFindBtn" onclick="searchDmUsers()">Find</button>
                             </div>
                             <div class="dm-search-results" id="dmSearchResults" style="display:none;"></div>
 
@@ -5365,7 +5476,7 @@
                                                 <div class="dm-header-sub" id="dmHeaderSubLabel">Choose a conversation to start chatting.</div>
                                             </div>
                                         </div>
-                                        <button class="btn btn-secondary" onclick="deleteDmThread()">Delete Thread</button>
+                                        <button class="dm-action-btn dm-action-btn-danger" id="dmDeleteThreadBtn" onclick="deleteDmThread()">Delete Thread</button>
                                     </div>
                                     <div class="dm-messages" id="dmMessages">
                                         <div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>
@@ -5373,7 +5484,7 @@
                                     <div class="dm-typing" id="dmTypingIndicator"></div>
                                     <div class="dm-input-area">
                                         <input type="text" id="dmInput" class="dm-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendDm()" oninput="scheduleTypingPing()">
-                                        <button class="send-btn" onclick="sendDm()">Send</button>
+                                        <button class="send-btn dm-action-btn dm-send-btn" id="dmSendBtn" onclick="sendDm()">Send</button>
                                     </div>
                                 </div>
                             </div>
@@ -6155,6 +6266,17 @@
         let verseCheckInterval = null;
         let presencePingInterval = null;
         let commentsRefreshInterval = null;
+        let loadCommentsInFlight = false;
+        let loadCommunityInFlight = false;
+        let loadDmThreadsInFlight = false;
+        let loadDmMessagesInFlight = false;
+        let dmTypingInFlight = false;
+        let lastVerseCommentsPollAt = 0;
+        let lastCommunityPollAt = 0;
+        let lastDmThreadsPollAt = 0;
+        let lastDmMessagesPollAt = 0;
+        let lastDmTypingPollAt = 0;
+        let lastOnlinePollAt = 0;
         let challengeRefreshInterval = null;
         let challengeCountdownInterval = null;
         let challengeClaimInFlight = false;
@@ -6174,6 +6296,12 @@
         };
         const VERSE_POLL_INTERVAL_MS = 5000;
         const STATUS_REFRESH_INTERVAL_MS = 15000;
+        const COMMENTS_POLL_INTERVAL_MS = 5000;
+        const COMMUNITY_POLL_INTERVAL_MS = 5000;
+        const DM_THREADS_POLL_INTERVAL_MS = 7000;
+        const DM_MESSAGES_POLL_INTERVAL_MS = 1800;
+        const DM_TYPING_POLL_INTERVAL_MS = 2200;
+        const ONLINE_USERS_POLL_INTERVAL_MS = 15000;
         let verseFetchInFlight = false;
         let lastStatusRefreshAt = 0;
         let lastStatusVerseId = null;
@@ -8251,48 +8379,54 @@
 
         // Comments
         async function loadComments(force = false) {
+            if (loadCommentsInFlight && !force) return;
             const verseForComments = activeCommentVerseId || (currentVerse ? currentVerse.id : null);
             if (!verseForComments) return;
             if (!force && isCommentsInputActive()) return;
-            captureActiveReplyDraft();
-            const res = await fetch(`/api/comments/${verseForComments}`, { cache: 'no-store' });
-            const data = await res.json().catch(() => ([]));
-            if (!res.ok || data.error) {
-                if (data.error === 'banned') {
-                    showAccountLock('Account Banned', data.message || 'Your account has been banned.', data.reason || '');
-                    stopVersePolling();
+            loadCommentsInFlight = true;
+            try {
+                captureActiveReplyDraft();
+                const res = await fetch(`/api/comments/${verseForComments}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ([]));
+                if (!res.ok || data.error) {
+                    if (data.error === 'banned') {
+                        showAccountLock('Account Banned', data.message || 'Your account has been banned.', data.reason || '');
+                        stopVersePolling();
+                    }
+                    return;
                 }
-                return;
+                const comments = data;
+                const signature = buildCommentSignature(comments);
+                if (!force && signature && signature === lastCommentsSignature) {
+                    return;
+                }
+                lastCommentsSignature = signature;
+                
+                const list = document.getElementById('commentsList');
+                if (comments.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><div class="empty-state-text">No comments yet. Share your thoughts!</div></div>';
+                } else {
+                    list.innerHTML = comments.map(c => renderCommentItem(c, 'comment')).join('');
+                }
+                if (openReplyKey) {
+                    restoreActiveReplyDraft();
+                }
+                
+                // Show delete buttons if admin
+                if (isAdmin) {
+                    document.querySelectorAll('.delete-comment-btn').forEach(btn => btn.classList.add('show'));
+                }
+                applyRestrictionState();
+                
+                // Apply shop effects to comments
+                setTimeout(() => applyShopEffectsToComments(), 100);
+                
+                // Setup DM button handlers
+                setupDmButtonHandlers();
+                showBriefCommentDmSuggestions('verseDmSuggestions');
+            } finally {
+                loadCommentsInFlight = false;
             }
-            const comments = data;
-            const signature = buildCommentSignature(comments);
-            if (!force && signature && signature === lastCommentsSignature) {
-                return;
-            }
-            lastCommentsSignature = signature;
-            
-            const list = document.getElementById('commentsList');
-            if (comments.length === 0) {
-                list.innerHTML = '<div class="empty-state"><div class="empty-state-text">No comments yet. Share your thoughts!</div></div>';
-            } else {
-                list.innerHTML = comments.map(c => renderCommentItem(c, 'comment')).join('');
-            }
-            if (openReplyKey) {
-                restoreActiveReplyDraft();
-            }
-            
-            // Show delete buttons if admin
-            if (isAdmin) {
-                document.querySelectorAll('.delete-comment-btn').forEach(btn => btn.classList.add('show'));
-            }
-            applyRestrictionState();
-            
-            // Apply shop effects to comments
-            setTimeout(() => applyShopEffectsToComments(), 100);
-            
-            // Setup DM button handlers
-            setupDmButtonHandlers();
-            showBriefCommentDmSuggestions('verseDmSuggestions');
         }
 
         function setupDmButtonHandlers() {
@@ -8350,48 +8484,54 @@
 
         // Community Chat
         async function loadCommunityMessages(force = false) {
+            if (loadCommunityInFlight && !force) return;
             if (!force && isCommentsInputActive()) return;
-            captureActiveReplyDraft();
-            const res = await fetch('/api/community', { cache: 'no-store' });
-            const data = await res.json().catch(() => ([]));
-            if (!res.ok || data.error) {
-                if (data.error === 'banned') {
-                    showAccountLock('Account Banned', data.message || 'Your account has been banned.', data.reason || '');
-                    stopVersePolling();
+            loadCommunityInFlight = true;
+            try {
+                captureActiveReplyDraft();
+                const res = await fetch('/api/community', { cache: 'no-store' });
+                const data = await res.json().catch(() => ([]));
+                if (!res.ok || data.error) {
+                    if (data.error === 'banned') {
+                        showAccountLock('Account Banned', data.message || 'Your account has been banned.', data.reason || '');
+                        stopVersePolling();
+                    }
+                    return;
                 }
-                return;
+                const messages = data;
+                const filtered = currentCommunityFilter === 'all'
+                    ? messages
+                    : messages.filter(m => String(m.text || '').toLowerCase().includes('#' + currentCommunityFilter.toLowerCase()));
+                const signature = buildCommentSignature(filtered);
+                if (!force && signature && signature === lastCommunitySignature) {
+                    return;
+                }
+                lastCommunitySignature = signature;
+                
+                const list = document.getElementById('communityList');
+                if (filtered.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><div class="empty-state-text">Start a conversation about life, faith, or support!</div></div>';
+                } else {
+                    list.innerHTML = filtered.map(m => renderCommentItem(m, 'community')).join('');
+                }
+                if (openReplyKey) {
+                    restoreActiveReplyDraft();
+                }
+                
+                if (isAdmin) {
+                    document.querySelectorAll('.delete-comment-btn').forEach(btn => btn.classList.add('show'));
+                }
+                applyRestrictionState();
+                
+                // Apply shop effects to community messages
+                setTimeout(() => applyShopEffectsToComments(), 100);
+                
+                // Setup DM button handlers
+                setupDmButtonHandlers();
+                showBriefCommentDmSuggestions('communityDmSuggestions');
+            } finally {
+                loadCommunityInFlight = false;
             }
-            const messages = data;
-            const filtered = currentCommunityFilter === 'all'
-                ? messages
-                : messages.filter(m => String(m.text || '').toLowerCase().includes('#' + currentCommunityFilter.toLowerCase()));
-            const signature = buildCommentSignature(filtered);
-            if (!force && signature && signature === lastCommunitySignature) {
-                return;
-            }
-            lastCommunitySignature = signature;
-            
-            const list = document.getElementById('communityList');
-            if (filtered.length === 0) {
-                list.innerHTML = '<div class="empty-state"><div class="empty-state-text">Start a conversation about life, faith, or support!</div></div>';
-            } else {
-                list.innerHTML = filtered.map(m => renderCommentItem(m, 'community')).join('');
-            }
-            if (openReplyKey) {
-                restoreActiveReplyDraft();
-            }
-            
-            if (isAdmin) {
-                document.querySelectorAll('.delete-comment-btn').forEach(btn => btn.classList.add('show'));
-            }
-            applyRestrictionState();
-            
-            // Apply shop effects to community messages
-            setTimeout(() => applyShopEffectsToComments(), 100);
-            
-            // Setup DM button handlers
-            setupDmButtonHandlers();
-            showBriefCommentDmSuggestions('communityDmSuggestions');
         }
 
         async function postCommunityMessage() {
@@ -8462,6 +8602,7 @@
                 if (label) label.textContent = 'No conversation selected';
                 if (sub) sub.textContent = 'Choose a conversation to start chatting.';
                 if (avatarSlot) avatarSlot.innerHTML = '<span class="dm-header-avatar-fallback">💬</span>';
+                updateDmActionState();
                 return;
             }
             const thread = dmThreadsCache[userId] || {};
@@ -8476,6 +8617,18 @@
                     'dm-thread-avatar'
                 );
             }
+            updateDmActionState();
+        }
+
+        function updateDmActionState() {
+            const hasThread = !!dmSelectedUserId;
+            const restricted = !!commentRestriction.restricted;
+            const dmInput = document.getElementById('dmInput');
+            const dmSendBtn = document.getElementById('dmSendBtn');
+            const dmDeleteBtn = document.getElementById('dmDeleteThreadBtn');
+            if (dmInput) dmInput.disabled = restricted || !hasThread;
+            if (dmSendBtn) dmSendBtn.disabled = restricted || !hasThread;
+            if (dmDeleteBtn) dmDeleteBtn.disabled = !hasThread;
         }
 
         function renderDmThreads(threads) {
@@ -8612,7 +8765,9 @@
         }
 
         async function loadDmThreads(force = false) {
+            if (loadDmThreadsInFlight && !force) return;
             if (!force && isCommentsInputActive()) return;
+            loadDmThreadsInFlight = true;
             try {
                 const res = await fetch('/api/dm/threads', { cache: 'no-store' });
                 const data = await res.json();
@@ -8634,12 +8789,17 @@
                 dmThreadsSignature = signature;
                 renderDmThreads(list);
                 updateDmHeader(dmSelectedUserId);
-            } catch (_) {}
+            } catch (_) {
+            } finally {
+                loadDmThreadsInFlight = false;
+            }
         }
 
         async function loadDmMessages(force = false) {
+            if (loadDmMessagesInFlight && !force) return;
             if (!dmSelectedUserId) return;
             if (!force && isCommentsInputActive()) return;
+            loadDmMessagesInFlight = true;
             try {
                 const res = await fetch(`/api/dm/messages/${dmSelectedUserId}`, { cache: 'no-store' });
                 const data = await res.json();
@@ -8649,7 +8809,10 @@
                 dmMessagesSignature = signature;
                 renderDmMessages(data);
                 updateDmTyping();
-            } catch (_) {}
+            } catch (_) {
+            } finally {
+                loadDmMessagesInFlight = false;
+            }
         }
 
         function openDmThread(userId, userName = '', userPicture = '', userDecor = '') {
@@ -8677,6 +8840,9 @@
                 results.innerHTML = '';
             }
             renderDmThreads(Object.values(dmThreadsCache));
+            lastDmThreadsPollAt = 0;
+            lastDmMessagesPollAt = 0;
+            lastDmTypingPollAt = 0;
             loadDmThreads(true);
             loadDmMessages(true);
         }
@@ -8718,6 +8884,8 @@
             }
             dmSelectedUserId = null;
             dmMessagesSignature = '';
+            lastDmMessagesPollAt = 0;
+            lastDmTypingPollAt = 0;
             updateDmHeader(null);
             const box = document.getElementById('dmMessages');
             if (box) box.innerHTML = '<div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>';
@@ -8740,15 +8908,19 @@
         }
 
         async function updateDmTyping() {
+            if (dmTypingInFlight) return;
             if (!dmSelectedUserId) return;
             const indicator = document.getElementById('dmTypingIndicator');
             if (!indicator) return;
+            dmTypingInFlight = true;
             try {
                 const res = await fetch(`/api/dm/typing/${dmSelectedUserId}`);
                 const data = await res.json().catch(() => ({}));
                 indicator.textContent = data.typing ? 'Typing…' : '';
             } catch (_) {
                 indicator.textContent = '';
+            } finally {
+                dmTypingInFlight = false;
             }
         }
 
@@ -11327,7 +11499,6 @@ async function checkAchievement(type, value) {
             const communityInput = document.getElementById('communityInput');
             const communitySend = document.getElementById('communitySendBtn');
             const communityArea = document.getElementById('communityInputArea');
-            const dmInput = document.getElementById('dmInput');
 
             const restricted = !!commentRestriction.restricted;
             const reason = (commentRestriction.reason || 'policy').trim();
@@ -11351,7 +11522,7 @@ async function checkAchievement(type, value) {
             if (communityInput) communityInput.disabled = restricted;
             if (communitySend) communitySend.disabled = restricted;
             if (communityArea) communityArea.classList.toggle('is-disabled', restricted);
-            if (dmInput) dmInput.disabled = restricted;
+            updateDmActionState();
 
             document.querySelectorAll('.reply-btn').forEach(btn => { btn.disabled = restricted; });
             document.querySelectorAll('.reply-input-area .comment-input').forEach(inp => { inp.disabled = restricted; });
@@ -11379,6 +11550,7 @@ async function checkAchievement(type, value) {
             if (currentCommentsView === 'community') {
                 loadCommunityMessages();
             } else if (currentCommentsView === 'dm') {
+                updateDmHeader(dmSelectedUserId);
                 loadDmThreads(true);
                 loadDmMessages(true);
             } else {
@@ -11644,16 +11816,37 @@ async function checkAchievement(type, value) {
         function startCommentsPolling() {
             if (commentsRefreshInterval) clearInterval(commentsRefreshInterval);
             commentsRefreshInterval = setInterval(() => {
-                if (currentTab !== 'comments') return;
+                if (currentTab !== 'comments' || document.hidden) return;
+                const now = Date.now();
                 if (!isCommentsInputActive()) {
-                    if (currentCommentsView === 'community') loadCommunityMessages();
-                    else if (currentCommentsView === 'dm') {
-                        loadDmThreads();
-                        loadDmMessages();
-                    } else loadComments();
+                    if (currentCommentsView === 'community') {
+                        if ((now - lastCommunityPollAt) >= COMMUNITY_POLL_INTERVAL_MS) {
+                            lastCommunityPollAt = now;
+                            loadCommunityMessages();
+                        }
+                    } else if (currentCommentsView === 'dm') {
+                        if ((now - lastDmThreadsPollAt) >= DM_THREADS_POLL_INTERVAL_MS) {
+                            lastDmThreadsPollAt = now;
+                            loadDmThreads();
+                        }
+                        if (dmSelectedUserId && (now - lastDmMessagesPollAt) >= DM_MESSAGES_POLL_INTERVAL_MS) {
+                            lastDmMessagesPollAt = now;
+                            loadDmMessages();
+                        }
+                        if (dmSelectedUserId && (now - lastDmTypingPollAt) >= DM_TYPING_POLL_INTERVAL_MS) {
+                            lastDmTypingPollAt = now;
+                            updateDmTyping();
+                        }
+                    } else if ((now - lastVerseCommentsPollAt) >= COMMENTS_POLL_INTERVAL_MS) {
+                        lastVerseCommentsPollAt = now;
+                        loadComments();
+                    }
                 }
-                updateOnlineUsers();
-            }, 3000);
+                if ((now - lastOnlinePollAt) >= ONLINE_USERS_POLL_INTERVAL_MS) {
+                    lastOnlinePollAt = now;
+                    updateOnlineUsers();
+                }
+            }, 1000);
         }
 
         function stopCommentsPolling() {

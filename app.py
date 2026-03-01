@@ -221,6 +221,12 @@ BOOK_TEXT_CACHE = {}
 BOOK_META_CACHE = {}
 BAN_SCHEMA_READY = False
 RESTRICTION_SCHEMA_READY = False
+SQLITE_TUNING_APPLIED = False
+_SCHEMA_READY_FLAGS = set()
+_SCHEMA_READY_LOCK = threading.Lock()
+BAN_STATUS_CACHE_TTL = max(1.0, float(os.environ.get('BAN_STATUS_CACHE_TTL', '3.0')))
+_BAN_STATUS_CACHE = {}
+_BAN_STATUS_CACHE_LOCK = threading.Lock()
 
 FALLBACK_BOOKS = [
     {"id": "GEN", "name": "Genesis"},
@@ -415,7 +421,80 @@ def _table_exists(c, db_type, table_name):
     except Exception:
         return False
 
+def _schema_ready_token(db_type, name):
+    return f"{db_type}:{name}"
+
+def _is_schema_ready(db_type, name):
+    token = _schema_ready_token(db_type, name)
+    with _SCHEMA_READY_LOCK:
+        return token in _SCHEMA_READY_FLAGS
+
+def _mark_schema_ready(db_type, name):
+    token = _schema_ready_token(db_type, name)
+    with _SCHEMA_READY_LOCK:
+        _SCHEMA_READY_FLAGS.add(token)
+
+def _tune_sqlite_connection(conn):
+    global SQLITE_TUNING_APPLIED
+    try:
+        # Apply low-overhead pragmas once per process to reduce lock contention and fsync cost.
+        if not SQLITE_TUNING_APPLIED:
+            conn.execute("PRAGMA journal_mode=WAL")
+            SQLITE_TUNING_APPLIED = True
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        conn.execute("PRAGMA cache_size=-20000")
+        conn.execute("PRAGMA busy_timeout=5000")
+    except Exception:
+        pass
+
+def ensure_performance_indexes(c, db_type):
+    statements = [
+        "CREATE INDEX IF NOT EXISTS idx_likes_user_ts ON likes(user_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_likes_verse ON likes(verse_id)",
+        "CREATE INDEX IF NOT EXISTS idx_saves_user_ts ON saves(user_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_saves_verse ON saves(verse_id)",
+        "CREATE INDEX IF NOT EXISTS idx_comments_verse_ts ON comments(verse_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_comments_user_ts ON comments(user_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_comments_deleted ON comments(is_deleted)",
+        "CREATE INDEX IF NOT EXISTS idx_community_user_ts ON community_messages(user_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_community_ts ON community_messages(timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_reactions_item ON comment_reactions(item_type, item_id)",
+        "CREATE INDEX IF NOT EXISTS idx_reactions_item_reaction ON comment_reactions(item_type, item_id, reaction)",
+        "CREATE INDEX IF NOT EXISTS idx_replies_parent ON comment_replies(parent_type, parent_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_replies_user ON comment_replies(user_id, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_replies_deleted ON comment_replies(is_deleted)",
+        "CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_verse_collections_collection ON verse_collections(collection_id)",
+        "CREATE INDEX IF NOT EXISTS idx_inventory_user_equipped ON user_inventory(user_id, equipped)",
+        "CREATE INDEX IF NOT EXISTS idx_direct_messages_pair_ts ON direct_messages(sender_id, recipient_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_direct_messages_recipient_unread ON direct_messages(recipient_id, is_read, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_direct_messages_recipient_sender ON direct_messages(recipient_id, sender_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_dm_typing_other_user ON dm_typing(other_id, user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_daily_actions_user_date ON daily_actions(user_id, event_date, action)",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_user_state ON user_notifications(user_id, is_read, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_presence_seen ON user_presence(last_seen)",
+        "CREATE INDEX IF NOT EXISTS idx_research_room_ts ON research_community_messages(room_slug, timestamp)",
+        "CREATE INDEX IF NOT EXISTS idx_research_user_ts ON research_community_messages(user_id, timestamp)"
+    ]
+
+    for stmt in statements:
+        try:
+            c.execute(stmt)
+        except Exception:
+            # Optional tables may not exist yet; table-specific ensure functions will retry later.
+            pass
+
+def _build_in_clause_params(db_type, values):
+    safe_values = [v for v in values if v is not None]
+    if not safe_values:
+        return None, ()
+    placeholder = "%s" if db_type == 'postgres' else "?"
+    return ",".join([placeholder] * len(safe_values)), tuple(safe_values)
+
 def ensure_research_feature_tables(c, db_type):
+    if _is_schema_ready(db_type, "research_features"):
+        return
     if db_type == 'postgres':
         c.execute("""
             CREATE TABLE IF NOT EXISTS reading_plans (
@@ -542,6 +621,8 @@ def ensure_research_feature_tables(c, db_type):
                     name = excluded.name,
                     description = excluded.description
             """, (room["slug"], room["name"], room["description"]))
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "research_features")
 
 def _parse_reference_chapter(reference):
     ref = str(reference or "")
@@ -658,6 +739,7 @@ def get_db():
     if FORCE_SQLITE:
         conn = sqlite3.connect(SQLITE_PATH, timeout=20)
         conn.row_factory = sqlite3.Row
+        _tune_sqlite_connection(conn)
         return conn, 'sqlite'
     if FORCE_POSTGRES and not IS_POSTGRES:
         raise RuntimeError("DB_MODE=postgres but DATABASE_URL is not set to a postgres URL")
@@ -674,6 +756,7 @@ def get_db():
             logger.warning("psycopg2 not installed, falling back to SQLite")
             conn = sqlite3.connect(SQLITE_PATH, timeout=20)
             conn.row_factory = sqlite3.Row
+            _tune_sqlite_connection(conn)
             return conn, 'sqlite'
         except Exception as e:
             logger.error(f"PostgreSQL connection failed: {e}")
@@ -683,10 +766,12 @@ def get_db():
             # Fallback to SQLite if Postgres fails
             conn = sqlite3.connect(SQLITE_PATH, timeout=20)
             conn.row_factory = sqlite3.Row
+            _tune_sqlite_connection(conn)
             return conn, 'sqlite'
     else:
         conn = sqlite3.connect(SQLITE_PATH, timeout=20)
         conn.row_factory = sqlite3.Row
+        _tune_sqlite_connection(conn)
         return conn, 'sqlite'
 
 def get_cursor(conn, db_type):
@@ -1428,6 +1513,7 @@ def init_db():
                 )
             ''')
         
+        ensure_performance_indexes(c, db_type)
         conn.commit()
         logger.info(f"Database initialized ({db_type})")
     except Exception as e:
@@ -1908,6 +1994,7 @@ def migrate_db():
         except Exception as e:
             logger.warning(f"Could not finalize user_active_boosts schema migration: {e}")
         
+        ensure_performance_indexes(c, db_type)
         conn.commit()
         logger.info("Database migrations completed")
     except Exception as e:
@@ -1930,6 +2017,8 @@ def get_hour_window():
     return start, start + timedelta(days=1)
 
 def ensure_daily_challenge_tables(c, db_type):
+    if _is_schema_ready(db_type, "daily_challenge"):
+        return
     if db_type == 'postgres':
         c.execute("""
             CREATE TABLE IF NOT EXISTS daily_actions (
@@ -1976,8 +2065,12 @@ def ensure_daily_challenge_tables(c, db_type):
                 UNIQUE(user_id, challenge_date, challenge_id)
             )
         """)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "daily_challenge")
 
 def ensure_achievement_tables(c, db_type):
+    if _is_schema_ready(db_type, "achievements"):
+        return
     if db_type == 'postgres':
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_achievements (
@@ -2002,6 +2095,7 @@ def ensure_achievement_tables(c, db_type):
                 UNIQUE(user_id, achievement_id)
             )
         """)
+    _mark_schema_ready(db_type, "achievements")
 
 def pick_hourly_challenge(user_id, period_key):
     challenges = [
@@ -2099,6 +2193,8 @@ def log_action(admin_id, action, target_user_id=None, details=None):
 
 def ensure_comment_social_tables(c, db_type):
     """Ensure reactions/replies tables exist before use."""
+    if _is_schema_ready(db_type, "comment_social"):
+        return
     if db_type == 'postgres':
         c.execute("""
             CREATE TABLE IF NOT EXISTS comment_reactions (
@@ -2149,9 +2245,13 @@ def ensure_comment_social_tables(c, db_type):
                 is_deleted INTEGER DEFAULT 0
             )
         """)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "comment_social")
 
 def ensure_dm_tables(c, db_type):
     """Ensure direct message tables exist before use."""
+    if _is_schema_ready(db_type, "dm"):
+        return
     if db_type == 'postgres':
         c.execute("""
             CREATE TABLE IF NOT EXISTS direct_messages (
@@ -2190,6 +2290,8 @@ def ensure_dm_tables(c, db_type):
                 PRIMARY KEY (user_id, other_id)
             )
         """)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "dm")
 
 def get_reaction_counts(c, db_type, item_type, item_id):
     reactions = {"heart": 0, "pray": 0, "cross": 0}
@@ -2218,7 +2320,48 @@ def get_reaction_counts(c, db_type, item_type, item_id):
             reactions[key] = cnt
     return reactions
 
-def get_replies_for_parent(c, db_type, parent_type, parent_id):
+def get_reaction_counts_bulk(c, db_type, item_type, item_ids):
+    reactions_by_item = {}
+    ids_sql, params = _build_in_clause_params(db_type, item_ids)
+    if not ids_sql:
+        return reactions_by_item
+
+    if db_type == 'postgres':
+        c.execute(f"""
+            SELECT item_id, reaction, COUNT(*) AS cnt
+            FROM comment_reactions
+            WHERE item_type = %s AND item_id IN ({ids_sql})
+            GROUP BY item_id, reaction
+        """, tuple([item_type, *params]))
+    else:
+        c.execute(f"""
+            SELECT item_id, reaction, COUNT(*) AS cnt
+            FROM comment_reactions
+            WHERE item_type = ? AND item_id IN ({ids_sql})
+            GROUP BY item_id, reaction
+        """, tuple([item_type, *params]))
+
+    for row in c.fetchall():
+        try:
+            item_id = int(row['item_id'])
+            key = str(row['reaction']).lower()
+            cnt = int(row['cnt'])
+        except Exception:
+            item_id = int(row[0])
+            key = str(row[1]).lower()
+            cnt = int(row[2])
+        bucket = reactions_by_item.setdefault(item_id, {"heart": 0, "pray": 0, "cross": 0})
+        if key in bucket:
+            bucket[key] = cnt
+
+    for item_id in item_ids:
+        if item_id is None:
+            continue
+        item_int = int(item_id)
+        reactions_by_item.setdefault(item_int, {"heart": 0, "pray": 0, "cross": 0})
+    return reactions_by_item
+
+def get_replies_for_parent(c, db_type, parent_type, parent_id, equipped_cache=None):
     if db_type == 'postgres':
         c.execute("""
             SELECT
@@ -2243,6 +2386,7 @@ def get_replies_for_parent(c, db_type, parent_type, parent_id):
         """, (parent_type, parent_id))
     rows = c.fetchall()
     replies = []
+    equipped_cache = equipped_cache if isinstance(equipped_cache, dict) else {}
     for row in rows:
         try:
             reply_id = row['id']
@@ -2266,8 +2410,14 @@ def get_replies_for_parent(c, db_type, parent_type, parent_id):
             db_picture = row[7] if len(row) > 7 else None
             db_role = row[8] if len(row) > 8 else None
             db_decor = row[9] if len(row) > 9 else None
-        # Get user's equipped items for display
-        equipped = get_user_equipped_items(c, db_type, user_id)
+        # Get user's equipped items for display (cached per user to avoid repeated queries)
+        cache_key = int(user_id) if user_id is not None else None
+        if cache_key is not None and cache_key in equipped_cache:
+            equipped = equipped_cache[cache_key]
+        else:
+            equipped = get_user_equipped_items(c, db_type, user_id)
+            if cache_key is not None:
+                equipped_cache[cache_key] = equipped
         
         replies.append({
             "id": reply_id,
@@ -2286,9 +2436,105 @@ def get_replies_for_parent(c, db_type, parent_type, parent_id):
         })
     return replies
 
+def get_replies_for_parents(c, db_type, parent_type, parent_ids, equipped_cache=None):
+    replies_map = {}
+    ids_sql, params = _build_in_clause_params(db_type, parent_ids)
+    if not ids_sql:
+        return replies_map
+
+    if db_type == 'postgres':
+        c.execute(f"""
+            SELECT
+                r.id, r.parent_id, r.user_id, r.text, r.timestamp, r.google_name, r.google_picture,
+                u.name AS db_name, COALESCE(u.custom_picture, u.picture) AS db_picture, u.role AS db_role,
+                u.avatar_decoration AS db_decor
+            FROM comment_replies r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.parent_type = %s
+              AND r.parent_id IN ({ids_sql})
+              AND COALESCE(r.is_deleted, 0) = 0
+            ORDER BY r.timestamp ASC
+        """, tuple([parent_type, *params]))
+    else:
+        c.execute(f"""
+            SELECT
+                r.id, r.parent_id, r.user_id, r.text, r.timestamp, r.google_name, r.google_picture,
+                u.name AS db_name, COALESCE(u.custom_picture, u.picture) AS db_picture, u.role AS db_role,
+                u.avatar_decoration AS db_decor
+            FROM comment_replies r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.parent_type = ?
+              AND r.parent_id IN ({ids_sql})
+              AND COALESCE(r.is_deleted, 0) = 0
+            ORDER BY r.timestamp ASC
+        """, tuple([parent_type, *params]))
+
+    equipped_cache = equipped_cache if isinstance(equipped_cache, dict) else {}
+    for row in c.fetchall():
+        try:
+            reply_id = row['id']
+            parent_id = row['parent_id']
+            user_id = row['user_id']
+            text = row['text']
+            timestamp = row['timestamp']
+            google_name = row['google_name']
+            google_picture = row['google_picture']
+            db_name = row['db_name']
+            db_picture = row['db_picture']
+            db_role = row['db_role']
+            db_decor = row['db_decor']
+        except Exception:
+            reply_id = row[0]
+            parent_id = row[1]
+            user_id = row[2]
+            text = row[3]
+            timestamp = row[4]
+            google_name = row[5]
+            google_picture = row[6]
+            db_name = row[7] if len(row) > 7 else None
+            db_picture = row[8] if len(row) > 8 else None
+            db_role = row[9] if len(row) > 9 else None
+            db_decor = row[10] if len(row) > 10 else None
+
+        cache_key = int(user_id) if user_id is not None else None
+        if cache_key is not None and cache_key in equipped_cache:
+            equipped = equipped_cache[cache_key]
+        else:
+            equipped = get_user_equipped_items(c, db_type, user_id)
+            if cache_key is not None:
+                equipped_cache[cache_key] = equipped
+
+        payload = {
+            "id": reply_id,
+            "user_id": user_id,
+            "text": text or "",
+            "timestamp": timestamp,
+            "user_name": db_name or google_name or "Anonymous",
+            "user_picture": db_picture or google_picture or "",
+            "user_role": normalize_role(db_role or "user"),
+            "avatar_decoration": db_decor or "",
+            "equipped_frame": equipped["frame"],
+            "equipped_name_color": equipped["name_color"],
+            "equipped_title": equipped["title"],
+            "equipped_badges": equipped["badges"],
+            "equipped_chat_effect": equipped["chat_effect"]
+        }
+        replies_map.setdefault(int(parent_id), []).append(payload)
+
+    return replies_map
+
 def check_ban_status(user_id):
     """Check if user is currently banned. Returns (is_banned, reason, expires_at)"""
     global BAN_SCHEMA_READY
+    if not user_id:
+        return (False, None, None)
+
+    now_ts = time.time()
+    with _BAN_STATUS_CACHE_LOCK:
+        cached = _BAN_STATUS_CACHE.get(int(user_id))
+        if cached and (now_ts - cached.get('ts', 0)) < BAN_STATUS_CACHE_TTL:
+            return cached.get('value', (False, None, None))
+
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     
@@ -2347,11 +2593,16 @@ def check_ban_status(user_id):
                         c.execute("UPDATE users SET is_banned = 0, ban_expires_at = NULL, ban_reason = NULL WHERE id = ?", (user_id,))
                     conn.commit()
                     conn.close()
+                    with _BAN_STATUS_CACHE_LOCK:
+                        _BAN_STATUS_CACHE[int(user_id)] = {"ts": time.time(), "value": (False, None, None)}
                     return (False, None, None)
             except:
                 pass
-        
-        return (is_banned, reason, expires_at)
+
+        result = (is_banned, reason, expires_at)
+        with _BAN_STATUS_CACHE_LOCK:
+            _BAN_STATUS_CACHE[int(user_id)] = {"ts": time.time(), "value": result}
+        return result
     except Exception as e:
         logger.error(f"Ban check error: {e}")
         conn.close()
@@ -6070,23 +6321,7 @@ def get_stats():
     c = conn.cursor()  # Use regular cursor for better compatibility
     
     try:
-        # Ensure comments table has is_deleted column
-        try:
-            if db_type == 'postgres':
-                c.execute("ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_deleted INTEGER DEFAULT 0")
-                c.execute("ALTER TABLE comment_replies ADD COLUMN IF NOT EXISTS is_deleted INTEGER DEFAULT 0")
-            else:
-                c.execute("SELECT is_deleted FROM comments LIMIT 1")
-                try:
-                    c.execute("SELECT is_deleted FROM comment_replies LIMIT 1")
-                except Exception:
-                    c.execute("ALTER TABLE comment_replies ADD COLUMN is_deleted INTEGER DEFAULT 0")
-        except:
-            try:
-                c.execute("ALTER TABLE comments ADD COLUMN is_deleted INTEGER DEFAULT 0")
-                c.execute("ALTER TABLE comment_replies ADD COLUMN is_deleted INTEGER DEFAULT 0")
-            except:
-                pass
+        ensure_comment_social_tables(c, db_type)
         conn.commit()
         
         # Helper to get count safely
@@ -6876,44 +7111,59 @@ def get_library():
                 GROUP BY c.id
             """, (session['user_id'],))
         
-        # Build collections list with verses
+        # Build collections list with verses (bulk-loaded to avoid N+1 queries).
+        collection_rows = c.fetchall()
         collections = []
-        for row in c.fetchall():
+        collection_lookup = {}
+        collection_ids = []
+        for row in collection_rows:
             try:
-                col_id = row['id']
+                col_id = int(row['id'])
                 col_name = row['name']
                 col_color = row['color']
                 col_count = row['count']
             except (TypeError, KeyError):
-                col_id = row[0]
+                col_id = int(row[0])
                 col_name = row[1]
                 col_color = row[2]
                 col_count = row[3]
-            
+            item = {
+                "id": col_id,
+                "name": col_name,
+                "color": col_color,
+                "count": col_count,
+                "verses": []
+            }
+            collections.append(item)
+            collection_lookup[col_id] = item
+            collection_ids.append(col_id)
+
+        ids_sql, ids_params = _build_in_clause_params(db_type, collection_ids)
+        if ids_sql:
             if db_type == 'postgres':
-                c.execute("""
-                    SELECT v.id, v.reference, v.text FROM verses v
-                    JOIN verse_collections vc ON v.id = vc.verse_id
-                    WHERE vc.collection_id = %s
-                """, (col_id,))
-                verses = [{"id": v['id'], "ref": v['reference'], "text": v['text']} for v in c.fetchall()]
+                c.execute(f"""
+                    SELECT vc.collection_id, v.id, v.reference, v.text
+                    FROM verse_collections vc
+                    JOIN verses v ON v.id = vc.verse_id
+                    WHERE vc.collection_id IN ({ids_sql})
+                """, ids_params)
             else:
-                c.execute("""
-                    SELECT v.id, v.reference, v.text FROM verses v
-                    JOIN verse_collections vc ON v.id = vc.verse_id
-                    WHERE vc.collection_id = ?
-                """, (col_id,))
-                verses = []
-                for v in c.fetchall():
-                    try:
-                        verses.append({"id": v['id'], "ref": v['reference'], "text": v['text']})
-                    except (TypeError, KeyError):
-                        verses.append({"id": v[0], "ref": v[1], "text": v[2]})
-            
-            collections.append({
-                "id": col_id, "name": col_name, "color": col_color, 
-                "count": col_count, "verses": verses
-            })
+                c.execute(f"""
+                    SELECT vc.collection_id, v.id, v.reference, v.text
+                    FROM verse_collections vc
+                    JOIN verses v ON v.id = vc.verse_id
+                    WHERE vc.collection_id IN ({ids_sql})
+                """, ids_params)
+            for v in c.fetchall():
+                try:
+                    collection_id = int(v['collection_id'])
+                    verse_payload = {"id": v['id'], "ref": v['reference'], "text": v['text']}
+                except Exception:
+                    collection_id = int(v[0])
+                    verse_payload = {"id": v[1], "ref": v[2], "text": v[3]}
+                bucket = collection_lookup.get(collection_id)
+                if bucket is not None:
+                    bucket["verses"].append(verse_payload)
         
         favorites = next((c for c in collections if (c.get("name") or "").lower() == "favorites"), None)
         return jsonify({
@@ -8591,75 +8841,43 @@ def generate_rec():
 
 @app.route('/api/comments/<int:verse_id>')
 def get_comments(verse_id):
-    logger.info(f"[DEBUG] get_comments called for verse_id={verse_id}")
-    
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     
     try:
-        # Ensure table exists
-        if db_type == 'postgres':
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS comments (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER,
-                    verse_id INTEGER,
-                    text TEXT,
-                    timestamp TIMESTAMP,
-                    google_name TEXT,
-                    google_picture TEXT,
-                    is_deleted INTEGER DEFAULT 0
-                )
-            """)
-        else:
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS comments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    verse_id INTEGER,
-                    text TEXT,
-                    timestamp TIMESTAMP,
-                    google_name TEXT,
-                    google_picture TEXT,
-                    is_deleted INTEGER DEFAULT 0
-                )
-            """)
-        conn.commit()
-        
-        # Count total comments first
-        if db_type == 'postgres':
-            c.execute("SELECT COUNT(*) as count FROM comments")
-        else:
-            c.execute("SELECT COUNT(*) as count FROM comments")
-        count_row = c.fetchone()
-        try:
-            total_count = count_row['count'] if isinstance(count_row, dict) else count_row[0]
-        except:
-            total_count = 0
-        logger.info(f"[DEBUG] Total comments in database: {total_count}")
-        
         ensure_comment_social_tables(c, db_type)
         conn.commit()
 
-        # Query comments for this verse
         if db_type == 'postgres':
             c.execute("""
-                SELECT id, user_id, text, timestamp, google_name
-                FROM comments
-                WHERE verse_id = %s AND COALESCE(is_deleted, 0) = 0
-                ORDER BY timestamp DESC
+                SELECT
+                    cm.id, cm.user_id, cm.text, cm.timestamp, cm.google_name, cm.google_picture,
+                    u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM comments cm
+                LEFT JOIN users u ON cm.user_id = u.id
+                WHERE cm.verse_id = %s
+                  AND COALESCE(cm.is_deleted, 0) = 0
+                ORDER BY cm.timestamp DESC
             """, (verse_id,))
         else:
             c.execute("""
-                SELECT id, user_id, text, timestamp, google_name
-                FROM comments
-                WHERE verse_id = ? AND COALESCE(is_deleted, 0) = 0
-                ORDER BY timestamp DESC
+                SELECT
+                    cm.id, cm.user_id, cm.text, cm.timestamp, cm.google_name, cm.google_picture,
+                    u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
+                FROM comments cm
+                LEFT JOIN users u ON cm.user_id = u.id
+                WHERE cm.verse_id = ?
+                  AND COALESCE(cm.is_deleted, 0) = 0
+                ORDER BY cm.timestamp DESC
             """, (verse_id,))
-        
+
         rows = c.fetchall()
-        
-        comments = []
+        if not rows:
+            return jsonify([])
+
+        prepared = []
+        comment_ids = []
+        equipped_cache = {}
         for row in rows:
             try:
                 comment_id = row['id']
@@ -8667,55 +8885,60 @@ def get_comments(verse_id):
                 text = row['text']
                 timestamp = row['timestamp']
                 google_name = row['google_name']
-            except (TypeError, KeyError):
+                google_picture = row['google_picture']
+                db_name = row['name']
+                db_picture = row['picture']
+                db_role = row['role']
+                db_decor = row_value(row, 'avatar_decoration') or ""
+            except Exception:
                 comment_id = row[0]
                 user_id = row[1]
                 text = row[2]
                 timestamp = row[3]
                 google_name = row[4]
-            
-            # Get user info if available
-            user_name = google_name or "Anonymous"
-            user_picture = ""
-            user_role = "user"
-            user_decor = ""
-            
-            if user_id:
-                try:
-                    if db_type == 'postgres':
-                        c.execute("SELECT name, COALESCE(custom_picture, picture) AS picture, role, avatar_decoration FROM users WHERE id = %s", (user_id,))
-                    else:
-                        c.execute("SELECT name, COALESCE(custom_picture, picture) AS picture, role, avatar_decoration FROM users WHERE id = ?", (user_id,))
-                    user_row = c.fetchone()
-                    if user_row:
-                        try:
-                            user_name = user_row['name'] or google_name or "Anonymous"
-                            user_picture = user_row['picture'] or ""
-                            user_role = normalize_role(user_row['role'] or "user")
-                            user_decor = row_value(user_row, 'avatar_decoration') or ""
-                        except (TypeError, KeyError):
-                            user_name = user_row[0] or google_name or "Anonymous"
-                            user_picture = user_row[1] or ""
-                            user_role = normalize_role(user_row[2] if len(user_row) > 2 and user_row[2] else "user")
-                            user_decor = user_row[3] if len(user_row) > 3 else ""
-                except Exception as user_err:
-                    logger.error(f"Error getting user info: {user_err}")
-            
-            replies = get_replies_for_parent(c, db_type, "comment", comment_id)
-            
-            # Get user's equipped items for display
-            equipped = get_user_equipped_items(c, db_type, user_id)
-            
-            comments.append({
-                "id": comment_id,
-                "text": text or "",
-                "timestamp": timestamp,
-                "user_name": user_name,
-                "user_picture": user_picture,
-                "avatar_decoration": user_decor or "",
+                google_picture = row[5]
+                db_name = row[6] if len(row) > 6 else None
+                db_picture = row[7] if len(row) > 7 else None
+                db_role = row[8] if len(row) > 8 else None
+                db_decor = row[9] if len(row) > 9 else ""
+
+            prepared.append({
+                "id": int(comment_id),
                 "user_id": user_id,
-                "user_role": user_role,
-                "reactions": get_reaction_counts(c, db_type, "comment", comment_id),
+                "text": text,
+                "timestamp": timestamp,
+                "user_name": db_name or google_name or "Anonymous",
+                "user_picture": db_picture or google_picture or "",
+                "avatar_decoration": db_decor or "",
+                "user_role": normalize_role(db_role or "user")
+            })
+            comment_ids.append(int(comment_id))
+
+        reactions_map = get_reaction_counts_bulk(c, db_type, "comment", comment_ids)
+        replies_map = get_replies_for_parents(c, db_type, "comment", comment_ids, equipped_cache=equipped_cache)
+
+        comments = []
+        for item in prepared:
+            uid = item["user_id"]
+            cache_key = int(uid) if uid is not None else None
+            if cache_key is not None and cache_key in equipped_cache:
+                equipped = equipped_cache[cache_key]
+            else:
+                equipped = get_user_equipped_items(c, db_type, uid)
+                if cache_key is not None:
+                    equipped_cache[cache_key] = equipped
+
+            replies = replies_map.get(item["id"], [])
+            comments.append({
+                "id": item["id"],
+                "text": item["text"] or "",
+                "timestamp": item["timestamp"],
+                "user_name": item["user_name"],
+                "user_picture": item["user_picture"],
+                "avatar_decoration": item["avatar_decoration"],
+                "user_id": uid,
+                "user_role": item["user_role"],
+                "reactions": reactions_map.get(item["id"], {"heart": 0, "pray": 0, "cross": 0}),
                 "replies": replies,
                 "reply_count": len(replies),
                 "equipped_frame": equipped["frame"],
@@ -8724,7 +8947,7 @@ def get_comments(verse_id):
                 "equipped_badges": equipped["badges"],
                 "equipped_chat_effect": equipped["chat_effect"]
             })
-        
+
         return jsonify(comments)
     except Exception as e:
         logger.error(f"Get comments error: {e}")
@@ -8738,12 +8961,8 @@ def check_comment_restriction(user_id):
     """Check if user is restricted from commenting. Returns (is_restricted, reason, expires_at)"""
     global RESTRICTION_SCHEMA_READY
     try:
-        logger.info(f"[DEBUG] check_comment_restriction called for user_id={user_id}")
-        
         conn, db_type = get_db()
         c = conn.cursor()
-        
-        logger.info(f"[DEBUG] db_type={db_type}")
         
         if not RESTRICTION_SCHEMA_READY:
             # Ensure table exists with appropriate syntax (once per process)
@@ -8774,8 +8993,6 @@ def check_comment_restriction(user_id):
         
         # Check for active restriction
         now = datetime.now().isoformat()
-        logger.info(f"[DEBUG] Checking restriction: user_id={user_id}, now={now}")
-        
         if db_type == 'postgres':
             c.execute("SELECT reason, expires_at FROM comment_restrictions WHERE user_id = %s AND expires_at > %s",
                      (user_id, now))
@@ -8784,25 +9001,15 @@ def check_comment_restriction(user_id):
                      (user_id, now))
         row = c.fetchone()
         conn.close()
-        
-        logger.info(f"[DEBUG] Restriction query result: {row}")
-        
         if row:
-            logger.info(f"[DEBUG] User {user_id} is RESTRICTED: reason={row[0]}, expires={row[1]}")
             return (True, row[0], row[1])
-        
-        logger.info(f"[DEBUG] User {user_id} is NOT restricted")
         return (False, None, None)
     except Exception as e:
         logger.error(f"Check restriction error: {e}")
-        import traceback
-        traceback.print_exc()
         return (False, None, None)
 
 @app.route('/api/comments', methods=['POST'])
 def post_comment():
-    logger.info(f"[DEBUG] post_comment called, user_id={session.get('user_id')}")
-    
     if 'user_id' not in session:
         return jsonify({"error": "Not logged in"}), 401
     
@@ -8825,46 +9032,13 @@ def post_comment():
     verse_id = data.get('verse_id')
     text = data.get('text', '').strip()
     
-    logger.info(f"[DEBUG] Posting comment: verse_id={verse_id}, text={text[:20]}...")
-    
     if not text:
         return jsonify({"error": "Empty comment"}), 400
     
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     
-    logger.info(f"[DEBUG] Using db_type={db_type}")
-    
     try:
-        # Ensure comments table exists
-        if db_type == 'postgres':
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS comments (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER,
-                    verse_id INTEGER,
-                    text TEXT,
-                    timestamp TIMESTAMP,
-                    google_name TEXT,
-                    google_picture TEXT,
-                    is_deleted INTEGER DEFAULT 0
-                )
-            """)
-        else:
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS comments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    verse_id INTEGER,
-                    text TEXT,
-                    timestamp TIMESTAMP,
-                    google_name TEXT,
-                    google_picture TEXT,
-                    is_deleted INTEGER DEFAULT 0
-                )
-            """)
-        conn.commit()
-        
         if db_type == 'postgres':
             c.execute("INSERT INTO comments (user_id, verse_id, text, timestamp, google_name, google_picture) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
                       (session['user_id'], verse_id, text, datetime.now().isoformat(), 
@@ -8886,12 +9060,9 @@ def post_comment():
                 message="Posted a comment",
                 extras={"comment_id": comment_id, "verse_id": verse_id}
             )
-        logger.info(f"[DEBUG] Comment posted successfully, id={comment_id}")
         return jsonify({"success": True, "id": comment_id})
     except Exception as e:
-        logger.error(f"[DEBUG] Post comment error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Post comment error: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -8966,8 +9137,12 @@ def get_community_messages():
             """)
         
         rows = c.fetchall()
-        
-        messages = []
+        if not rows:
+            return jsonify([])
+
+        prepared = []
+        msg_ids = []
+        equipped_cache = {}
         for row in rows:
             try:
                 msg_id = row['id']
@@ -8990,26 +9165,45 @@ def get_community_messages():
                 db_name = row[6] if len(row) > 6 else None
                 db_picture = row[7] if len(row) > 7 else None
                 db_role = row[8] if len(row) > 8 else None
-                db_decor = row[9] if len(row) > 9 else None
-            
-            user_name = db_name or google_name or "Anonymous"
-            user_picture = db_picture or google_picture or ""
-            
-            replies = get_replies_for_parent(c, db_type, "community", msg_id)
-            
-            # Get user's equipped items for display
-            equipped = get_user_equipped_items(c, db_type, user_id)
-            
-            messages.append({
-                "id": msg_id,
-                "text": text or "",
-                "timestamp": timestamp,
-                "user_name": user_name,
-                "user_picture": user_picture,
-                "avatar_decoration": db_decor or "",
+                db_decor = row[9] if len(row) > 9 else ""
+
+            prepared.append({
+                "id": int(msg_id),
                 "user_id": user_id,
-                "user_role": db_role or "user",
-                "reactions": get_reaction_counts(c, db_type, "community", msg_id),
+                "text": text,
+                "timestamp": timestamp,
+                "user_name": db_name or google_name or "Anonymous",
+                "user_picture": db_picture or google_picture or "",
+                "avatar_decoration": db_decor or "",
+                "user_role": normalize_role(db_role or "user")
+            })
+            msg_ids.append(int(msg_id))
+
+        reactions_map = get_reaction_counts_bulk(c, db_type, "community", msg_ids)
+        replies_map = get_replies_for_parents(c, db_type, "community", msg_ids, equipped_cache=equipped_cache)
+
+        messages = []
+        for item in prepared:
+            uid = item["user_id"]
+            cache_key = int(uid) if uid is not None else None
+            if cache_key is not None and cache_key in equipped_cache:
+                equipped = equipped_cache[cache_key]
+            else:
+                equipped = get_user_equipped_items(c, db_type, uid)
+                if cache_key is not None:
+                    equipped_cache[cache_key] = equipped
+
+            replies = replies_map.get(item["id"], [])
+            messages.append({
+                "id": item["id"],
+                "text": item["text"] or "",
+                "timestamp": item["timestamp"],
+                "user_name": item["user_name"],
+                "user_picture": item["user_picture"],
+                "avatar_decoration": item["avatar_decoration"],
+                "user_id": uid,
+                "user_role": item["user_role"],
+                "reactions": reactions_map.get(item["id"], {"heart": 0, "pray": 0, "cross": 0}),
                 "replies": replies,
                 "reply_count": len(replies),
                 "equipped_frame": equipped["frame"],
@@ -9018,7 +9212,7 @@ def get_community_messages():
                 "equipped_badges": equipped["badges"],
                 "equipped_chat_effect": equipped["chat_effect"]
             })
-        
+
         return jsonify(messages)
     except Exception as e:
         logger.error(f"Get community error: {e}")
@@ -9233,90 +9427,111 @@ def dm_threads():
         uid = session['user_id']
         if db_type == 'postgres':
             c.execute("""
-                SELECT recipient_id AS other_id FROM direct_messages WHERE sender_id = %s
-                UNION
-                SELECT sender_id AS other_id FROM direct_messages WHERE recipient_id = %s
-            """, (uid, uid))
+                WITH user_threads AS (
+                    SELECT
+                        id,
+                        CASE WHEN sender_id = %s THEN recipient_id ELSE sender_id END AS other_id,
+                        message,
+                        created_at,
+                        sender_id
+                    FROM direct_messages
+                    WHERE sender_id = %s OR recipient_id = %s
+                ),
+                last_msg AS (
+                    SELECT DISTINCT ON (other_id)
+                        other_id, message, created_at, sender_id
+                    FROM user_threads
+                    ORDER BY other_id, created_at DESC, id DESC
+                ),
+                unread AS (
+                    SELECT sender_id AS other_id, COUNT(*)::int AS unread
+                    FROM direct_messages
+                    WHERE recipient_id = %s AND COALESCE(is_read, 0) = 0
+                    GROUP BY sender_id
+                )
+                SELECT
+                    lm.other_id AS other_id,
+                    COALESCE(u.name, 'User') AS name,
+                    COALESCE(u.custom_picture, u.picture, '') AS picture,
+                    COALESCE(u.role, 'user') AS role,
+                    COALESCE(u.avatar_decoration, '') AS avatar_decoration,
+                    lm.message AS last_message,
+                    lm.created_at AS last_at,
+                    lm.sender_id AS last_sender,
+                    COALESCE(unread.unread, 0) AS unread
+                FROM last_msg lm
+                LEFT JOIN users u ON u.id = lm.other_id
+                LEFT JOIN unread ON unread.other_id = lm.other_id
+                ORDER BY lm.created_at DESC NULLS LAST, other_id DESC
+            """, (uid, uid, uid, uid))
         else:
             c.execute("""
-                SELECT recipient_id AS other_id FROM direct_messages WHERE sender_id = ?
-                UNION
-                SELECT sender_id AS other_id FROM direct_messages WHERE recipient_id = ?
-            """, (uid, uid))
-        ids = [row['other_id'] if hasattr(row, 'keys') else row[0] for row in c.fetchall()]
+                WITH user_threads AS (
+                    SELECT
+                        id,
+                        CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END AS other_id,
+                        message,
+                        created_at,
+                        sender_id
+                    FROM direct_messages
+                    WHERE sender_id = ? OR recipient_id = ?
+                ),
+                ranked AS (
+                    SELECT
+                        other_id, message, created_at, sender_id,
+                        ROW_NUMBER() OVER (PARTITION BY other_id ORDER BY created_at DESC, id DESC) AS rn
+                    FROM user_threads
+                ),
+                unread AS (
+                    SELECT sender_id AS other_id, COUNT(*) AS unread
+                    FROM direct_messages
+                    WHERE recipient_id = ? AND COALESCE(is_read, 0) = 0
+                    GROUP BY sender_id
+                )
+                SELECT
+                    r.other_id AS other_id,
+                    COALESCE(u.name, 'User') AS name,
+                    COALESCE(u.custom_picture, u.picture, '') AS picture,
+                    COALESCE(u.role, 'user') AS role,
+                    COALESCE(u.avatar_decoration, '') AS avatar_decoration,
+                    r.message AS last_message,
+                    r.created_at AS last_at,
+                    r.sender_id AS last_sender,
+                    COALESCE(unread.unread, 0) AS unread
+                FROM ranked r
+                LEFT JOIN users u ON u.id = r.other_id
+                LEFT JOIN unread ON unread.other_id = r.other_id
+                WHERE r.rn = 1
+                ORDER BY r.created_at DESC, r.other_id DESC
+            """, (uid, uid, uid, uid))
+
+        rows = c.fetchall()
         threads = []
-        for other_id in ids:
-            if other_id is None:
-                continue
-            # user info
-            if db_type == 'postgres':
-                c.execute("SELECT name, COALESCE(custom_picture, picture) AS picture, role, avatar_decoration FROM users WHERE id = %s", (other_id,))
-            else:
-                c.execute("SELECT name, COALESCE(custom_picture, picture) AS picture, role, avatar_decoration FROM users WHERE id = ?", (other_id,))
-            urow = c.fetchone()
-            if urow:
-                try:
-                    name = urow['name'] or 'User'
-                    picture = urow['picture'] or ''
-                    role = normalize_role(urow['role'] or 'user')
-                    decor = row_value(urow, 'avatar_decoration') or ''
-                except Exception:
-                    name = urow[0] or 'User'
-                    picture = urow[1] or ''
-                    role = normalize_role(urow[2] if len(urow) > 2 else 'user')
-                    decor = urow[3] if len(urow) > 3 else ''
-            else:
-                name, picture, role, decor = 'User', '', 'user', ''
-            # last message
-            if db_type == 'postgres':
-                c.execute("""
-                    SELECT message, created_at, sender_id
-                    FROM direct_messages
-                    WHERE (sender_id = %s AND recipient_id = %s) OR (sender_id = %s AND recipient_id = %s)
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT 1
-                """, (uid, other_id, other_id, uid))
-            else:
-                c.execute("""
-                    SELECT message, created_at, sender_id
-                    FROM direct_messages
-                    WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT 1
-                """, (uid, other_id, other_id, uid))
-            last = c.fetchone()
-            if last:
-                try:
-                    last_msg = last['message']
-                    last_at = last['created_at']
-                    last_sender = last['sender_id']
-                except Exception:
-                    last_msg = last[0]
-                    last_at = last[1]
-                    last_sender = last[2]
-            else:
-                last_msg = ''
-                last_at = None
-                last_sender = None
-            # unread count
-            if db_type == 'postgres':
-                c.execute("SELECT COUNT(*) FROM direct_messages WHERE sender_id = %s AND recipient_id = %s AND COALESCE(is_read,0) = 0", (other_id, uid))
-            else:
-                c.execute("SELECT COUNT(*) FROM direct_messages WHERE sender_id = ? AND recipient_id = ? AND COALESCE(is_read,0) = 0", (other_id, uid))
-            unread = c.fetchone()
-            unread_count = unread[0] if unread else 0
-            threads.append({
-                "user_id": other_id,
-                "name": name,
-                "picture": picture,
-                "role": role,
-                "avatar_decoration": decor,
-                "last_message": last_msg,
-                "last_at": last_at,
-                "last_sender": last_sender,
-                "unread": unread_count
-            })
-        threads.sort(key=lambda t: t.get('last_at') or '', reverse=True)
+        for row in rows:
+            try:
+                threads.append({
+                    "user_id": row['other_id'],
+                    "name": row['name'] or 'User',
+                    "picture": row['picture'] or '',
+                    "role": normalize_role(row['role'] or 'user'),
+                    "avatar_decoration": row_value(row, 'avatar_decoration') or '',
+                    "last_message": row_value(row, 'last_message') or '',
+                    "last_at": row_value(row, 'last_at'),
+                    "last_sender": row_value(row, 'last_sender'),
+                    "unread": int(row_value(row, 'unread', 0) or 0)
+                })
+            except Exception:
+                threads.append({
+                    "user_id": row[0],
+                    "name": (row[1] if len(row) > 1 else None) or 'User',
+                    "picture": (row[2] if len(row) > 2 else None) or '',
+                    "role": normalize_role(row[3] if len(row) > 3 else 'user'),
+                    "avatar_decoration": row[4] if len(row) > 4 and row[4] else '',
+                    "last_message": row[5] if len(row) > 5 and row[5] else '',
+                    "last_at": row[6] if len(row) > 6 else None,
+                    "last_sender": row[7] if len(row) > 7 else None,
+                    "unread": int(row[8] if len(row) > 8 and row[8] is not None else 0)
+                })
         return jsonify(threads)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -9377,9 +9592,9 @@ def dm_messages(other_id):
                 })
         # mark read
         if db_type == 'postgres':
-            c.execute("UPDATE direct_messages SET is_read = 1 WHERE sender_id = %s AND recipient_id = %s", (other_id, uid))
+            c.execute("UPDATE direct_messages SET is_read = 1 WHERE sender_id = %s AND recipient_id = %s AND COALESCE(is_read, 0) = 0", (other_id, uid))
         else:
-            c.execute("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND recipient_id = ?", (other_id, uid))
+            c.execute("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND recipient_id = ? AND COALESCE(is_read, 0) = 0", (other_id, uid))
         conn.commit()
         return jsonify(messages)
     except Exception as e:
