@@ -4310,27 +4310,43 @@
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
+        .comment-text[class*="chat-effect-chat_"],
+        .message-text[class*="chat-effect-chat_"] {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            padding: 2px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.04);
+            -webkit-text-fill-color: currentColor !important;
+            -webkit-background-clip: border-box !important;
+            background-clip: border-box !important;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
         .comment-text.chat-effect-chat_sparkle,
         .message-text.chat-effect-chat_sparkle { position: relative; }
         .comment-text.chat-effect-chat_sparkle::before,
         .message-text.chat-effect-chat_sparkle::before { content: '✨'; position: absolute; left: -16px; top: 0.1em; animation: sparkle 1.5s infinite; }
         .comment-text.chat-effect-chat_rainbow,
-        .message-text.chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; display: inline-block; max-width: 100%; padding: 0 8px 1px; border-radius: 999px; background-repeat: no-repeat !important; background-size: 220% 100% !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+        .message-text.chat-effect-chat_rainbow { color: #fff !important; background: linear-gradient(135deg, rgba(255, 0, 128, 0.35), rgba(94, 92, 230, 0.35), rgba(0, 199, 255, 0.35)) !important; border-color: rgba(255, 120, 210, 0.42); box-shadow: 0 0 14px rgba(255, 0, 128, 0.2); animation: rainbow 5s linear infinite; }
         .comment-text.chat-effect-chat_glow,
-        .message-text.chat-effect-chat_glow { color: inherit !important; text-shadow: 0 0 10px rgba(255,215,0,0.65), 0 0 20px rgba(255,215,0,0.28); background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; display: inline-block; max-width: 100%; }
+        .message-text.chat-effect-chat_glow { color: #f7f2d0 !important; text-shadow: 0 0 10px rgba(255,215,0,0.5); background: rgba(255,215,0,0.08) !important; border-color: rgba(255,215,0,0.36); box-shadow: 0 0 12px rgba(255,215,0,0.22); }
         .comment-text.chat-effect-chat_fire,
-        .message-text.chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 0.8s infinite alternate; }
+        .message-text.chat-effect-chat_fire { color: #ffd9c9 !important; text-shadow: 0 0 10px rgba(255,69,0,0.65) !important; background: rgba(255,69,0,0.14) !important; border-color: rgba(255,99,71,0.42); animation: fireText 0.8s infinite alternate; }
         .comment-text.chat-effect-chat_shadow,
-        .message-text.chat-effect-chat_shadow { color: #666 !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important; }
+        .message-text.chat-effect-chat_shadow { color: #c9c9d9 !important; text-shadow: 1px 1px 3px rgba(0,0,0,0.7) !important; background: rgba(40,40,58,0.45) !important; border-color: rgba(120,120,150,0.32); }
         .comment-text.chat-effect-chat_ice,
-        .message-text.chat-effect-chat_ice { color: #00CED1 !important; text-shadow: 0 0 15px #00CED1, 0 0 25px #00FFFF !important; animation: iceGlow 1s infinite alternate; }
+        .message-text.chat-effect-chat_ice { color: #d7fdff !important; text-shadow: 0 0 10px rgba(0,206,209,0.65) !important; background: rgba(0,206,209,0.12) !important; border-color: rgba(0,255,255,0.35); animation: iceGlow 1s infinite alternate; }
         .comment-text.chat-effect-chat_gold,
-        .message-text.chat-effect-chat_gold { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; animation: goldPulse 2s infinite; }
+        .message-text.chat-effect-chat_gold { color: #fff4b8 !important; text-shadow: 0 0 10px rgba(255,215,0,0.65) !important; background: rgba(255,215,0,0.12) !important; border-color: rgba(255,215,0,0.42); animation: goldPulse 2s infinite; }
         /* Mythic Chat Effects */
         .comment-text.chat-effect-chat_universe,
-        .message-text.chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; display: inline-block; max-width: 100%; padding: 0 8px 1px; border-radius: 999px; background-repeat: no-repeat !important; background-size: 220% 100% !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+        .message-text.chat-effect-chat_universe { color: #ffeaff !important; background: linear-gradient(135deg, rgba(148,0,211,0.34), rgba(0,206,209,0.3), rgba(255,20,147,0.34)) !important; border-color: rgba(255,120,220,0.42); box-shadow: 0 0 14px rgba(184, 89, 255, 0.24); animation: rainbow 3s linear infinite; font-weight: 700 !important; }
         .comment-text.chat-effect-chat_godly,
-        .message-text.chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
+        .message-text.chat-effect-chat_godly { color: #fff8d4 !important; text-shadow: 0 0 12px rgba(255,215,0,0.7), 0 0 24px rgba(255,20,147,0.45) !important; background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,20,147,0.2)) !important; border-color: rgba(255,215,0,0.5); animation: mythicPulse 1s infinite; font-weight: 700 !important; }
     </style>
 </head>
 <body>
