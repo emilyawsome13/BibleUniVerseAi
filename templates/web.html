@@ -3899,23 +3899,27 @@
         .shop-tab-btn:hover { color: var(--text-primary); }
         .shop-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         
-        .shop-content { min-height: 400px; }
-        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
-        @media (min-width: 768px) { .shop-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
+        .shop-content { min-height: 420px; }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+        @media (min-width: 768px) { .shop-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); } }
 
         .shop-item {
             --rarity-a: rgba(160, 170, 200, 0.2);
             --rarity-b: rgba(110, 120, 145, 0.14);
-            background: rgba(6, 10, 18, 0.24);
-            backdrop-filter: blur(2px);
+            background: rgba(6, 10, 18, 0.34);
+            backdrop-filter: blur(3px);
             border: 1px solid rgba(170, 186, 220, 0.22);
-            border-radius: 18px;
-            padding: 16px;
+            border-radius: 20px;
+            padding: 18px 16px 16px;
+            min-height: 300px;
             text-align: center;
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
             position: relative;
             overflow: hidden;
             isolation: isolate;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
         .shop-item:hover {
             transform: translateY(-4px);
@@ -3958,6 +3962,8 @@
         .shop-item.common {
             --rarity-a: rgba(176, 186, 210, 0.2);
             --rarity-b: rgba(90, 102, 126, 0.2);
+            box-shadow: 0 8px 22px rgba(24, 35, 56, 0.26);
+            animation: rarityPulseSoft 4.2s ease-in-out infinite;
         }
         .shop-item.rare {
             --rarity-a: rgba(62, 165, 255, 0.42);
@@ -3995,20 +4001,38 @@
             animation: transcendentCardPulse 1.45s ease-in-out infinite, mythicSheenDrift 3.6s linear infinite;
         }
 
-        .shop-item-icon { font-size: 46px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 8px rgba(255,255,255,0.16)); }
-        .shop-item-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text); }
-        .shop-item-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45; }
+        .shop-item.cat-consumable { border-color: rgba(130, 255, 198, 0.45); }
+        .shop-item.cat-title { border-color: rgba(255, 214, 116, 0.4); }
+        .shop-item.cat-badge { border-color: rgba(164, 213, 255, 0.42); }
+        .shop-item.cat-profile_bg { border-color: rgba(170, 148, 255, 0.4); }
+        .shop-item.cat-chat_effect { border-color: rgba(255, 153, 220, 0.42); }
+        .shop-item.cat-name_color { border-color: rgba(124, 240, 255, 0.42); }
+        .shop-item.cat-frame { border-color: rgba(255, 180, 122, 0.4); }
+
+        .shop-item-icon {
+            font-size: 56px;
+            margin-bottom: 12px;
+            display: block;
+            filter: drop-shadow(0 0 12px rgba(255,255,255,0.22));
+            transition: transform 0.18s ease, filter 0.2s ease;
+        }
+        .shop-item:hover .shop-item-icon {
+            transform: scale(1.08) translateY(-1px);
+            filter: drop-shadow(0 0 18px rgba(255,255,255,0.3));
+        }
+        .shop-item-name { font-weight: 800; font-size: 16px; margin-bottom: 8px; color: var(--text); line-height: 1.2; }
+        .shop-item-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5; }
 
         .shop-item-rarity {
-            font-size: 10px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.9px;
-            padding: 4px 9px;
+            letter-spacing: 1.05px;
+            padding: 5px 11px;
             border-radius: 999px;
             display: inline-block;
             margin-bottom: 10px;
             border: 1px solid rgba(255,255,255,0.22);
-            font-weight: 700;
+            font-weight: 800;
             background: rgba(7, 13, 26, 0.28);
         }
         .shop-item-rarity.common { color: #b8c1d7; border-color: rgba(185, 198, 230, 0.28); }
@@ -4018,19 +4042,21 @@
         .shop-item-rarity.mythic { color: #ffc8ef; border-color: rgba(255, 120, 220, 0.56); text-shadow: 0 0 12px rgba(255, 112, 210, 0.52); animation: rarityPulseSoft 1.8s ease-in-out infinite; }
         .shop-item-rarity.transcendent { color: #e6fffb; border-color: rgba(144, 255, 247, 0.66); text-shadow: 0 0 14px rgba(126, 255, 247, 0.65), 0 0 20px rgba(191, 142, 255, 0.56); animation: transcendentLabelPulse 1.4s ease-in-out infinite; }
 
-        .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; color: var(--primary); font-size: 16px; margin-bottom: 10px; }
+        .shop-item-price { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; color: var(--primary); font-size: 17px; margin-bottom: 12px; }
         .shop-item-price.owned { color: #7de8b0; }
 
         .shop-item-btn {
             width: 100%;
-            padding: 9px 10px;
-            border-radius: 11px;
+            padding: 11px 12px;
+            border-radius: 12px;
             border: 1px solid rgba(140, 185, 255, 0.3);
             background: linear-gradient(145deg, rgba(20, 55, 110, 0.62), rgba(12, 30, 66, 0.58));
             color: #dcedff;
-            font-weight: 700;
+            font-weight: 800;
+            font-size: 13px;
             cursor: pointer;
             transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+            margin-top: auto;
         }
         .shop-item-btn:hover:not(:disabled) {
             transform: translateY(-1px);
@@ -4061,7 +4087,7 @@
         }
         .shop-item-actions { display: flex; gap: 8px; }
         .shop-item-actions .shop-item-btn { flex: 1 1 0; width: 0; }
-        .shop-item-btn.tiny { min-width: 0; padding: 9px 8px; font-size: 12px; line-height: 1.05; }
+        .shop-item-btn.tiny { min-width: 0; padding: 11px 8px; font-size: 12px; line-height: 1.05; }
 
         .shop-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .shop-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.45; }
@@ -4081,14 +4107,14 @@
             filter: drop-shadow(0 0 6px var(--badge-color));
         }
         .profile-badge {
-            font-size: 14px;
+            font-size: 16px;
             margin-right: 6px;
             margin-bottom: 4px;
             text-shadow: 0 0 12px currentColor;
         }
         .user-badge-icon,
         .user-badge-small {
-            font-size: 12px;
+            font-size: 14px;
             min-width: 0;
             min-height: 0;
             width: auto;
@@ -4298,7 +4324,7 @@
         .user-name.pink { color: #FF69B4 !important; }
         
         /* Titles */
-        .user-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 10px; margin-right: 6px; display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; white-space: nowrap; }
+        .user-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 10px; border-radius: 12px; margin-right: 6px; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; white-space: nowrap; }
         .user-title.legendary { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
         .user-title.epic { background: linear-gradient(135deg, #BF5AF2, #9F5AF2); color: #fff; }
         .user-title.rare { background: linear-gradient(135deg, #0A84FF, #0077FF); color: #fff; }
@@ -4306,7 +4332,7 @@
         
         /* Badges */
         .user-badges { display: inline-flex; gap: 6px; margin-left: 6px; vertical-align: middle; }
-        .user-badge-small { width: auto; height: auto; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: none; border-radius: 0; }
+        .user-badge-small { width: auto; height: auto; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: none; border-radius: 0; }
         
         /* Chat Effects */
         .chat-message.sparkle { position: relative; }
@@ -4434,7 +4460,7 @@
         .profile-name-color_celestial { background: linear-gradient(90deg, #ffffff, #8afff5, #c58cff, #fff5b6) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: mythicSheenDrift 2.8s linear infinite; font-weight: 800 !important; text-shadow: 0 0 24px rgba(138,255,245,0.45); }
         
         /* Shop Item Effects - Titles */
-        .user-title { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: 600; vertical-align: middle; flex-shrink: 0; white-space: nowrap; }
+        .user-title { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 3px 10px; border-radius: 13px; margin-left: 6px; font-weight: 700; vertical-align: middle; flex-shrink: 0; white-space: nowrap; }
         .user-title-legendary { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
         .user-title-epic { background: linear-gradient(135deg, #9400D3, #FF00FF); color: #fff; }
         .user-title-rare { background: linear-gradient(135deg, #00BFFF, #1E90FF); color: #fff; }
@@ -4443,7 +4469,7 @@
         .user-title-transcendent { color: #f5fffd; border: 1px solid rgba(155, 255, 246, 0.7); background: linear-gradient(135deg, rgba(84, 255, 242, 0.34), rgba(186, 116, 255, 0.34), rgba(255, 255, 255, 0.24)); box-shadow: 0 0 24px rgba(120, 255, 246, 0.54), 0 0 14px rgba(196, 132, 255, 0.42); animation: transcendentLabelPulse 1.4s ease-in-out infinite; background-size: 220% 220%; }
         
         /* Shop Item Effects - Badges */
-        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 12px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 0; min-height: 0; border-radius: 0; }
+        .user-badge-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: 7px; font-size: 14px; cursor: help; vertical-align: middle; flex-shrink: 0; min-width: 0; min-height: 0; border-radius: 0; }
         .user-title:empty, .user-badge-icon:empty { display: none !important; }
         
         /* Shop Item Effects - Chat Effects */
@@ -12191,6 +12217,11 @@ async function checkAchievement(type, value) {
             return 'common';
         }
 
+        function safeCssToken(value, fallback = 'misc') {
+            const raw = String(value || fallback).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            return raw || fallback;
+        }
+
         function normalizeXPState(xpData) {
             const baseXp = Number(userXP.xp || 0);
             const fallbackLevel = Math.floor(baseXp / 1000) + 1;
@@ -12201,6 +12232,22 @@ async function checkAchievement(type, value) {
                 xp: Number.isFinite(nextXp) ? nextXp : baseXp,
                 level: Number.isFinite(nextLevel) && nextLevel > 0 ? nextLevel : fallbackLevel
             };
+        }
+
+        function parseServerDateToMs(dateValue) {
+            const raw = String(dateValue || '').trim();
+            if (!raw) return NaN;
+            // If timezone is missing, treat server timestamp as UTC.
+            const normalized = /[zZ]|[+-]\d{2}:\d{2}$/.test(raw) ? raw : (raw + 'Z');
+            return new Date(normalized).getTime();
+        }
+
+        function setActiveBoostState(boostData) {
+            activeBoostState = boostData || null;
+            if (!activeBoostState) return;
+            const initialRemaining = Number(activeBoostState.remaining_seconds || 0);
+            activeBoostState.base_remaining_seconds = Math.max(0, Math.floor(Number.isFinite(initialRemaining) ? initialRemaining : 0));
+            activeBoostState.base_client_ms = Date.now();
         }
 
         function updateProfileXPDisplay() {
@@ -12231,7 +12278,7 @@ async function checkAchievement(type, value) {
                 if (!xpRes.ok || xpData.xp === undefined) return null;
                 userXP = normalizeXPState(xpData);
                 if (Object.prototype.hasOwnProperty.call(xpData, 'active_boost')) {
-                    activeBoostState = xpData.active_boost || null;
+                    setActiveBoostState(xpData.active_boost || null);
                     startBoostTicker();
                 }
                 refreshAllXPDisplays();
@@ -12262,7 +12309,7 @@ async function checkAchievement(type, value) {
                 const res = await fetch('/api/shop/inventory');
                 const data = await res.json();
                 if (data.inventory) userInventory = data.inventory;
-                activeBoostState = data.active_boost || null;
+                setActiveBoostState(data.active_boost || null);
                 startBoostTicker();
                 refreshAllXPDisplays();
             } catch (e) {
@@ -12281,9 +12328,14 @@ async function checkAchievement(type, value) {
         }
 
         function getRemainingBoostSeconds() {
-            if (!activeBoostState || !activeBoostState.expires_at) return 0;
-            const end = new Date(activeBoostState.expires_at).getTime();
-            if (!Number.isFinite(end)) return Number(activeBoostState.remaining_seconds || 0);
+            if (!activeBoostState) return 0;
+            if (Number.isFinite(activeBoostState.base_remaining_seconds) && Number.isFinite(activeBoostState.base_client_ms)) {
+                const elapsed = Math.floor((Date.now() - activeBoostState.base_client_ms) / 1000);
+                return Math.max(0, activeBoostState.base_remaining_seconds - Math.max(0, elapsed));
+            }
+            if (!activeBoostState.expires_at) return Math.max(0, Number(activeBoostState.remaining_seconds || 0));
+            const end = parseServerDateToMs(activeBoostState.expires_at);
+            if (!Number.isFinite(end)) return Math.max(0, Number(activeBoostState.remaining_seconds || 0));
             return Math.max(0, Math.floor((end - Date.now()) / 1000));
         }
 
@@ -12299,11 +12351,13 @@ async function checkAchievement(type, value) {
                 if (remaining <= 0) {
                     clearInterval(boostTicker);
                     boostTicker = null;
-                    activeBoostState = null;
+                    setActiveBoostState(null);
                     if (currentTab === 'inventory') renderInventory();
+                    if (currentTab === 'shop') renderShopItems();
                     return;
                 }
                 if (currentTab === 'inventory') renderInventory();
+                if (currentTab === 'shop') renderShopItems();
             }, 1000);
         }
         
@@ -12364,8 +12418,10 @@ async function checkAchievement(type, value) {
                 const isConsumable = item.category === 'consumable';
                 const isOwned = !!owned && ownedQty > 0;
                 const boostActive = isConsumable && activeBoostState && activeBoostState.item_id === item.item_id && getRemainingBoostSeconds() > 0;
+                const boostRemaining = boostActive ? formatDurationShort(getRemainingBoostSeconds()) : '';
                 const rarityClass = safeRarity(item.rarity);
                 const rarityLabel = String(item.rarity || rarityClass).toUpperCase();
+                const categoryClass = safeCssToken(item.category, 'misc');
                 const price = Math.max(0, Number(item.price || 0) || 0);
                 const priceLabel = isConsumable
                     ? '⚡ ' + formatNumber(price) + ' XP'
@@ -12377,14 +12433,14 @@ async function checkAchievement(type, value) {
                 const buttonDisabled = (!isConsumable && isOwned) || !canBuy;
                 const buttonText = (!isConsumable && isOwned) ? 'Owned' : 'Buy';
                 const useDisabled = !isConsumable || ownedQty <= 0;
-                const useText = boostActive ? 'Active' : 'Use';
+                const useText = boostActive ? ('Active ' + boostRemaining) : 'Use';
                 const buyBtn = '<button class="shop-item-btn" ' + (buttonDisabled ? 'disabled' : '') + ' onclick="purchaseItem(' + "'" + item.item_id + "'" + ', ' + price + ')">' + buttonText + '</button>';
                 const useBtn = '<button class="shop-item-btn tiny use" ' + (useDisabled ? 'disabled' : '') + ' onclick="useBooster(' + "'" + item.item_id + "'" + ')">' + useText + '</button>';
                 const actionButtons = isConsumable
                     ? ('<div class="shop-item-actions">' + buyBtn + useBtn + '</div>')
                     : buyBtn;
                 
-                return '<div class="shop-item ' + rarityClass + ' ' + (isOwned && !isConsumable ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
+                return '<div class="shop-item ' + rarityClass + ' cat-' + categoryClass + ' ' + (isOwned && !isConsumable ? 'owned' : '') + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
@@ -12433,6 +12489,7 @@ async function checkAchievement(type, value) {
                 if (!item || !item.item_id) return '';
                 const rarityClass = safeRarity(item.rarity);
                 const rarityLabel = String(item.rarity || rarityClass).toUpperCase();
+                const categoryClass = safeCssToken(item.category, 'misc');
                 const isEquipped = item.equipped;
                 const quantity = Math.max(0, Number(item.quantity || 0));
                 const isConsumable = item.category === 'consumable';
@@ -12450,7 +12507,7 @@ async function checkAchievement(type, value) {
                     ? ("useBooster('" + item.item_id + "')")
                     : ("toggleEquipItem('" + item.item_id + "', " + (!isEquipped) + ")");
 
-                return '<div class="shop-item ' + rarityClass + ' ' + ((!isConsumable && isEquipped) ? 'equipped' : '') + '" data-item-id="' + item.item_id + '">' +
+                return '<div class="shop-item ' + rarityClass + ' cat-' + categoryClass + ' ' + ((!isConsumable && isEquipped) ? 'equipped' : '') + '" data-item-id="' + item.item_id + '">' +
                     '<span class="shop-item-icon">' + (item.icon || '📦') + '</span>' +
                     '<div class="shop-item-name">' + item.name + '</div>' +
                     '<div class="shop-item-desc">' + item.description + '</div>' +
@@ -12677,7 +12734,7 @@ async function checkAchievement(type, value) {
                     return;
                 }
 
-                activeBoostState = data.active_boost || null;
+                setActiveBoostState(data.active_boost || null);
                 startBoostTicker();
                 await loadInventory();
                 renderInventory();
@@ -12736,7 +12793,7 @@ async function checkAchievement(type, value) {
                 if (data.success) {
                     userXP = normalizeXPState({ ...userXP, xp: data.new_total, level: data.level });
                     if (Object.prototype.hasOwnProperty.call(data, 'active_boost')) {
-                        activeBoostState = data.active_boost || null;
+                        setActiveBoostState(data.active_boost || null);
                         startBoostTicker();
                     }
                     refreshAllXPDisplays();

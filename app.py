@@ -10,7 +10,7 @@ import json
 import random
 import logging
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 from functools import wraps
 from urllib.parse import quote
@@ -725,7 +725,7 @@ def row_pick(row, key, index=None, default=None):
     return default
 
 def parse_duration_to_seconds(duration_value, default_seconds=3600):
-    """Parse duration values like '24h', '30m', '2d' into seconds."""
+    """Parse duration values like '24h', '30m', '30 min', '1.5h', '2d' into seconds."""
     if duration_value is None:
         return int(default_seconds)
     if isinstance(duration_value, (int, float)):
@@ -734,13 +734,24 @@ def parse_duration_to_seconds(duration_value, default_seconds=3600):
     text = str(duration_value).strip().lower()
     if not text:
         return int(default_seconds)
-    m = re.match(r'^(\d+)\s*([smhd])$', text)
+    m = re.match(r'^(\d+(?:\.\d+)?)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$', text)
+    if not m:
+        m = re.match(r'^(\d+(?:\.\d+)?)([smhd])$', text)
     if not m:
         return int(default_seconds)
-    value = int(m.group(1))
-    unit = m.group(2)
-    factor = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.get(unit, 1)
-    seconds = value * factor
+    value = float(m.group(1))
+    unit = str(m.group(2) or '').strip().lower()
+    if unit in ('s', 'sec', 'secs', 'second', 'seconds'):
+        factor = 1
+    elif unit in ('m', 'min', 'mins', 'minute', 'minutes'):
+        factor = 60
+    elif unit in ('h', 'hr', 'hrs', 'hour', 'hours'):
+        factor = 3600
+    elif unit in ('d', 'day', 'days'):
+        factor = 86400
+    else:
+        factor = 1
+    seconds = int(value * factor)
     return seconds if seconds > 0 else int(default_seconds)
 
 def ensure_active_boosts_schema(c, db_type):
@@ -825,8 +836,11 @@ def get_active_boost(c, db_type, user_id, cleanup_expired=True):
         if not expires_at:
             return None
 
-        now = datetime.now(expires_at.tzinfo) if expires_at.tzinfo else datetime.now()
-        if expires_at <= now:
+        # Treat legacy naive timestamps as UTC to avoid client-side timezone drift.
+        expires_at_calc = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=timezone.utc)
+        started_at_calc = started_at if (started_at and started_at.tzinfo) else (started_at.replace(tzinfo=timezone.utc) if started_at else None)
+        now = datetime.now(expires_at_calc.tzinfo)
+        if expires_at_calc <= now:
             if cleanup_expired:
                 if db_type == 'postgres':
                     c.execute("DELETE FROM user_active_boosts WHERE user_id = %s", (user_id,))
@@ -834,12 +848,12 @@ def get_active_boost(c, db_type, user_id, cleanup_expired=True):
                     c.execute("DELETE FROM user_active_boosts WHERE user_id = ?", (user_id,))
             return None
 
-        remaining = max(0, int((expires_at - now).total_seconds()))
+        remaining = max(0, int((expires_at_calc - now).total_seconds()))
         return {
             "item_id": item_id,
             "multiplier": max(1, multiplier),
-            "started_at": started_at.isoformat() if started_at else None,
-            "expires_at": expires_at.isoformat(),
+            "started_at": started_at_calc.isoformat() if started_at_calc else None,
+            "expires_at": expires_at_calc.isoformat(),
             "remaining_seconds": remaining
         }
     except Exception:
@@ -5101,7 +5115,7 @@ def use_consumable():
         if current_qty <= 0:
             return jsonify({"error": "No boosters owned"}), 400
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(seconds=duration_seconds)
 
         # Consume one quantity.
