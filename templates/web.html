@@ -5192,17 +5192,17 @@
                     <div class="collection-card" onclick="showCollection('favorites')">
                         <div class="collection-icon">⭐</div>
                         <div class="collection-name">Favorites</div>
-                        <div class="collection-count" id="favoritesCount">0 verses</div>
+                        <div class="collection-count" id="favoritesCount">0</div>
                     </div>
                     <div class="collection-card" onclick="showCollection('liked')">
                         <div class="collection-icon">❤️</div>
                         <div class="collection-name">Liked Verses</div>
-                        <div class="collection-count" id="likedCount">0 verses</div>
+                        <div class="collection-count" id="likedCount">0</div>
                     </div>
                     <div class="collection-card" onclick="showCollection('saved')">
                         <div class="collection-icon">🔖</div>
                         <div class="collection-name">Saved</div>
-                        <div class="collection-count" id="savedCount">0 verses</div>
+                        <div class="collection-count" id="savedCount">0</div>
                     </div>
                     <div class="collection-card" onclick="createNewCollection()">
                         <div class="collection-icon">➕</div>
@@ -7320,14 +7320,7 @@
             // Find or create favorites collection
             favoritesCollection = libraryData.collections.find(c => (c.name || '').toLowerCase() === 'favorites');
 
-            // Update favorites drop zone count
-            const favCount = (favoritesCollection && Array.isArray(favoritesCollection.verses)) ? favoritesCollection.verses.length : 0;
-            const likedCount = Array.isArray(libraryData.liked) ? libraryData.liked.length : 0;
-            const savedCount = Array.isArray(libraryData.saved) ? libraryData.saved.length : 0;
-            document.getElementById('favoritesCount').textContent = `${favCount} verses`;
-            document.getElementById('favoritesCountDrop').textContent = String(favCount);
-            document.getElementById('likedCount').textContent = `${likedCount} verses`;
-            document.getElementById('savedCount').textContent = `${savedCount} verses`;
+            updateLibraryCounts();
 
             const bibleQuery = (document.getElementById('libraryBibleSearch')?.value || '').trim();
             if (currentLibraryTab === 'dbsearch') {
@@ -7337,9 +7330,9 @@
                 }
                 libraryViewMode = 'bible-search';
                 librarySearchResults = [];
-                document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
+                document.getElementById('libraryListTitle').textContent = tUi('researchVersesSearchTitle', 'Research Verses Search');
                 setLibrarySearchMeta(tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
-                renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
+                renderVerseCards([], tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
                 return;
             }
 
@@ -7353,6 +7346,60 @@
         function setLibrarySearchMeta(message = '') {
             const metaEl = document.getElementById('librarySearchMeta');
             if (metaEl) metaEl.textContent = message || '';
+        }
+
+        function updateLibraryCounts() {
+            const allCollections = Array.isArray(libraryData?.collections) ? libraryData.collections : [];
+            const localFavorites = favoritesCollection || allCollections.find(c => (c?.name || '').toLowerCase() === 'favorites');
+            const favCount = (localFavorites && Array.isArray(localFavorites.verses)) ? localFavorites.verses.length : 0;
+            const likedCount = Array.isArray(libraryData?.liked) ? libraryData.liked.length : 0;
+            const savedCount = Array.isArray(libraryData?.saved) ? libraryData.saved.length : 0;
+            const versesWord = tUi('versesWord', 'verses');
+
+            const favoritesCountEl = document.getElementById('favoritesCount');
+            if (favoritesCountEl) favoritesCountEl.textContent = `${favCount} ${versesWord}`;
+
+            const favoritesDropCountEl = document.getElementById('favoritesCountDrop');
+            if (favoritesDropCountEl) favoritesDropCountEl.textContent = String(favCount);
+
+            const likedCountEl = document.getElementById('likedCount');
+            if (likedCountEl) likedCountEl.textContent = `${likedCount} ${versesWord}`;
+
+            const savedCountEl = document.getElementById('savedCount');
+            if (savedCountEl) savedCountEl.textContent = `${savedCount} ${versesWord}`;
+        }
+
+        function rerenderLibraryForLanguage() {
+            updateLibraryCounts();
+            const titleEl = document.getElementById('libraryListTitle');
+            if (!titleEl) return;
+
+            if (currentLibraryTab === 'dbsearch') {
+                const query = (document.getElementById('libraryBibleSearch')?.value || '').trim();
+                libraryViewMode = 'bible-search';
+                titleEl.textContent = tUi('researchVersesSearchTitle', 'Research Verses Search');
+                if (!query || query.length < 2) {
+                    const hint = query
+                        ? tUi('typeAtLeastTwoCharsHint', 'Type at least 2 characters. Example: "1 Peter", "Genesis", "John".')
+                        : tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.');
+                    setLibrarySearchMeta(hint);
+                    renderVerseCards([], tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
+                    return;
+                }
+                titleEl.textContent = tUiFormat('researchVersesTitleWithQuery', 'Research Verses: {query}', { query });
+                setLibrarySearchMeta(`${librarySearchResults.length} ${librarySearchResults.length === 1 ? tUi('verseWord', 'verse') : tUi('versesWord', 'verses')} found.`);
+                renderVerseCards(librarySearchResults, tUiFormat('noVersesFoundInDbForQuery', 'No verses found in database for "{query}".', { query }));
+                return;
+            }
+
+            if (libraryViewMode === 'bible-search') {
+                renderVerseCards(librarySearchResults, tUi('noVersesFound', 'No verses found.'));
+                return;
+            }
+
+            setLibrarySearchMeta('');
+            titleEl.textContent = tUi('myVerses', 'My Verses');
+            renderLibraryVerses();
         }
 
         function setResearchAdvancedMode(visible) {
@@ -7433,7 +7480,7 @@
                 list.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">&#9825;</div>
-                        <div class="empty-state-text">${escapeHtml(emptyMessage || 'No verses found.')}</div>
+                        <div class="empty-state-text">${escapeHtml(emptyMessage || tUi('noVersesFound', 'No verses found.'))}</div>
                     </div>
                 `;
                 return;
@@ -7444,8 +7491,8 @@
                 const isStored = Boolean(v.is_stored || v.saved_at);
                 const statusHtml = (isActive || isStored) ? `
                     <div class="verse-card-status">
-                        ${isActive ? '<span class="verse-status-chip active">Active</span>' : ''}
-                        ${isStored ? '<span class="verse-status-chip stored">Stored</span>' : ''}
+                        ${isActive ? `<span class="verse-status-chip active">${escapeHtml(tUi('activeWord', 'Active'))}</span>` : ''}
+                        ${isStored ? `<span class="verse-status-chip stored">${escapeHtml(tUi('storedWord', 'Stored'))}</span>` : ''}
                     </div>
                 ` : '';
                 return `
@@ -7464,13 +7511,13 @@
                         ${statusHtml}
                         <div class="verse-card-actions">
                             <button class="verse-card-btn" onclick="event.stopPropagation(); setResearchSelectedVerse(${v.id})">
-                                Select
+                                ${escapeHtml(tUi('selectWord', 'Select'))}
                             </button>
                             <button class="verse-card-btn ${isActive ? 'liked' : ''}" onclick="event.stopPropagation(); libraryLike(${v.id})">
-                                ${isActive ? '&#9829; Liked' : '&#9825; Like'}
+                                ${isActive ? `&#9829; ${escapeHtml(tUi('liked', 'Liked'))}` : `&#9825; ${escapeHtml(tUi('likeAction', 'Like'))}`}
                             </button>
                             <button class="verse-card-btn ${isStored ? 'saved' : ''}" onclick="event.stopPropagation(); librarySave(${v.id})">
-                                ${isStored ? '&#128209; Saved' : '&#128278; Save'}
+                                ${isStored ? `&#128209; ${escapeHtml(tUi('saved', 'Saved'))}` : `&#128278; ${escapeHtml(tUi('saveAction', 'Save'))}`}
                             </button>
                         </div>
                     </div>
@@ -7482,7 +7529,7 @@
             const sortMode = document.getElementById('sortSelect')?.value || 'newest';
             const uniqueVerses = getCombinedLibraryVerses();
             const sorted = sortLibraryVerses(uniqueVerses, sortMode);
-            renderVerseCards(sorted, 'No verses yet. Start liking and saving!');
+            renderVerseCards(sorted, tUi('noVersesYet', 'No verses yet. Start liking and saving!'));
         }
 
         function setResearchSelectedVerse(verseId) {
@@ -7590,8 +7637,8 @@
                 librarySearchResults = [];
                 if (currentLibraryTab === 'dbsearch') {
                     libraryViewMode = 'bible-search';
-                    document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
-                    setLibrarySearchMeta('Type at least 2 characters. Example: "1 Peter", "Genesis", "John".');
+                    document.getElementById('libraryListTitle').textContent = tUi('researchVersesSearchTitle', 'Research Verses Search');
+                    setLibrarySearchMeta(tUi('typeAtLeastTwoCharsHint', 'Type at least 2 characters. Example: "1 Peter", "Genesis", "John".'));
                     renderVerseCards([], tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
                 } else {
                     libraryViewMode = 'personal';
@@ -7615,7 +7662,7 @@
             librarySearchAbortController = new AbortController();
             const requestSeq = ++librarySearchRequestSeq;
 
-            setLibrarySearchMeta('Searching verses database...');
+            setLibrarySearchMeta(tUi('searchingVersesDatabase', 'Searching verses database...'));
             try {
                 const res = await fetch(`/api/library/search?${params.toString()}`, {
                     cache: 'no-store',
@@ -7636,9 +7683,9 @@
                 if (librarySearchResults.length && !selectedResearchVerseId) {
                     selectedResearchVerseId = Number(librarySearchResults[0].id) || null;
                 }
-                document.getElementById('libraryListTitle').textContent = `Research Verses: ${query}`;
-                setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found.`);
-                renderVerseCards(librarySearchResults, `No verses found in database for "${query}".`);
+                document.getElementById('libraryListTitle').textContent = tUiFormat('researchVersesTitleWithQuery', 'Research Verses: {query}', { query });
+                setLibrarySearchMeta(`${librarySearchResults.length} ${librarySearchResults.length === 1 ? tUi('verseWord', 'verse') : tUi('versesWord', 'verses')} found.`);
+                renderVerseCards(librarySearchResults, tUiFormat('noVersesFoundInDbForQuery', 'No verses found in database for "{query}".', { query }));
             } catch (e) {
                 if (e && e.name === 'AbortError') return;
                 setLibrarySearchMeta('Network error while searching.');
@@ -7664,9 +7711,9 @@
                 libraryViewMode = 'bible-search';
                 librarySearchResults = Array.isArray(data.verses) ? data.verses : [];
                 if (librarySearchResults.length) selectedResearchVerseId = Number(librarySearchResults[0].id) || null;
-                document.getElementById('libraryListTitle').textContent = `Topic: ${topic}`;
-                setLibrarySearchMeta(`${librarySearchResults.length} verse${librarySearchResults.length === 1 ? '' : 's'} found for topic "${topic}".`);
-                renderVerseCards(librarySearchResults, `No verses found for topic "${topic}".`);
+                document.getElementById('libraryListTitle').textContent = tUiFormat('topicTitleWithTopic', 'Topic: {topic}', { topic });
+                setLibrarySearchMeta(`${librarySearchResults.length} ${librarySearchResults.length === 1 ? tUi('verseWord', 'verse') : tUi('versesWord', 'verses')} found for topic "${topic}".`);
+                renderVerseCards(librarySearchResults, tUiFormat('noVersesFoundForTopic', 'No verses found for topic "{topic}".', { topic }));
             } catch (_) {
                 setLibrarySearchMeta('Topic search network error.');
             }
@@ -8038,9 +8085,9 @@
             if (librarySearchAbortController) librarySearchAbortController.abort();
             if (currentLibraryTab === 'dbsearch') {
                 libraryViewMode = 'bible-search';
-                document.getElementById('libraryListTitle').textContent = 'Research Verses Search';
+                document.getElementById('libraryListTitle').textContent = tUi('researchVersesSearchTitle', 'Research Verses Search');
                 setLibrarySearchMeta(tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
-                renderVerseCards([], 'Enter a Bible title like "1 Peter" or "1 John".');
+                renderVerseCards([], tUi('libraryBrowseHint', 'Search by Bible title to browse verses already in your database.'));
                 return;
             }
             libraryViewMode = 'personal';
@@ -10825,7 +10872,7 @@ async function checkAchievement(type, value) {
                 renderReaderPage();
                 if (metaEl) {
                     const translationLabel = data.translation || data.translation_id || translation;
-                    metaEl.textContent = `${translationLabel} • ${data.verses ? data.verses.length : 0} verses`;
+                    metaEl.textContent = `${translationLabel} • ${data.verses ? data.verses.length : 0} ${tUi('versesWord', 'verses')}`;
                 }
                 contentEl.scrollTop = 0;
             } catch (_) {
@@ -11034,7 +11081,7 @@ async function checkAchievement(type, value) {
             const sort = document.getElementById('sortSelect').value;
             showToast(`Sorted by: ${sort}`);
             if (libraryViewMode === 'bible-search') {
-                renderVerseCards(librarySearchResults, 'No verses found in search results.');
+                renderVerseCards(librarySearchResults, tUi('noVersesFound', 'No verses found.'));
                 return;
             }
             renderLibraryVerses();
@@ -11692,10 +11739,22 @@ async function checkAchievement(type, value) {
             librarySearchPlaceholder: '🔍 Search visible verses...',
             libraryBibleSearchPlaceholder: '📖 Search Bible title (e.g. 1 Peter, 1 John)',
             clearWord: 'Clear',
+            selectWord: 'Select',
+            activeWord: 'Active',
+            storedWord: 'Stored',
+            verseWord: 'verse',
+            versesWord: 'verses',
             myVerses: 'My Verses',
             showAdvanced: 'Show Advanced',
             hideAdvanced: 'Hide Advanced',
             libraryBrowseHint: 'Search by Bible title to browse verses already in your database.',
+            researchVersesSearchTitle: 'Research Verses Search',
+            researchVersesTitleWithQuery: 'Research Verses: {query}',
+            topicTitleWithTopic: 'Topic: {topic}',
+            typeAtLeastTwoCharsHint: 'Type at least 2 characters. Example: "1 Peter", "Genesis", "John".',
+            searchingVersesDatabase: 'Searching verses database...',
+            noVersesFound: 'No verses found.',
+            noVersesYet: 'No verses yet. Start liking and saving!',
             filteredWord: 'Filtered',
             recommendationsWord: 'Recommendations',
             recommendationsAppearHere: 'Your recommendations will appear here'
@@ -11743,10 +11802,25 @@ async function checkAchievement(type, value) {
 
         const UI_TRANSLATE_CODES = { en: 'en', es: 'es', fr: 'fr', de: 'de', pt: 'pt', it: 'it', ru: 'ru', ar: 'ar', hi: 'hi', zh: 'zh-CN' };
         const UI_AUTO_TRANSLATE_CACHE = {};
+        const UI_AUTO_TRANSLATE_CACHE_KEY = 'bibleUiTranslateCacheV1';
+        const UI_AUTO_TRANSLATE_CACHE_MAX = 1800;
+        const UI_AUTO_TRANSLATE_PENDING = new Map();
+        const UI_AUTO_TRANSLATE_CONCURRENCY = 10;
+        let uiAutoTranslateSaveTimer = null;
         let languageRevision = 0;
         let languageObserver = null;
         let languageObserverTimer = null;
         let isAutoTranslatingUi = false;
+
+        try {
+            const rawCache = localStorage.getItem(UI_AUTO_TRANSLATE_CACHE_KEY);
+            if (rawCache) {
+                const parsed = JSON.parse(rawCache);
+                if (parsed && typeof parsed === 'object') {
+                    Object.assign(UI_AUTO_TRANSLATE_CACHE, parsed);
+                }
+            }
+        } catch (_) {}
 
         function getLanguagePack(langOverride = null) {
             const lang = langOverride || settings.language || 'en';
@@ -11757,6 +11831,29 @@ async function checkAchievement(type, value) {
             const pack = getLanguagePack();
             if (Object.prototype.hasOwnProperty.call(pack, key)) return pack[key];
             return fallback || key;
+        }
+
+        function tUiFormat(key, fallback = '', vars = {}) {
+            let template = tUi(key, fallback);
+            Object.entries(vars || {}).forEach(([name, value]) => {
+                template = template.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value ?? ''));
+            });
+            return template;
+        }
+
+        function scheduleUiTranslateCacheSave() {
+            if (uiAutoTranslateSaveTimer) return;
+            uiAutoTranslateSaveTimer = setTimeout(() => {
+                uiAutoTranslateSaveTimer = null;
+                try {
+                    const keys = Object.keys(UI_AUTO_TRANSLATE_CACHE);
+                    if (keys.length > UI_AUTO_TRANSLATE_CACHE_MAX) {
+                        const dropCount = keys.length - UI_AUTO_TRANSLATE_CACHE_MAX;
+                        keys.slice(0, dropCount).forEach((k) => delete UI_AUTO_TRANSLATE_CACHE[k]);
+                    }
+                    localStorage.setItem(UI_AUTO_TRANSLATE_CACHE_KEY, JSON.stringify(UI_AUTO_TRANSLATE_CACHE));
+                } catch (_) {}
+            }, 350);
         }
 
         function setUiText(id, value) {
@@ -11851,17 +11948,54 @@ async function checkAchievement(type, value) {
                 return source.replace(trimmed, UI_AUTO_TRANSLATE_CACHE[cacheKey]);
             }
             if (trimmed.length > 1200) return source;
+            if (UI_AUTO_TRANSLATE_PENDING.has(cacheKey)) {
+                try {
+                    const pendingResult = await UI_AUTO_TRANSLATE_PENDING.get(cacheKey);
+                    return source.replace(trimmed, pendingResult || trimmed);
+                } catch (_) {
+                    return source;
+                }
+            }
+            const pendingRequest = (async () => {
+                try {
+                    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
+                    const res = await fetch(url, { cache: 'default' });
+                    if (!res.ok) return trimmed;
+                    const payload = await res.json();
+                    const translated = Array.isArray(payload?.[0]) ? payload[0].map((part) => part?.[0] || '').join('') : trimmed;
+                    return translated || trimmed;
+                } catch (_) {
+                    return trimmed;
+                }
+            })();
+            UI_AUTO_TRANSLATE_PENDING.set(cacheKey, pendingRequest);
             try {
-                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
-                const res = await fetch(url);
-                if (!res.ok) return source;
-                const payload = await res.json();
-                const translated = Array.isArray(payload?.[0]) ? payload[0].map((part) => part?.[0] || '').join('') : trimmed;
+                const translated = await pendingRequest;
                 UI_AUTO_TRANSLATE_CACHE[cacheKey] = translated || trimmed;
+                scheduleUiTranslateCacheSave();
                 return source.replace(trimmed, UI_AUTO_TRANSLATE_CACHE[cacheKey]);
             } catch (_) {
                 return source;
+            } finally {
+                UI_AUTO_TRANSLATE_PENDING.delete(cacheKey);
             }
+        }
+
+        async function runTranslationWorkers(entries, revision, worker, concurrency = UI_AUTO_TRANSLATE_CONCURRENCY) {
+            const list = Array.isArray(entries) ? entries : [];
+            if (!list.length) return;
+            const workerCount = Math.max(1, Math.min(concurrency, list.length));
+            let cursor = 0;
+            async function runOne() {
+                while (cursor < list.length) {
+                    if (revision !== languageRevision) return;
+                    const index = cursor++;
+                    try {
+                        await worker(list[index], index);
+                    } catch (_) {}
+                }
+            }
+            await Promise.all(Array.from({ length: workerCount }, () => runOne()));
         }
 
         async function autoTranslateUi(lang, revision) {
@@ -11876,21 +12010,21 @@ async function checkAchievement(type, value) {
             const attrs = collectTranslatableAttrs();
             isAutoTranslatingUi = true;
             try {
-                for (const node of nodes) {
+                await runTranslationWorkers(nodes, revision, async (node) => {
                     if (revision !== languageRevision) return;
-                    if (!node || !node.isConnected) continue;
+                    if (!node || !node.isConnected) return;
                     const base = node.__i18nBaseText !== undefined ? node.__i18nBaseText : node.nodeValue;
                     const translated = await translateUiText(base, targetLang);
                     if (revision !== languageRevision) return;
                     if (translated && node.nodeValue !== translated) node.nodeValue = translated;
-                }
-                for (const entry of attrs) {
+                });
+                await runTranslationWorkers(attrs, revision, async (entry) => {
                     if (revision !== languageRevision) return;
-                    if (!entry.el || !entry.el.isConnected) continue;
+                    if (!entry.el || !entry.el.isConnected) return;
                     const translated = await translateUiText(entry.base, targetLang);
                     if (revision !== languageRevision) return;
                     if (translated) entry.el.setAttribute(entry.attr, translated);
-                }
+                });
             } finally {
                 isAutoTranslatingUi = false;
             }
@@ -12046,6 +12180,9 @@ async function checkAchievement(type, value) {
             if (typeof updateAchievementSummary === 'function') updateAchievementSummary();
             if (typeof setResearchAdvancedMode === 'function') {
                 setResearchAdvancedMode(researchAdvancedVisible);
+            }
+            if (typeof rerenderLibraryForLanguage === 'function') {
+                rerenderLibraryForLanguage();
             }
 
             setupLanguageObserver();
