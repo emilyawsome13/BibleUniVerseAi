@@ -923,9 +923,6 @@
         <div class="nav-item" onclick="showSection('restrictions'); toggleMenu();" data-section="restrictions">
             <span>&#128683;</span> Restrictions
         </div>
-        <div class="nav-item" onclick="showSection('verses'); toggleMenu();" data-section="verses">
-            <span>&#128214;</span> Saved Verses
-        </div>
         <div class="nav-item" onclick="showSection('bans'); toggleMenu();" data-section="bans">
             <span>&#128683;</span> Banned Users
         </div>
@@ -1013,10 +1010,6 @@
                     <div class="quick-action" onclick="exportData('users')">
                         <div class="quick-action-icon">&#128202;</div>
                         <div style="font-size: 0.85rem; font-weight: 500;">Export Data</div>
-                    </div>
-                    <div class="quick-action quick-action-reset perm-manage-xp hidden" onclick="resetAllLevels()">
-                        <div class="quick-action-icon">&#9889;</div>
-                        <div style="font-size: 0.85rem; font-weight: 500;">Reset All Levels</div>
                     </div>
                 </div>
             </div>
@@ -1164,24 +1157,6 @@
                     <input type="text" class="search-box" id="restrictionSearch" placeholder="&#128269; Search restricted users..." onkeyup="filterRestrictions()">
                 </div>
                 <div id="restrictionsContent"><div class="loading"><div class="spinner"></div>Loading restrictions...</div></div>
-            </div>
-        </div>
-
-        <!-- Verses Archive Section -->
-        <div id="verses-section" class="hidden">
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <div class="panel-title">&#128218; Saved Verses Archive</div>
-                        <div class="stat-label" id="verseCountLabel">11,000+ verses archived</div>
-                    </div>
-                    <div class="header-actions" style="gap: 8px; flex-wrap: wrap;">
-                        <input type="text" class="search-box" id="verseSearchInput" placeholder="&#128269; Search reference, text, or translation..." oninput="handleVerseSearch(event)">
-                        <button class="btn btn-secondary" onclick="loadVerses(1)">Refresh</button>
-                    </div>
-                </div>
-                <div id="verseTableContainer" class="loading"><div class="spinner"></div>Loading saved verses...</div>
-                <div class="pagination" id="versePagination"></div>
             </div>
         </div>
 
@@ -1369,20 +1344,13 @@
     <!-- Give XP Modal -->
     <div class="modal-overlay" id="giveXPModal">
         <div class="modal">
-            <h3>&#9889; Adjust XP for User</h3>
+            <h3>&#9889; Give XP to User</h3>
             <p style="color:#888;margin:10px 0;font-size:0.9rem;">Current XP: <span id="giveXPCurrent" style="color:#FFD700;font-weight:bold;">0</span> | Level: <span id="giveXPLevel">1</span></p>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-                <span style="color:#888;font-size:0.85rem;">Action:</span>
-                <select id="giveXPOperation" class="modal-input" style="max-width:200px;">
-                    <option value="add">Give XP</option>
-                    <option value="remove">Remove XP</option>
-                </select>
-            </div>
-            <input type="number" class="modal-input" id="giveXPAmount" placeholder="Amount of XP to adjust..." min="1" max="1000000">
+            <input type="number" class="modal-input" id="giveXPAmount" placeholder="Amount of XP to give..." min="1" max="1000000">
             <input type="text" class="modal-input" id="giveXPReason" placeholder="Reason (optional)..." value="Admin gift">
             <div style="display:flex;gap:10px;justify-content:flex-end;">
                 <button class="btn" onclick="closeGiveXPModal()" style="background:#333;color:#fff;">Cancel</button>
-                <button class="btn btn-success" onclick="confirmGiveXP()">Apply Adjustment</button>
+                <button class="btn btn-success" onclick="confirmGiveXP()">Give XP</button>
             </div>
         </div>
     </div>
@@ -1406,11 +1374,6 @@
         let newRestrictHours = 24;
         let currentCommentTab = 'verse';
         let settingsCanEdit = false;
-        let versePage = 1;
-        let versePerPage = 50;
-        let verseTotalRecords = 0;
-        let verseSearchTerm = '';
-        let verseSearchTimer = null;
 
         // Format large numbers (1000 -> 1k, 1000000 -> 1m)
         function formatNumber(num) {
@@ -1425,13 +1388,6 @@
 
         function formatNumberFull(num) {
             return num.toLocaleString();
-        }
-
-        function truncateText(text, limit = 120) {
-            if (!text) return '';
-            const normalized = String(text);
-            if (normalized.length <= limit) return normalized;
-            return normalized.slice(0, limit).trim() + '...';
         }
 
         function toggleMenu() {
@@ -1452,37 +1408,8 @@
                 if (permissions.includes('delete_comments')) {
                     document.querySelectorAll('.perm-delete-comments').forEach(el => el.classList.remove('hidden'));
                 }
-                if (permissions.includes('manage_xp')) {
-                    document.querySelectorAll('.perm-manage-xp').forEach(el => el.classList.remove('hidden'));
-                }
             } catch (err) {
                 console.error('Failed to load permissions:', err);
-            }
-        }
-
-        async function resetAllLevels() {
-            if (!confirm('Reset every user to level 1 and clear XP progress?')) return;
-            const btn = document.querySelector('.quick-action-reset');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Resetting…';
-            }
-            try {
-                const res = await fetch('/admin/api/users/reset-levels', { method: 'POST' });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    showToast('All levels reset. Reloaded stats.');
-                    await loadStats();
-                } else {
-                    showToast('Reset failed: ' + (data.error || 'unknown'));
-                }
-            } catch (err) {
-                showToast('Reset failed: ' + err.message);
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<div class="quick-action-icon">&#9889;</div><div style="font-size: 0.85rem; font-weight: 500;">Reset All Levels</div>';
-                }
             }
         }
 
@@ -1521,7 +1448,6 @@
                 if (activeSection === 'bans') await loadBans();
                 if (activeSection === 'comments') await loadComments();
                 if (activeSection === 'audit') await loadAuditLogs();
-                if (activeSection === 'verses') await loadVerses(versePage);
                 if (activeSection === 'settings') await loadSettings();
             } catch (_) {
             } finally {
@@ -2027,7 +1953,6 @@
             document.getElementById('giveXPLevel').textContent = currentLevel;
             document.getElementById('giveXPAmount').value = '';
             document.getElementById('giveXPReason').value = 'Admin gift';
-            document.getElementById('giveXPOperation').value = 'add';
             
             document.getElementById('giveXPModal').style.display = 'flex';
         }
@@ -2041,7 +1966,6 @@
             
             const amount = parseInt(document.getElementById('giveXPAmount').value);
             const reason = document.getElementById('giveXPReason').value || 'Admin gift';
-            const operation = document.getElementById('giveXPOperation').value || 'add';
             
             if (!amount || amount <= 0) {
                 showToast('Please enter a valid XP amount', 'error');
@@ -2057,31 +1981,29 @@
                 const res = await fetch(`/admin/api/users/${currentDetailUserId}/give-xp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, reason, notify: true, operation })
+                    body: JSON.stringify({ amount, reason, notify: true })
                 });
                 
                 const data = await res.json();
                 
                 if (data.success) {
-                    const actionLabel = operation === 'remove' ? 'Removed' : 'Gave';
-                    const targetWord = operation === 'remove' ? 'from' : 'to';
-                    showToast(`${actionLabel} ${formatNumberFull(amount)} XP ${targetWord} ${data.user_name}!`, 'success');
+                    showToast(`Successfully gave ${formatNumberFull(amount)} XP to ${data.user_name}!`, 'success');
                     
                     // Update display
                     document.getElementById('detailXP').textContent = formatNumber(data.new_total);
                     document.getElementById('detailLevel').textContent = data.new_level;
                     
-                    if (data.leveled_up && operation === 'add') {
-                        showToast(`?? ${data.user_name} leveled up to level ${data.new_level}!`, 'success');
+                    if (data.leveled_up) {
+                        showToast(`🎉 ${data.user_name} leveled up to level ${data.new_level}!`, 'success');
                     }
                     
                     closeGiveXPModal();
                 } else {
-                    showToast(data.error || 'Failed to adjust XP', 'error');
+                    showToast(data.error || 'Failed to give XP', 'error');
                 }
             } catch (err) {
                 console.error('Error giving XP:', err);
-                showToast('Error adjusting XP', 'error');
+                showToast('Error giving XP', 'error');
             }
         }
 
@@ -2413,129 +2335,6 @@
             const tz = loc.timezone ? ` (${loc.timezone})` : '';
             if (!ip && !area) return '-';
             return `${escapeHtml(area || 'Unknown')}${tz}${ip ? `<br><small style="color:#888">IP: ${escapeHtml(ip)}</small>` : ''}`;
-        }
-
-        function updateVerseCountLabel() {
-            const label = document.getElementById('verseCountLabel');
-            if (!label) return;
-            if (!verseTotalRecords) {
-                label.textContent = verseSearchTerm
-                    ? `No verses match "${verseSearchTerm}"` 
-                    : 'No saved verses yet';
-                return;
-            }
-            const start = (versePage - 1) * versePerPage + 1;
-            const end = Math.min(verseTotalRecords, versePage * versePerPage);
-            label.textContent = `${verseTotalRecords.toLocaleString()} verses archived • Showing ${start}-${end}`;
-        }
-
-        function renderVerseTable(verses) {
-            const container = document.getElementById('verseTableContainer');
-            if (!container) return;
-            if (!Array.isArray(verses) || !verses.length) {
-                container.innerHTML = '<div class="empty-state">No verses match that query.</div>';
-                updateVerseCountLabel();
-                return;
-            }
-            const rows = verses.map(v => {
-                const reference = escapeHtml(v.reference || 'Unknown Reference');
-                const bookName = escapeHtml(v.book || 'Unknown Book');
-                const translation = escapeHtml(v.translation || 'Unknown');
-                const source = escapeHtml(v.source || 'local');
-                const snippet = escapeHtml(truncateText(v.text || '', 140));
-                const savedAt = formatLocalTime(v.timestamp);
-                const saves = Number(v.save_count || 0);
-                return `
-                    <tr>
-                        <td>
-                            <strong>${reference}</strong><br>
-                            <small>${bookName}</small>
-                        </td>
-                        <td>
-                            <div style="max-height:64px; overflow:hidden; line-height:1.35;">${snippet}</div>
-                        </td>
-                        <td><small>${translation}</small></td>
-                        <td><span class="status-badge status-active" style="background:rgba(72,187,120,0.15); color:#48bb78;">${saves} saves</span></td>
-                        <td>${source}</td>
-                        <td>${escapeHtml(savedAt)}</td>
-                    </tr>
-                `;
-            }).join('');
-            container.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Reference</th>
-                            <th>Text</th>
-                            <th>Translation</th>
-                            <th>Saves</th>
-                            <th>Source</th>
-                            <th>Saved At</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            `;
-            updateVerseCountLabel();
-        }
-
-        function renderVersePagination() {
-            const pagination = document.getElementById('versePagination');
-            if (!pagination) return;
-            if (!verseTotalRecords) {
-                pagination.innerHTML = '<div style="font-size:0.85rem; color:#999;">No pages to show</div>';
-                return;
-            }
-            const totalPages = Math.max(1, Math.ceil(verseTotalRecords / versePerPage));
-            const prevDisabled = versePage <= 1 ? 'disabled' : '';
-            const nextDisabled = versePage >= totalPages ? 'disabled' : '';
-            pagination.innerHTML = `
-                <button class="btn btn-secondary" ${prevDisabled} onclick="loadVerses(${Math.max(1, versePage - 1)})">Prev</button>
-                <span style="line-height:32px; margin:0 8px;">Page ${versePage} of ${totalPages}</span>
-                <button class="btn btn-secondary" ${nextDisabled} onclick="loadVerses(${Math.min(totalPages, versePage + 1)})">Next</button>
-            `;
-        }
-
-        async function loadVerses(page = 1) {
-            versePage = Math.max(1, page);
-            const container = document.getElementById('verseTableContainer');
-            const pagination = document.getElementById('versePagination');
-            if (container) {
-                container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading saved verses...</div>';
-            }
-            if (pagination) {
-                pagination.innerHTML = '';
-            }
-            try {
-                const params = new URLSearchParams();
-                params.set('page', String(versePage));
-                params.set('per_page', String(versePerPage));
-                if (verseSearchTerm) {
-                    params.set('q', verseSearchTerm);
-                }
-                const res = await fetch(`/admin/api/verses?${params.toString()}`);
-                if (!res.ok) {
-                    throw new Error('Unable to load archived verses');
-                }
-                const data = await res.json();
-                verseTotalRecords = Number(data.total || 0);
-                const rows = Array.isArray(data.verses) ? data.verses : [];
-                renderVerseTable(rows);
-                renderVersePagination();
-            } catch (err) {
-                if (container) {
-                    container.innerHTML = `<div class="empty-state">Failed to load verses: ${escapeHtml(err.message)}</div>`;
-                }
-                if (pagination) {
-                    pagination.innerHTML = '';
-                }
-            }
-        }
-
-        function handleVerseSearch(event) {
-            verseSearchTerm = (event.target?.value || '').trim();
-            clearTimeout(verseSearchTimer);
-            verseSearchTimer = setTimeout(() => loadVerses(1), 400);
         }
 
         function formatExtras(extras) {
@@ -2994,8 +2793,7 @@
             
             const titles = {
                 dashboard: 'Dashboard', users: 'Users', restrictions: 'Restrictions',
-                verses: 'Saved Verses', bans: 'Banned Users', comments: 'Comments',
-                audit: 'Audit Logs', settings: 'Settings'
+                bans: 'Banned Users', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
             
@@ -3004,8 +2802,25 @@
             if (section === 'comments') loadComments();
             if (section === 'restrictions') loadRestrictions();
             if (section === 'bans') loadBans();
-            if (section === 'verses') loadVerses(versePage);
             if (section === 'users') loadUsers();
+        }
+
+        async function handleDashboardDeepLink() {
+            const params = new URLSearchParams(window.location.search || '');
+            const section = (params.get('section') || '').trim();
+            const openUserRaw = (params.get('openUser') || '').trim();
+
+            if (section) {
+                showSection(section);
+            }
+
+            if (!openUserRaw) return;
+            const openUserId = parseInt(openUserRaw, 10);
+            if (!Number.isFinite(openUserId) || openUserId <= 0) return;
+
+            showSection('users');
+            await loadUsers();
+            await viewUserDetails(openUserId);
         }
 
         async function logout() {
@@ -3095,7 +2910,7 @@
 
         // Initialize
         loadPermissions().then(() => {
-            loadAllData();
+            loadAllData().then(() => handleDashboardDeepLink());
             loadRecentActivity();
             const notifFilter = document.getElementById('notificationFilter');
             if (notifFilter) notifFilter.addEventListener('change', loadNotificationList);
@@ -3115,4 +2930,7 @@
     </script>
 </body>
 </html>
+
+
+
 

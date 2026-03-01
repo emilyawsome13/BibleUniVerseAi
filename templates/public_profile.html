@@ -39,21 +39,12 @@
             object-fit: cover;
             border: 3px solid rgba(79,70,229,0.6);
             box-shadow: 0 12px 30px rgba(79,70,229,0.35);
-            position: relative;
-            z-index: 1;
         }
         .avatar-wrap {
             position: relative;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-        }
-        .public-avatar-frame {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 2;
         }
         .avatar-decor {
             position: absolute;
@@ -133,6 +124,10 @@
             cursor: pointer;
         }
         .btn.primary { background: #334155; }
+        .btn.warning { background: #7c5d16; }
+        .btn.danger { background: #7f1d1d; }
+        .btn.success { background: #14532d; }
+        .btn.info { background: #1e3a8a; }
         .btn:hover { background: #2b3647; }
         
         /* Frame Styles */
@@ -149,16 +144,6 @@
         .profile-frame-frame_ice { border: 3px solid #00CED1 !important; box-shadow: 0 0 20px rgba(0,206,209,0.5) !important; }
         .profile-frame-frame_nature { border: 3px solid #228B22 !important; box-shadow: 0 0 15px rgba(34,139,34,0.4) !important; }
         .profile-frame-frame_stars { border: 2px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF69B4, #00CED1) border-box !important; }
-        .profile-frame-frame_wood { border: 3px solid #8B4513 !important; }
-        .profile-frame-frame_stone { border: 3px solid #808080 !important; box-shadow: inset 0 0 10px rgba(128,128,128,0.3) !important; }
-        .profile-frame-frame_royal { border: 3px solid #6a3ee0 !important; box-shadow: 0 0 16px rgba(106,62,224,0.5) !important; }
-        .profile-frame-frame_aurora { border: 2px solid transparent !important; background: linear-gradient(135deg, #00FF87, #60EFFF, #0061FF) border-box !important; }
-        .profile-frame-frame_divine { border: 3px solid transparent !important; background: linear-gradient(135deg, #FFD700, #FF1493, #00CED1) border-box !important; box-shadow: 0 0 20px rgba(255,20,147,0.35) !important; }
-        .profile-frame-frame_divine::after { content: '😇'; position: absolute; top: -8px; right: -8px; font-size: 20px; }
-        .profile-frame-frame_cosmic { border: 3px solid #9400D3 !important; box-shadow: 0 0 25px rgba(148,0,211,0.55), inset 0 0 12px rgba(148,0,211,0.25) !important; }
-        .profile-frame-frame_cosmic::after { content: '🌌'; position: absolute; top: -8px; left: -8px; font-size: 18px; }
-        .profile-frame-frame_infinity { border: 3px solid transparent !important; background: linear-gradient(135deg, #FF1493, #00FF87, #00CED1) border-box !important; box-shadow: 0 0 18px rgba(255,20,147,0.4) !important; }
-        .profile-frame-frame_infinity::after { content: '♾️'; position: absolute; bottom: -8px; right: -8px; font-size: 18px; }
         
         /* Name Color Styles */
         .profile-name-color_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
@@ -170,21 +155,12 @@
         .profile-name-color_green { color: #30D158 !important; text-shadow: 0 0 10px rgba(48,209,88,0.4) !important; }
         .profile-name-color_neon { color: #39FF14 !important; text-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14 !important; }
         .profile-name-color_pink { color: #FF69B4 !important; }
-        .profile-name-color_orange { color: #FF9500 !important; }
-        .profile-name-color_teal { color: #00CED1 !important; }
-        .profile-name-color_cyan { color: #00FFFF !important; text-shadow: 0 0 10px rgba(0,255,255,0.4) !important; }
-        .profile-name-color_plasma { color: #FF00FF !important; text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF !important; }
-        .profile-name-color_aurora { background: linear-gradient(90deg, #00FF87, #60EFFF, #0061FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .profile-name-color_phoenix { background: linear-gradient(90deg, #FF0000, #FF6600, #FFCC00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .profile-name-color_void { color: #1a0033 !important; text-shadow: 0 0 20px rgba(147,0,211,0.8), 0 0 40px rgba(147,0,211,0.4) !important; }
-        .profile-name-color_godly { background: linear-gradient(90deg, #FFD700, #FFFFFF, #FFD700, #FFFFFF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 0 0 30px rgba(255,215,0,0.45); }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="avatar-wrap">
-            <div class="public-avatar-frame {% if user.equipped_frame %}profile-frame-{{ user.equipped_frame.item_id }}{% endif %}"></div>
-            <img class="avatar" 
+            <img class="avatar {% if user.equipped_frame %}profile-frame-{{ user.equipped_frame.item_id }}{% endif %}" 
                  src="{{ user.picture }}" 
                  onerror="this.src='https://ui-avatars.com/api/?name={{ user.name|urlencode }}&background=random'">
             {% if user.avatar_decoration %}
@@ -218,8 +194,118 @@
             {% if can_dm %}
                 <a class="btn primary" href="/?dmUser={{ user.id }}#comments">Message</a>
             {% endif %}
+            {% if can_admin_restrict %}
+                <button class="btn warning" onclick="adminRestrictUser()">Restrict</button>
+            {% endif %}
+            {% if can_admin_ban %}
+                <button class="btn {% if user.is_banned %}success{% else %}danger{% endif %}" onclick="adminToggleBan()">{% if user.is_banned %}Unban{% else %}Ban{% endif %}</button>
+            {% endif %}
+            {% if can_admin_role %}
+                <button class="btn info" onclick="adminChangeRole()">Role</button>
+            {% endif %}
+            {% if can_admin_details %}
+                <a class="btn info" href="/admin/dashboard?section=users&openUser={{ user.id }}">Details</a>
+            {% endif %}
             <a class="btn" href="/">Back to Site</a>
         </div>
     </div>
+    <script>
+        const profileUserId = Number({{ user.id }});
+        const profileUserName = {{ user.name|tojson }};
+        let profileIsBanned = {{ 'true' if user.is_banned else 'false' }};
+
+        async function adminRestrictUser() {
+            const hoursRaw = prompt(`Restrict ${profileUserName} for how many hours?`, '24');
+            if (hoursRaw === null) return;
+            const hours = parseInt(hoursRaw, 10);
+            if (!Number.isFinite(hours) || hours <= 0) {
+                alert('Please enter a valid number of hours.');
+                return;
+            }
+            const reason = (prompt('Reason for restriction:', 'No reason') || 'No reason').trim() || 'No reason';
+            try {
+                const res = await fetch(`/admin/api/users/${profileUserId}/restrict`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ hours, reason })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    alert(data.error || 'Failed to restrict user.');
+                    return;
+                }
+                alert(`${profileUserName} restricted for ${hours}h.`);
+            } catch (_) {
+                alert('Restriction request failed.');
+            }
+        }
+
+        async function adminToggleBan() {
+            if (!profileIsBanned) {
+                const reason = (prompt(`Reason for banning ${profileUserName}:`, 'No reason') || 'No reason').trim() || 'No reason';
+                const duration = (prompt('Ban duration (ex: 1h, 24h, 7d, permanent):', '24h') || '24h').trim() || '24h';
+                try {
+                    const res = await fetch(`/admin/api/users/${profileUserId}/ban`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ banned: true, reason, duration })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || !data.success) {
+                        alert(data.error || 'Failed to ban user.');
+                        return;
+                    }
+                    profileIsBanned = true;
+                    alert(`${profileUserName} banned.`);
+                    location.reload();
+                } catch (_) {
+                    alert('Ban request failed.');
+                }
+                return;
+            }
+
+            if (!confirm(`Unban ${profileUserName}?`)) return;
+            try {
+                const res = await fetch(`/admin/api/users/${profileUserId}/ban`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ banned: false })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    alert(data.error || 'Failed to unban user.');
+                    return;
+                }
+                profileIsBanned = false;
+                alert(`${profileUserName} unbanned.`);
+                location.reload();
+            } catch (_) {
+                alert('Unban request failed.');
+            }
+        }
+
+        async function adminChangeRole() {
+            const roles = ['user', 'host', 'mod', 'co_owner', 'owner'];
+            const current = {{ user.role|tojson }};
+            const nextRole = prompt(`New role for ${profileUserName}:\n${roles.join(', ')}`, current || 'user');
+            if (!nextRole || !roles.includes(nextRole)) return;
+            try {
+                const res = await fetch(`/admin/api/users/${profileUserId}/role`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ role: nextRole })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    alert(data.error || 'Failed to change role.');
+                    return;
+                }
+                alert(`${profileUserName} role changed to ${nextRole}.`);
+                location.reload();
+            } catch (_) {
+                alert('Role change request failed.');
+            }
+        }
+    </script>
 </body>
 </html>
