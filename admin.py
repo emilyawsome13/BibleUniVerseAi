@@ -23,12 +23,12 @@ ROLE_CODES = {
 
 # Permissions by role
 ROLE_PERMISSIONS = {
-    'host': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit'],
-    'mod': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments'],
+    'host': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'view_reports', 'manage_user_safety'],
+    'mod': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments', 'view_reports', 'manage_reports', 'manage_user_safety'],
     'co_owner': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments', 
-                 'change_roles', 'view_settings', 'manage_xp'],
+                 'change_roles', 'view_settings', 'manage_xp', 'view_reports', 'manage_reports', 'manage_user_safety'],
     'owner': ['ban', 'timeout', 'restrict_comments', 'view_users', 'view_bans', 'view_audit', 'delete_comments',
-              'change_roles', 'view_settings', 'edit_settings', 'manage_xp', 'full_access']
+              'change_roles', 'view_settings', 'edit_settings', 'manage_xp', 'full_access', 'view_reports', 'manage_reports', 'manage_user_safety']
 }
 
 def get_db():
@@ -201,6 +201,98 @@ def _ensure_admin_feature_tables(conn, c, db_type):
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+    conn.commit()
+
+def _ensure_user_safety_tables(conn, c, db_type):
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_blocks (
+                id SERIAL PRIMARY KEY,
+                blocker_id INTEGER NOT NULL,
+                blocked_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(blocker_id, blocked_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_mutes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                muted_user_id INTEGER NOT NULL,
+                scope TEXT NOT NULL DEFAULT 'all',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, muted_user_id, scope)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_reports (
+                id SERIAL PRIMARY KEY,
+                reporter_id INTEGER NOT NULL,
+                reported_user_id INTEGER NOT NULL,
+                target_type TEXT NOT NULL DEFAULT 'user',
+                target_id INTEGER,
+                reason TEXT NOT NULL,
+                details TEXT,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_by TEXT")
+            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP")
+            c.execute("ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS review_note TEXT")
+        except Exception:
+            pass
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                blocker_id INTEGER NOT NULL,
+                blocked_id INTEGER NOT NULL,
+                created_at TEXT,
+                UNIQUE(blocker_id, blocked_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_mutes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                muted_user_id INTEGER NOT NULL,
+                scope TEXT NOT NULL DEFAULT 'all',
+                created_at TEXT,
+                UNIQUE(user_id, muted_user_id, scope)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reporter_id INTEGER NOT NULL,
+                reported_user_id INTEGER NOT NULL,
+                target_type TEXT NOT NULL DEFAULT 'user',
+                target_id INTEGER,
+                reason TEXT NOT NULL,
+                details TEXT,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT,
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                review_note TEXT
+            )
+        """)
+        # Backfill columns for legacy SQLite table definitions.
+        for col_def in (
+            "reviewed_by TEXT",
+            "reviewed_at TEXT",
+            "review_note TEXT"
+        ):
+            col_name = col_def.split()[0]
+            try:
+                c.execute(f"SELECT {col_name} FROM user_reports LIMIT 1")
+            except Exception:
+                try:
+                    c.execute(f"ALTER TABLE user_reports ADD COLUMN {col_def}")
+                except Exception:
+                    pass
     conn.commit()
 
 def _ensure_daily_actions_schema(c, db_type):
@@ -936,90 +1028,6 @@ def get_stats():
                 pass
         return jsonify({"error": str(e)}), 500
 
-@admin_bp.route('/api/verses')
-@admin_required
-def get_saved_verses():
-    conn = None
-    try:
-        conn, db_type = get_db()
-        from app import get_cursor as app_get_cursor
-        c = app_get_cursor(conn, db_type)
-
-        page = max(1, int(request.args.get('page', 1)))
-        per_page = int(request.args.get('per_page', 50))
-        per_page = max(10, min(per_page, 200))
-        search = (request.args.get('q') or '').strip()
-
-        where = []
-        params = []
-        if search:
-            if db_type == 'postgres':
-                clause = "(COALESCE(v.reference, '') ILIKE %s OR COALESCE(v.text, '') ILIKE %s OR COALESCE(v.translation, '') ILIKE %s)"
-                token = f"%{search}%"
-                params.extend([token, token, token])
-            else:
-                clause = "(LOWER(COALESCE(v.reference, '')) LIKE ? OR LOWER(COALESCE(v.text, '')) LIKE ? OR LOWER(COALESCE(v.translation, '')) LIKE ?)"
-                token = f"%{search.lower()}%"
-                params.extend([token, token, token])
-            where.append(clause)
-
-        where_sql = f"WHERE {' AND '.join(where)}" if where else ""
-
-        count_sql = f"SELECT COUNT(*) as count FROM verses v {where_sql}"
-        count_params = list(params)
-        c.execute(count_sql, tuple(count_params) if db_type == 'postgres' else count_params)
-        count_row = c.fetchone()
-        if isinstance(count_row, dict):
-            total = int(count_row.get('count', 0) or 0)
-        else:
-            total = int(count_row[0] or 0)
-
-        order_clause = "ORDER BY v.timestamp DESC NULLS LAST, v.id DESC" if db_type == 'postgres' else "ORDER BY v.timestamp DESC, v.id DESC"
-        placeholder = "%s" if db_type == 'postgres' else "?"
-        limit_clause = f"LIMIT {placeholder} OFFSET {placeholder}"
-        offset = (page - 1) * per_page
-        data_params = list(params)
-        data_params.extend([per_page, offset])
-        data_sql = f"""
-            SELECT v.id, v.reference, v.text, v.translation, v.source, v.book, v.timestamp,
-                   (SELECT COUNT(*) FROM saves s WHERE s.verse_id = v.id) AS save_count
-            FROM verses v
-            {where_sql}
-            {order_clause}
-            {limit_clause}
-        """
-        c.execute(data_sql, tuple(data_params) if db_type == 'postgres' else data_params)
-        rows = c.fetchall()
-
-        verses = []
-        for row in rows:
-            verses.append({
-                "id": row['id'] if isinstance(row, dict) else row[0],
-                "reference": row['reference'] if isinstance(row, dict) else row[1],
-                "text": row['text'] if isinstance(row, dict) else row[2],
-                "translation": row['translation'] if isinstance(row, dict) else row[3],
-                "source": row['source'] if isinstance(row, dict) else row[4],
-                "book": row['book'] if isinstance(row, dict) else row[5],
-                "timestamp": row['timestamp'] if isinstance(row, dict) else row[6],
-                "save_count": int(row['save_count'] if isinstance(row, dict) else row[7] or 0)
-            })
-
-        conn.close()
-        return jsonify({
-            "total": total,
-            "page": page,
-            "per_page": per_page,
-            "verses": verses
-        })
-    except Exception as e:
-        print(f"[ERROR] Saved verses: {e}")
-        try:
-            if conn:
-                conn.close()
-        except Exception:
-            pass
-        return jsonify({"error": str(e)}), 500
-
 @admin_bp.route('/api/users')
 @admin_required
 def get_users():
@@ -1269,6 +1277,371 @@ def get_restrictions():
         print(f"[ERROR] Restrictions: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/api/reports')
+@admin_required
+@require_permission('view_reports')
+def get_reports():
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        _ensure_user_safety_tables(conn, c, db_type)
+
+        status = str(request.args.get('status') or 'all').strip().lower()
+        search = str(request.args.get('q') or '').strip().lower()
+        limit = min(1000, max(1, int(request.args.get('limit') or 300)))
+
+        if db_type == 'postgres':
+            c.execute(f"""
+                SELECT
+                    r.id, r.reporter_id, r.reported_user_id, r.target_type, r.target_id, r.reason, r.details,
+                    r.status, r.created_at, r.reviewed_by, r.reviewed_at, r.review_note,
+                    rep.name AS reporter_name, rep.email AS reporter_email,
+                    tgt.name AS reported_name, tgt.email AS reported_email
+                FROM user_reports r
+                LEFT JOIN users rep ON rep.id = r.reporter_id
+                LEFT JOIN users tgt ON tgt.id = r.reported_user_id
+                ORDER BY r.created_at DESC NULLS LAST, r.id DESC
+                LIMIT {limit}
+            """)
+        else:
+            c.execute(f"""
+                SELECT
+                    r.id, r.reporter_id, r.reported_user_id, r.target_type, r.target_id, r.reason, r.details,
+                    r.status, r.created_at, r.reviewed_by, r.reviewed_at, r.review_note,
+                    rep.name AS reporter_name, rep.email AS reporter_email,
+                    tgt.name AS reported_name, tgt.email AS reported_email
+                FROM user_reports r
+                LEFT JOIN users rep ON rep.id = r.reporter_id
+                LEFT JOIN users tgt ON tgt.id = r.reported_user_id
+                ORDER BY r.created_at DESC, r.id DESC
+                LIMIT {limit}
+            """)
+
+        rows = c.fetchall()
+        reports = []
+        for row in rows:
+            row = _row_to_dict(row)
+            if hasattr(row, 'keys'):
+                payload = {
+                    "id": row.get('id'),
+                    "reporter_id": row.get('reporter_id'),
+                    "reported_user_id": row.get('reported_user_id'),
+                    "target_type": row.get('target_type') or 'user',
+                    "target_id": row.get('target_id'),
+                    "reason": row.get('reason') or '',
+                    "details": row.get('details') or '',
+                    "status": (row.get('status') or 'open').lower(),
+                    "created_at": row.get('created_at'),
+                    "reviewed_by": row.get('reviewed_by') or '',
+                    "reviewed_at": row.get('reviewed_at'),
+                    "review_note": row.get('review_note') or '',
+                    "reporter_name": row.get('reporter_name') or '',
+                    "reporter_email": row.get('reporter_email') or '',
+                    "reported_name": row.get('reported_name') or '',
+                    "reported_email": row.get('reported_email') or ''
+                }
+            else:
+                payload = {
+                    "id": row[0] if len(row) > 0 else None,
+                    "reporter_id": row[1] if len(row) > 1 else None,
+                    "reported_user_id": row[2] if len(row) > 2 else None,
+                    "target_type": (row[3] if len(row) > 3 else 'user') or 'user',
+                    "target_id": row[4] if len(row) > 4 else None,
+                    "reason": row[5] if len(row) > 5 and row[5] else '',
+                    "details": row[6] if len(row) > 6 and row[6] else '',
+                    "status": ((row[7] if len(row) > 7 else 'open') or 'open').lower(),
+                    "created_at": row[8] if len(row) > 8 else None,
+                    "reviewed_by": row[9] if len(row) > 9 and row[9] else '',
+                    "reviewed_at": row[10] if len(row) > 10 else None,
+                    "review_note": row[11] if len(row) > 11 and row[11] else '',
+                    "reporter_name": row[12] if len(row) > 12 and row[12] else '',
+                    "reporter_email": row[13] if len(row) > 13 and row[13] else '',
+                    "reported_name": row[14] if len(row) > 14 and row[14] else '',
+                    "reported_email": row[15] if len(row) > 15 and row[15] else ''
+                }
+
+            if status != 'all' and payload["status"] != status:
+                continue
+            if search:
+                haystack = " ".join([
+                    str(payload.get("reason") or ""),
+                    str(payload.get("details") or ""),
+                    str(payload.get("target_type") or ""),
+                    str(payload.get("status") or ""),
+                    str(payload.get("review_note") or ""),
+                    str(payload.get("reporter_name") or ""),
+                    str(payload.get("reporter_email") or ""),
+                    str(payload.get("reported_name") or ""),
+                    str(payload.get("reported_email") or ""),
+                    str(payload.get("reporter_id") or ""),
+                    str(payload.get("reported_user_id") or "")
+                ]).lower()
+                if search not in haystack:
+                    continue
+            reports.append(payload)
+
+        conn.close()
+        return jsonify(reports)
+    except Exception as e:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/api/reports/<int:report_id>/status', methods=['POST'])
+@admin_required
+@require_permission('manage_reports')
+def update_report_status(report_id):
+    data = request.get_json(silent=True) or {}
+    next_status = str(data.get('status') or '').strip().lower()
+    review_note = str(data.get('note') or '').strip()[:500]
+    if next_status not in ('open', 'resolved', 'dismissed'):
+        return jsonify({"error": "Invalid status"}), 400
+
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        _ensure_user_safety_tables(conn, c, db_type)
+
+        reviewer = str(session.get('admin_role') or session.get('role') or 'admin')
+        reviewed_at = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("""
+                UPDATE user_reports
+                SET status = %s, reviewed_by = %s, reviewed_at = %s, review_note = %s
+                WHERE id = %s
+            """, (next_status, reviewer, reviewed_at, review_note, report_id))
+        else:
+            c.execute("""
+                UPDATE user_reports
+                SET status = ?, reviewed_by = ?, reviewed_at = ?, review_note = ?
+                WHERE id = ?
+            """, (next_status, reviewer, reviewed_at, review_note, report_id))
+        if c.rowcount <= 0:
+            conn.close()
+            return jsonify({"error": "Report not found"}), 404
+        conn.commit()
+
+        log_action(
+            "REPORT_STATUS_UPDATE",
+            details=f"Report {report_id} set to {next_status}",
+            status="success",
+            extras={"report_id": report_id, "status": next_status, "note": review_note, "module": "reports"}
+        )
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        try:
+            conn.rollback()
+            conn.close()
+        except Exception:
+            pass
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/api/users/<int:user_id>/safety')
+@admin_required
+@require_permission('manage_user_safety')
+def get_user_safety(user_id):
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        _ensure_user_safety_tables(conn, c, db_type)
+
+        if db_type == 'postgres':
+            c.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
+        else:
+            c.execute("SELECT id, name, email FROM users WHERE id = ?", (user_id,))
+        user_row = c.fetchone()
+        if not user_row:
+            conn.close()
+            return jsonify({"error": "User not found"}), 404
+
+        # Outgoing blocks (this user blocks others)
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT b.blocked_id, b.created_at, u.name, u.email
+                FROM user_blocks b
+                LEFT JOIN users u ON u.id = b.blocked_id
+                WHERE b.blocker_id = %s
+                ORDER BY b.created_at DESC NULLS LAST, b.blocked_id DESC
+            """, (user_id,))
+        else:
+            c.execute("""
+                SELECT b.blocked_id, b.created_at, u.name, u.email
+                FROM user_blocks b
+                LEFT JOIN users u ON u.id = b.blocked_id
+                WHERE b.blocker_id = ?
+                ORDER BY b.created_at DESC, b.blocked_id DESC
+            """, (user_id,))
+        outgoing_blocks = [{
+            "target_user_id": row[0],
+            "created_at": row[1] if len(row) > 1 else None,
+            "name": row[2] if len(row) > 2 and row[2] else f"User #{row[0]}",
+            "email": row[3] if len(row) > 3 and row[3] else ""
+        } for row in c.fetchall()]
+
+        # Incoming blocks (others block this user)
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT b.blocker_id, b.created_at, u.name, u.email
+                FROM user_blocks b
+                LEFT JOIN users u ON u.id = b.blocker_id
+                WHERE b.blocked_id = %s
+                ORDER BY b.created_at DESC NULLS LAST, b.blocker_id DESC
+            """, (user_id,))
+        else:
+            c.execute("""
+                SELECT b.blocker_id, b.created_at, u.name, u.email
+                FROM user_blocks b
+                LEFT JOIN users u ON u.id = b.blocker_id
+                WHERE b.blocked_id = ?
+                ORDER BY b.created_at DESC, b.blocker_id DESC
+            """, (user_id,))
+        incoming_blocks = [{
+            "source_user_id": row[0],
+            "created_at": row[1] if len(row) > 1 else None,
+            "name": row[2] if len(row) > 2 and row[2] else f"User #{row[0]}",
+            "email": row[3] if len(row) > 3 and row[3] else ""
+        } for row in c.fetchall()]
+
+        # Mutes by this user
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT m.muted_user_id, m.scope, m.created_at, u.name, u.email
+                FROM user_mutes m
+                LEFT JOIN users u ON u.id = m.muted_user_id
+                WHERE m.user_id = %s
+                ORDER BY m.created_at DESC NULLS LAST, m.muted_user_id DESC
+            """, (user_id,))
+        else:
+            c.execute("""
+                SELECT m.muted_user_id, m.scope, m.created_at, u.name, u.email
+                FROM user_mutes m
+                LEFT JOIN users u ON u.id = m.muted_user_id
+                WHERE m.user_id = ?
+                ORDER BY m.created_at DESC, m.muted_user_id DESC
+            """, (user_id,))
+        mutes = [{
+            "target_user_id": row[0],
+            "scope": row[1] if len(row) > 1 and row[1] else "all",
+            "created_at": row[2] if len(row) > 2 else None,
+            "name": row[3] if len(row) > 3 and row[3] else f"User #{row[0]}",
+            "email": row[4] if len(row) > 4 and row[4] else ""
+        } for row in c.fetchall()]
+
+        conn.close()
+        return jsonify({
+            "user_id": user_id,
+            "outgoing_blocks": outgoing_blocks,
+            "incoming_blocks": incoming_blocks,
+            "mutes": mutes
+        })
+    except Exception as e:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/api/users/<int:user_id>/safety/unblock', methods=['POST'])
+@admin_required
+@require_permission('manage_user_safety')
+def admin_unblock_user_safety(user_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        target_user_id = int(data.get('target_user_id') or 0)
+    except Exception:
+        target_user_id = 0
+    if target_user_id <= 0:
+        return jsonify({"error": "target_user_id required"}), 400
+    direction = str(data.get('direction') or 'outgoing').strip().lower()
+    if direction not in ('outgoing', 'incoming', 'both'):
+        direction = 'outgoing'
+
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        _ensure_user_safety_tables(conn, c, db_type)
+        removed = 0
+        if direction in ('outgoing', 'both'):
+            if db_type == 'postgres':
+                c.execute("DELETE FROM user_blocks WHERE blocker_id = %s AND blocked_id = %s", (user_id, target_user_id))
+            else:
+                c.execute("DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?", (user_id, target_user_id))
+            removed += c.rowcount if c.rowcount and c.rowcount > 0 else 0
+        if direction in ('incoming', 'both'):
+            if db_type == 'postgres':
+                c.execute("DELETE FROM user_blocks WHERE blocker_id = %s AND blocked_id = %s", (target_user_id, user_id))
+            else:
+                c.execute("DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?", (target_user_id, user_id))
+            removed += c.rowcount if c.rowcount and c.rowcount > 0 else 0
+        conn.commit()
+        log_action(
+            "USER_SAFETY_UNBLOCK",
+            details=f"Removed block relation between {user_id} and {target_user_id}",
+            target_user_id=user_id,
+            status="success",
+            extras={"target_user_id": target_user_id, "direction": direction, "removed": removed, "module": "safety"}
+        )
+        conn.close()
+        return jsonify({"success": True, "removed": removed})
+    except Exception as e:
+        try:
+            conn.rollback()
+            conn.close()
+        except Exception:
+            pass
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/api/users/<int:user_id>/safety/unmute', methods=['POST'])
+@admin_required
+@require_permission('manage_user_safety')
+def admin_unmute_user_safety(user_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        target_user_id = int(data.get('target_user_id') or 0)
+    except Exception:
+        target_user_id = 0
+    if target_user_id <= 0:
+        return jsonify({"error": "target_user_id required"}), 400
+    scope = str(data.get('scope') or 'all').strip().lower()
+    raw_all_scopes = data.get('all_scopes')
+    all_scopes = raw_all_scopes is True or str(raw_all_scopes).strip().lower() in ('1', 'true', 'yes', 'on')
+
+    try:
+        conn, db_type = get_db()
+        c = conn.cursor()
+        _ensure_user_safety_tables(conn, c, db_type)
+        if all_scopes:
+            if db_type == 'postgres':
+                c.execute("DELETE FROM user_mutes WHERE user_id = %s AND muted_user_id = %s", (user_id, target_user_id))
+            else:
+                c.execute("DELETE FROM user_mutes WHERE user_id = ? AND muted_user_id = ?", (user_id, target_user_id))
+        else:
+            if db_type == 'postgres':
+                c.execute("DELETE FROM user_mutes WHERE user_id = %s AND muted_user_id = %s AND scope = %s", (user_id, target_user_id, scope))
+            else:
+                c.execute("DELETE FROM user_mutes WHERE user_id = ? AND muted_user_id = ? AND scope = ?", (user_id, target_user_id, scope))
+        removed = c.rowcount if c.rowcount and c.rowcount > 0 else 0
+        conn.commit()
+        log_action(
+            "USER_SAFETY_UNMUTE",
+            details=f"Removed mute for user {user_id} -> {target_user_id}",
+            target_user_id=user_id,
+            status="success",
+            extras={"target_user_id": target_user_id, "scope": scope, "all_scopes": all_scopes, "removed": removed, "module": "safety"}
+        )
+        conn.close()
+        return jsonify({"success": True, "removed": removed})
+    except Exception as e:
+        try:
+            conn.rollback()
+            conn.close()
+        except Exception:
+            pass
         return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/api/users/<int:user_id>/restrict', methods=['POST'])
@@ -3085,17 +3458,10 @@ def update_system_settings():
 def admin_give_xp(user_id):
     """Admin endpoint to give XP to a user"""
     admin = get_admin_session()
-    data = request.get_json() or {}
-    raw_amount = data.get('amount', 0)
-    try:
-        amount = int(raw_amount)
-    except (TypeError, ValueError):
-        amount = 0
+    data = request.get_json()
+    amount = data.get('amount', 0)
     reason = data.get('reason', 'Admin XP gift')
     send_notification = data.get('notify', True)
-    operation = (data.get('operation') or 'add').lower()
-    if operation not in ('add', 'remove'):
-        operation = 'add'
     
     if amount <= 0:
         return jsonify({"error": "Amount must be positive"}), 400
@@ -3122,9 +3488,9 @@ def admin_give_xp(user_id):
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = %s", (user_id,))
         else:
             c.execute("SELECT xp, total_xp_earned, level FROM user_xp WHERE user_id = ?", (user_id,))
-
+        
         row = c.fetchone()
-
+        
         if row:
             current_xp = row[0] or 0
             total_earned = row[1] or 0
@@ -3133,18 +3499,13 @@ def admin_give_xp(user_id):
             current_xp = 0
             total_earned = 0
             current_level = 1
-
+        
         # Calculate new values
-        if operation == 'remove':
-            xp_delta = -min(amount, total_earned)
-        else:
-            xp_delta = amount
-
-        new_total = max(0, total_earned + xp_delta)
-        new_xp = max(0, current_xp + xp_delta)
-        new_level = max(0, (new_total // 1000) + 1)
-        leveled_up = operation == 'add' and new_level > current_level
-
+        new_xp = current_xp + amount
+        new_total = total_earned + amount
+        new_level = (new_total // 1000) + 1
+        leveled_up = new_level > current_level
+        
         # Update user XP
         if db_type == 'postgres':
             c.execute("""
@@ -3160,8 +3521,8 @@ def admin_give_xp(user_id):
             # Log transaction
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
-                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-            """, (user_id, xp_delta, ('admin_gift' if operation == 'add' else 'admin_deduction'), f"Admin adjustment from {admin['role']}: {reason}"))
+                VALUES (%s, %s, 'admin_gift', %s, CURRENT_TIMESTAMP)
+            """, (user_id, amount, f"Admin gift from {admin['role']}: {reason}"))
         else:
             c.execute("""
                 INSERT OR REPLACE INTO user_xp (user_id, xp, total_xp_earned, level, updated_at)
@@ -3170,20 +3531,18 @@ def admin_give_xp(user_id):
             
             c.execute("""
                 INSERT INTO xp_transactions (user_id, amount, type, description, timestamp)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (user_id, xp_delta, ('admin_gift' if operation == 'add' else 'admin_deduction'), f"Admin adjustment from {admin['role']}: {reason}"))
-
+                VALUES (?, ?, 'admin_gift', ?, datetime('now'))
+            """, (user_id, amount, f"Admin gift from {admin['role']}: {reason}"))
+        
         conn.commit()
         
         # Log admin action
-        action_label = "Removed" if operation == 'remove' else "Gave"
-        preposition = "from" if operation == 'remove' else "to"
         log_action(
             "GIVE_XP",
-            f"{action_label} {amount} XP {preposition} {user_name} ({user_id})",
+            f"Gave {amount} XP to {user_name} ({user_id})",
             target_user_id=user_id,
             status="success",
-            extras={"amount": xp_delta, "reason": reason, "module": "xp_management", "operation": operation},
+            extras={"amount": amount, "reason": reason, "module": "xp_management"},
             target={"user_id": user_id, "name": user_name}
         )
         
@@ -3197,33 +3556,13 @@ def admin_give_xp(user_id):
             "new_total": new_xp,
             "new_level": new_level,
             "leveled_up": leveled_up,
-            "message": f"Successfully {action_label.lower()} {amount} XP {preposition} {user_name}"
+            "message": f"Successfully gave {amount} XP to {user_name}"
         })
     except Exception as e:
         print(f"[ERROR] Admin give XP: {e}")
         import traceback
         traceback.print_exc()
         conn.close()
-        return jsonify({"error": str(e)}), 500
-
-
-@admin_bp.route('/api/users/reset-levels', methods=['POST'])
-@require_permission('manage_xp')
-def reset_all_levels():
-    conn = None
-    try:
-        conn, db_type = get_db()
-        c = conn.cursor()
-        c.execute("UPDATE user_xp SET xp = 0, total_xp_earned = 0, level = 1")
-        conn.commit()
-        log_action("RESET_LEVELS", "Reset all user XP and levels", status="success",
-                   extras={"module": "xp_management"})
-        conn.close()
-        return jsonify({"success": True, "reset": True, "notes": "All levels reset to 1"})
-    except Exception as e:
-        print(f"[ERROR] Reset levels failed: {e}")
-        if conn:
-            conn.close()
         return jsonify({"error": str(e)}), 500
 
 

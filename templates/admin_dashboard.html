@@ -277,6 +277,7 @@
         .status-active { background: rgba(72,187,120,0.2); color: #48bb78; }
         .status-banned { background: rgba(245,101,101,0.2); color: #f56565; }
         .status-restricted { background: rgba(237,137,54,0.2); color: #ed8936; }
+        .status-warning { background: rgba(237,137,54,0.2); color: #ed8936; }
         
         .btn {
             padding: 8px 14px;
@@ -926,6 +927,9 @@
         <div class="nav-item" onclick="showSection('bans'); toggleMenu();" data-section="bans">
             <span>&#128683;</span> Banned Users
         </div>
+        <div class="nav-item perm-reports hidden" onclick="showSection('reports'); toggleMenu();" data-section="reports">
+            <span>&#128680;</span> Reports
+        </div>
         <div class="nav-item perm-delete-comments hidden" onclick="showSection('comments'); toggleMenu();" data-section="comments">
             <span>&#128172;</span> Comments
         </div>
@@ -1179,6 +1183,26 @@
             </div>
         </div>
 
+        <!-- Reports Section -->
+        <div id="reports-section" class="hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">&#128680; User Reports</div>
+                    <button class="btn btn-success" onclick="exportData('reports')">&#128229; Export CSV</button>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" class="search-box" id="reportSearch" placeholder="&#128269; Search reports..." onkeyup="filterReports()">
+                    <select class="filter-select" id="reportStatusFilter" onchange="filterReports()">
+                        <option value="all">All</option>
+                        <option value="open">Open</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="dismissed">Dismissed</option>
+                    </select>
+                </div>
+                <div id="reportsContent"><div class="loading"><div class="spinner"></div>Loading reports...</div></div>
+            </div>
+        </div>
+
         <!-- Comments Section -->
         <div id="comments-section" class="hidden">
             <div class="panel">
@@ -1315,8 +1339,21 @@
                 <button class="btn btn-warning" id="detailRestrictBtn" onclick="restrictDetailUser()">&#128683; Restrict</button>
                 <button class="btn btn-danger" id="detailBanBtn" onclick="banDetailUser()">&#128296; Ban</button>
                 <button class="btn btn-primary" onclick="changeDetailRole()">&#128081; Change Role</button>
+                <button class="btn btn-secondary perm-manage-safety hidden" onclick="openSafetyDetailModal()">&#128737; Safety</button>
                 <button class="btn btn-success perm-manage-xp hidden" onclick="giveXPToDetailUser()">&#9889; Give XP</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Safety Detail Modal -->
+    <div class="modal-overlay" id="safetyDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">&#128737; User Safety</h3>
+                <button class="modal-close" onclick="closeSafetyDetailModal()">x</button>
+            </div>
+            <div style="font-size:0.9rem;color:#9aa3b2;margin-bottom:10px;" id="safetyDetailSubtitle">Loading...</div>
+            <div id="safetyDetailContent"><div class="loading"><div class="spinner"></div>Loading safety data...</div></div>
         </div>
     </div>
 
@@ -1361,6 +1398,7 @@
         let allUsers = [];
         let allRestrictions = [];
         let allBans = [];
+        let allReports = [];
         let allAuditLogs = [];
         let insightsData = null;
         let activeSection = 'dashboard';
@@ -1408,6 +1446,12 @@
                 if (permissions.includes('delete_comments')) {
                     document.querySelectorAll('.perm-delete-comments').forEach(el => el.classList.remove('hidden'));
                 }
+                if (permissions.includes('view_reports') || permissions.includes('manage_reports')) {
+                    document.querySelectorAll('.perm-reports').forEach(el => el.classList.remove('hidden'));
+                }
+                if (permissions.includes('manage_user_safety')) {
+                    document.querySelectorAll('.perm-manage-safety').forEach(el => el.classList.remove('hidden'));
+                }
             } catch (err) {
                 console.error('Failed to load permissions:', err);
             }
@@ -1421,6 +1465,7 @@
                 loadUsers(),
                 loadRestrictions(),
                 loadBans(),
+                loadReports(),
                 loadComments(),
                 loadRecentActivity(),
                 loadAnnouncements(),
@@ -1446,6 +1491,7 @@
                 if (activeSection === 'users') await loadUsers();
                 if (activeSection === 'restrictions') await loadRestrictions();
                 if (activeSection === 'bans') await loadBans();
+                if (activeSection === 'reports') await loadReports();
                 if (activeSection === 'comments') await loadComments();
                 if (activeSection === 'audit') await loadAuditLogs();
                 if (activeSection === 'settings') await loadSettings();
@@ -1855,6 +1901,9 @@
                 if (permissions.includes('change_roles')) {
                     actions += `<button class="btn btn-primary" onclick="changeRole(${u.id}, '${u.role}')">Role</button>`;
                 }
+                if (permissions.includes('manage_user_safety')) {
+                    actions += `<button class="btn btn-secondary" onclick="openSafetyForUser(${u.id})">Safety</button>`;
+                }
                 actions += `<button class="btn btn-secondary" onclick="openDmFromAdmin(${u.id})">DM</button>`;
                 actions += `<button class="btn btn-info" onclick="viewUserDetails(${u.id})">Details</button>`;
                 
@@ -1873,6 +1922,12 @@
             if (!userId) return;
             const url = `/?dmUser=${userId}#comments`;
             window.open(url, '_blank');
+        }
+
+        function openSafetyForUser(userId) {
+            if (!userId) return;
+            currentDetailUserId = userId;
+            openSafetyDetailModal();
         }
 
         // ========== USER DETAILS & XP MANAGEMENT ==========
@@ -1955,6 +2010,112 @@
             document.getElementById('giveXPReason').value = 'Admin gift';
             
             document.getElementById('giveXPModal').style.display = 'flex';
+        }
+
+        async function openSafetyDetailModal() {
+            if (!currentDetailUserId) return;
+            const modal = document.getElementById('safetyDetailModal');
+            const subtitle = document.getElementById('safetyDetailSubtitle');
+            const content = document.getElementById('safetyDetailContent');
+            if (!modal || !subtitle || !content) return;
+            const user = allUsers.find(u => u.id === currentDetailUserId);
+            subtitle.textContent = user ? `${user.name || 'User'} (${user.email || 'no email'})` : `User ID: ${currentDetailUserId}`;
+            content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading safety data...</div>';
+            modal.style.display = 'flex';
+            try {
+                const res = await fetch(`/admin/api/users/${currentDetailUserId}/safety`);
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    content.innerHTML = `<div class="error-box">${escapeHtml(data.error || 'Failed to load safety data')}</div>`;
+                    return;
+                }
+
+                const outgoing = Array.isArray(data.outgoing_blocks) ? data.outgoing_blocks : [];
+                const incoming = Array.isArray(data.incoming_blocks) ? data.incoming_blocks : [];
+                const mutes = Array.isArray(data.mutes) ? data.mutes : [];
+                const renderBlockRows = (rows, direction) => {
+                    if (!rows.length) return '<div class="empty-state">None</div>';
+                    return `<table><thead><tr><th>User</th><th>Created</th><th>Action</th></tr></thead><tbody>${
+                        rows.map(r => `<tr>
+                            <td>${escapeHtml(r.name || `User #${direction === 'incoming' ? r.source_user_id : r.target_user_id}`)}<br><small style="color:#888">${escapeHtml(r.email || '')}</small></td>
+                            <td>${formatLocalTime(r.created_at)}</td>
+                            <td><button class="btn btn-warning" onclick="adminClearUserBlock(${currentDetailUserId}, ${direction === 'incoming' ? r.source_user_id : r.target_user_id}, '${direction}')">Remove</button></td>
+                        </tr>`).join('')
+                    }</tbody></table>`;
+                };
+
+                const renderMuteRows = (rows) => {
+                    if (!rows.length) return '<div class="empty-state">None</div>';
+                    return `<table><thead><tr><th>User</th><th>Scope</th><th>Created</th><th>Action</th></tr></thead><tbody>${
+                        rows.map(r => `<tr>
+                            <td>${escapeHtml(r.name || `User #${r.target_user_id}`)}<br><small style="color:#888">${escapeHtml(r.email || '')}</small></td>
+                            <td>${escapeHtml(String(r.scope || 'all').toUpperCase())}</td>
+                            <td>${formatLocalTime(r.created_at)}</td>
+                            <td><button class="btn btn-warning" onclick="adminClearUserMute(${currentDetailUserId}, ${r.target_user_id}, '${String(r.scope || 'all').replace(/'/g, '')}')">Remove</button></td>
+                        </tr>`).join('')
+                    }</tbody></table>`;
+                };
+
+                content.innerHTML = `
+                    <div style="margin-bottom:14px;">
+                        <h4 style="margin-bottom:8px;">Outgoing Blocks</h4>
+                        ${renderBlockRows(outgoing, 'outgoing')}
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <h4 style="margin-bottom:8px;">Incoming Blocks</h4>
+                        ${renderBlockRows(incoming, 'incoming')}
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom:8px;">Mutes</h4>
+                        ${renderMuteRows(mutes)}
+                    </div>
+                `;
+            } catch (err) {
+                content.innerHTML = '<div class="error-box">Failed to load safety data</div>';
+            }
+        }
+
+        function closeSafetyDetailModal() {
+            const modal = document.getElementById('safetyDetailModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function adminClearUserBlock(userId, targetUserId, direction = 'outgoing') {
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/safety/unblock`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ target_user_id: targetUserId, direction })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Failed to remove block');
+                    return;
+                }
+                showToast('Block removed');
+                openSafetyDetailModal();
+            } catch (err) {
+                showToast('Failed to remove block');
+            }
+        }
+
+        async function adminClearUserMute(userId, targetUserId, scope = 'all') {
+            try {
+                const res = await fetch(`/admin/api/users/${userId}/safety/unmute`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ target_user_id: targetUserId, scope, all_scopes: false })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Failed to remove mute');
+                    return;
+                }
+                showToast('Mute removed');
+                openSafetyDetailModal();
+            } catch (err) {
+                showToast('Failed to remove mute');
+            }
         }
 
         function closeGiveXPModal() {
@@ -2092,6 +2253,106 @@
                 container.innerHTML = '<div class="error-box">Failed to load bans</div>';
             }
         }
+
+        async function loadReports() {
+            if (!(permissions.includes('view_reports') || permissions.includes('manage_reports'))) return;
+            const container = document.getElementById('reportsContent');
+            if (!container) return;
+            try {
+                const res = await fetch('/admin/api/reports?status=all&limit=500');
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    container.innerHTML = `<div class="error-box">${escapeHtml(data.error || 'Failed to load reports')}</div>`;
+                    return;
+                }
+                allReports = Array.isArray(data) ? data : [];
+                filterReports();
+            } catch (err) {
+                container.innerHTML = '<div class="error-box">Failed to load reports</div>';
+            }
+        }
+
+        function filterReports() {
+            const container = document.getElementById('reportsContent');
+            if (!container) return;
+            const status = (document.getElementById('reportStatusFilter')?.value || 'all').trim().toLowerCase();
+            const search = (document.getElementById('reportSearch')?.value || '').trim().toLowerCase();
+            const rows = (allReports || []).filter(r => {
+                const rowStatus = String(r.status || 'open').toLowerCase();
+                if (status !== 'all' && rowStatus !== status) return false;
+                if (!search) return true;
+                const haystack = [
+                    r.id, r.reason, r.details, r.target_type, r.status,
+                    r.reporter_name, r.reporter_email, r.reported_name, r.reported_email,
+                    r.reporter_id, r.reported_user_id, r.reviewed_by, r.review_note
+                ].map(v => String(v || '').toLowerCase()).join(' ');
+                return haystack.includes(search);
+            });
+
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state">No matching reports</div>';
+                return;
+            }
+
+            const canManage = permissions.includes('manage_reports');
+            let html = '<table><thead><tr><th>When</th><th>Reporter</th><th>Reported User</th><th>Issue</th><th>Status</th><th>Review</th><th>Actions</th></tr></thead><tbody>';
+            rows.forEach(r => {
+                const st = String(r.status || 'open').toLowerCase();
+                const statusClass = st === 'resolved'
+                    ? 'status-active'
+                    : (st === 'dismissed' ? 'status-banned' : 'status-warning');
+                const reporter = `${escapeHtml(r.reporter_name || `User #${r.reporter_id || '?'}`)}<br><small style="color:#888">${escapeHtml(r.reporter_email || `ID:${r.reporter_id || '-'}`)}</small>`;
+                const reported = `${escapeHtml(r.reported_name || `User #${r.reported_user_id || '?'}`)}<br><small style="color:#888">${escapeHtml(r.reported_email || `ID:${r.reported_user_id || '-'}`)}</small>`;
+                const issue = `<strong>${escapeHtml(r.reason || '')}</strong><br><small style="color:#aab4c5">${escapeHtml((r.details || '').slice(0, 220) || '-')}</small>`;
+                const review = r.reviewed_by
+                    ? `${escapeHtml(r.reviewed_by)}<br><small style="color:#888">${formatLocalTime(r.reviewed_at)}</small>${r.review_note ? `<br><small style="color:#888">${escapeHtml(r.review_note)}</small>` : ''}`
+                    : '<span style="color:#888">Pending</span>';
+                const actions = canManage
+                    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn btn-success" onclick="updateReportStatus(${r.id}, 'resolved')">Resolve</button>
+                        <button class="btn btn-warning" onclick="updateReportStatus(${r.id}, 'dismissed')">Dismiss</button>
+                        <button class="btn btn-secondary" onclick="updateReportStatus(${r.id}, 'open')">Reopen</button>
+                    </div>`
+                    : '<span style="color:#888">View only</span>';
+
+                html += `<tr>
+                    <td>${formatLocalTime(r.created_at)}</td>
+                    <td>${reporter}</td>
+                    <td>${reported}</td>
+                    <td>${issue}<br><small style="color:#666">Type: ${escapeHtml(r.target_type || 'user')} ${r.target_id ? `#${escapeHtml(String(r.target_id))}` : ''}</small></td>
+                    <td><span class="status-badge ${statusClass}" style="text-transform:uppercase;">${escapeHtml(st)}</span></td>
+                    <td>${review}</td>
+                    <td>${actions}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function updateReportStatus(reportId, status) {
+            if (!permissions.includes('manage_reports')) {
+                showToast('Permission denied');
+                return;
+            }
+            const note = prompt('Optional review note:', '') || '';
+            try {
+                const res = await fetch(`/admin/api/reports/${reportId}/status`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ status, note })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    showToast(data.error || 'Update failed');
+                    return;
+                }
+                showToast('Report updated');
+                await loadReports();
+            } catch (err) {
+                showToast('Error updating report');
+            }
+        }
+
         async function loadComments() {
             if (!permissions.includes('delete_comments')) return;
             
@@ -2519,6 +2780,9 @@
             } else if (type === 'bans') {
                 headers = ['user_id', 'user_name', 'user_email', 'reason', 'banned_by', 'banned_at', 'expires_at'];
                 rows = allBans || [];
+            } else if (type === 'reports') {
+                headers = ['id', 'created_at', 'status', 'target_type', 'target_id', 'reason', 'details', 'reporter_id', 'reporter_name', 'reporter_email', 'reported_user_id', 'reported_name', 'reported_email', 'reviewed_by', 'reviewed_at', 'review_note'];
+                rows = allReports || [];
             } else if (type === 'audit') {
                 headers = ['id', 'timestamp', 'admin_id', 'admin_name', 'action', 'status', 'target_user_id', 'target_name', 'target_email', 'target_role', 'location_ip', 'location_country', 'location_region', 'location_city', 'reason', 'duration', 'details', 'extras'];
                 rows = allAuditLogs || [];
@@ -2793,7 +3057,7 @@
             
             const titles = {
                 dashboard: 'Dashboard', users: 'Users', restrictions: 'Restrictions',
-                bans: 'Banned Users', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
+                bans: 'Banned Users', reports: 'Reports', comments: 'Comments', audit: 'Audit Logs', settings: 'Settings'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
             
@@ -2802,6 +3066,7 @@
             if (section === 'comments') loadComments();
             if (section === 'restrictions') loadRestrictions();
             if (section === 'bans') loadBans();
+            if (section === 'reports') loadReports();
             if (section === 'users') loadUsers();
         }
 
@@ -2930,7 +3195,3 @@
     </script>
 </body>
 </html>
-
-
-
-

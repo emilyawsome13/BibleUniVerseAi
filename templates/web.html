@@ -2271,6 +2271,21 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .dm-main-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .dm-action-btn.is-active {
+            border-color: rgba(255, 202, 116, 0.58);
+            box-shadow: 0 0 0 1px rgba(255, 198, 104, 0.35), 0 8px 16px rgba(98, 69, 22, 0.3);
+        }
+        .dm-action-btn-danger.is-active {
+            border-color: rgba(255, 132, 158, 0.62);
+            box-shadow: 0 0 0 1px rgba(255, 122, 146, 0.35), 0 8px 16px rgba(88, 26, 40, 0.3);
+        }
         .dm-messages {
             background: linear-gradient(165deg, rgba(4, 11, 22, 0.76), rgba(8, 16, 32, 0.64));
             border-color: rgba(121, 158, 222, 0.22);
@@ -2341,6 +2356,10 @@
             }
             .dm-main-header {
                 flex-wrap: wrap;
+            }
+            .dm-main-actions {
+                width: 100%;
+                justify-content: flex-start;
             }
             .dm-message {
                 max-width: 90%;
@@ -2899,6 +2918,45 @@
             font-size: 12px;
             color: var(--text-tertiary);
             margin-top: 2px;
+        }
+        .safety-manager-wrap {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.18);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .safety-manager-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .safety-manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .safety-manager-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .safety-manager-meta {
+            min-width: 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.35;
         }
 
         .toggle {
@@ -4050,6 +4108,33 @@
         .reply-btn:hover {
             color: var(--primary);
             background: var(--surface);
+        }
+        .safety-action-btn {
+            border: 1px solid rgba(131, 166, 229, 0.35);
+            background: rgba(23, 42, 78, 0.35);
+            color: #cde0ff;
+            font-size: 11px;
+            line-height: 1;
+            padding: 5px 8px;
+        }
+        .safety-action-btn:hover {
+            background: rgba(59, 97, 170, 0.35);
+            color: #e7f0ff;
+        }
+        .safety-action-btn-danger {
+            border-color: rgba(243, 121, 145, 0.42);
+            background: rgba(98, 30, 45, 0.35);
+            color: #ffd7df;
+        }
+        .safety-action-btn-danger:hover {
+            background: rgba(132, 41, 62, 0.42);
+            color: #ffe6eb;
+        }
+        .reply-item-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            flex-wrap: wrap;
         }
         .comment-replies {
             margin-left: 36px;
@@ -5476,7 +5561,12 @@
                                                 <div class="dm-header-sub" id="dmHeaderSubLabel">Choose a conversation to start chatting.</div>
                                             </div>
                                         </div>
-                                        <button class="dm-action-btn dm-action-btn-danger" id="dmDeleteThreadBtn" onclick="deleteDmThread()">Delete Thread</button>
+                                        <div class="dm-main-actions">
+                                            <button class="dm-action-btn" id="dmMuteBtn" onclick="toggleDmMute()">Mute</button>
+                                            <button class="dm-action-btn dm-action-btn-danger" id="dmBlockBtn" onclick="toggleDmBlock()">Block</button>
+                                            <button class="dm-action-btn" id="dmReportBtn" onclick="reportDmUser()">Report</button>
+                                            <button class="dm-action-btn dm-action-btn-danger" id="dmDeleteThreadBtn" onclick="deleteDmThread()">Delete Thread</button>
+                                        </div>
                                     </div>
                                     <div class="dm-messages" id="dmMessages">
                                         <div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>
@@ -5995,6 +6085,22 @@
                 </div>
             </div>
 
+            <div class="setting-item" style="align-items: flex-start;">
+                <div style="width:100%;">
+                    <div class="setting-label">Safety Manager</div>
+                    <div class="setting-desc">Review blocked and muted users, then remove entries instantly.</div>
+                    <div class="safety-manager-wrap">
+                        <div class="safety-manager-head">
+                            <div style="font-size:12px;color:var(--text-secondary);">Your personal safety lists</div>
+                            <button class="btn btn-secondary" onclick="loadSafetyManager(true)" style="padding:6px 10px; font-size:11px;">Refresh</button>
+                        </div>
+                        <div class="safety-manager-list" id="safetyManagerList">
+                            <div class="empty-state"><div class="empty-state-text">Loading safety lists...</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Extra Settings -->
             <div style="margin: 20px 0 10px; padding-top: 15px; border-top: 1px solid var(--glass-border);">
                 <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">✨ Extra Features</div>
@@ -6210,6 +6316,8 @@
         let activeCommentVerseRef = null;
         let commentVerseLocked = false;
         let wakeLockHandle = null;
+        let safetyManagerInFlight = false;
+        let safetyManagerLoadedAt = 0;
         
         // Text to Speech
         const TTS = {
@@ -6319,6 +6427,14 @@
         let dmSelectedUserId = null;
         let dmSelectedUserName = '';
         let dmSelectedUserDecor = '';
+        let dmSelectedSafetyLoadedFor = null;
+        let dmSelectedUserSafety = {
+            blocked: false,
+            blocked_by: false,
+            muted_all: false,
+            muted_dm: false,
+            muted_community: false
+        };
         let dmThreadsSignature = '';
         let dmMessagesSignature = '';
         let dmTypingCooldown = null;
@@ -8423,6 +8539,7 @@
                 
                 // Setup DM button handlers
                 setupDmButtonHandlers();
+                setupSafetyButtonHandlers();
                 showBriefCommentDmSuggestions('verseDmSuggestions');
             } finally {
                 loadCommentsInFlight = false;
@@ -8446,6 +8563,43 @@
             const userPicture = btn.dataset.userPicture || '';
             const userDecor = btn.dataset.userDecor || '';
             openDmFromComment(userId, userName, userPicture, userDecor);
+        }
+
+        function setupSafetyButtonHandlers() {
+            document.querySelectorAll('.safety-action-btn').forEach(btn => {
+                btn.removeEventListener('click', handleSafetyActionClick);
+                btn.addEventListener('click', handleSafetyActionClick);
+            });
+        }
+
+        async function handleSafetyActionClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            const action = (btn.dataset.action || '').trim().toLowerCase();
+            const userId = parseInt(btn.dataset.userId || '0', 10);
+            const userName = btn.dataset.userName || 'User';
+            const scope = btn.dataset.scope || 'community';
+            const targetType = btn.dataset.targetType || 'user';
+            const rawTargetId = btn.dataset.targetId;
+            const parsedTargetId = rawTargetId ? parseInt(rawTargetId, 10) : NaN;
+            const targetId = Number.isFinite(parsedTargetId) ? parsedTargetId : null;
+            if (!userId || !action) return;
+            try {
+                if (action === 'block') {
+                    await toggleUserBlock(userId, userName, null);
+                    return;
+                }
+                if (action === 'mute') {
+                    await toggleUserMute(userId, userName, scope, null);
+                    return;
+                }
+                if (action === 'report') {
+                    await reportUser(userId, userName, targetType, targetId);
+                }
+            } catch (err) {
+                showToast(err.message || 'Action failed');
+            }
         }
 
         async function postComment() {
@@ -8528,6 +8682,7 @@
                 
                 // Setup DM button handlers
                 setupDmButtonHandlers();
+                setupSafetyButtonHandlers();
                 showBriefCommentDmSuggestions('communityDmSuggestions');
             } finally {
                 loadCommunityInFlight = false;
@@ -8599,6 +8754,14 @@
             const sub = document.getElementById('dmHeaderSubLabel');
             const avatarSlot = document.getElementById('dmHeaderAvatarSlot');
             if (!userId) {
+                dmSelectedSafetyLoadedFor = null;
+                dmSelectedUserSafety = {
+                    blocked: false,
+                    blocked_by: false,
+                    muted_all: false,
+                    muted_dm: false,
+                    muted_community: false
+                };
                 if (label) label.textContent = 'No conversation selected';
                 if (sub) sub.textContent = 'Choose a conversation to start chatting.';
                 if (avatarSlot) avatarSlot.innerHTML = '<span class="dm-header-avatar-fallback">💬</span>';
@@ -8608,7 +8771,12 @@
             const thread = dmThreadsCache[userId] || {};
             const displayName = thread.name || dmSelectedUserName || `User #${userId}`;
             if (label) label.textContent = displayName;
-            if (sub) sub.textContent = thread.last_message ? `Last: ${thread.last_message}` : 'Direct message channel';
+            const statusBits = [];
+            if (dmSelectedUserSafety.blocked) statusBits.push('blocked');
+            if (dmSelectedUserSafety.blocked_by) statusBits.push('blocked by user');
+            if (dmSelectedUserSafety.muted_all || dmSelectedUserSafety.muted_dm) statusBits.push('muted');
+            const baseSub = thread.last_message ? `Last: ${thread.last_message}` : 'Direct message channel';
+            if (sub) sub.textContent = statusBits.length ? `${baseSub} • ${statusBits.join(' • ')}` : baseSub;
             if (avatarSlot) {
                 avatarSlot.innerHTML = renderAvatarMarkup(
                     thread.picture || '',
@@ -8618,6 +8786,7 @@
                 );
             }
             updateDmActionState();
+            refreshDmSafetyState(false);
         }
 
         function updateDmActionState() {
@@ -8626,9 +8795,52 @@
             const dmInput = document.getElementById('dmInput');
             const dmSendBtn = document.getElementById('dmSendBtn');
             const dmDeleteBtn = document.getElementById('dmDeleteThreadBtn');
+            const dmBlockBtn = document.getElementById('dmBlockBtn');
+            const dmMuteBtn = document.getElementById('dmMuteBtn');
+            const dmReportBtn = document.getElementById('dmReportBtn');
             if (dmInput) dmInput.disabled = restricted || !hasThread;
             if (dmSendBtn) dmSendBtn.disabled = restricted || !hasThread;
             if (dmDeleteBtn) dmDeleteBtn.disabled = !hasThread;
+            if (dmBlockBtn) dmBlockBtn.disabled = !hasThread;
+            if (dmMuteBtn) dmMuteBtn.disabled = !hasThread;
+            if (dmReportBtn) dmReportBtn.disabled = !hasThread;
+            updateDmSafetyButtons();
+        }
+
+        function updateDmSafetyButtons() {
+            const dmBlockBtn = document.getElementById('dmBlockBtn');
+            const dmMuteBtn = document.getElementById('dmMuteBtn');
+            const hasThread = !!dmSelectedUserId;
+            const isMuted = !!(dmSelectedUserSafety.muted_all || dmSelectedUserSafety.muted_dm);
+            if (dmBlockBtn) {
+                dmBlockBtn.textContent = dmSelectedUserSafety.blocked ? 'Unblock' : 'Block';
+                dmBlockBtn.classList.toggle('is-active', !!dmSelectedUserSafety.blocked);
+                dmBlockBtn.disabled = !hasThread;
+            }
+            if (dmMuteBtn) {
+                dmMuteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+                dmMuteBtn.classList.toggle('is-active', isMuted);
+                dmMuteBtn.disabled = !hasThread;
+            }
+        }
+
+        async function refreshDmSafetyState(force = false) {
+            if (!dmSelectedUserId) return;
+            if (!force && dmSelectedSafetyLoadedFor === dmSelectedUserId) return;
+            try {
+                const res = await fetch(`/api/safety/state?target_user_id=${encodeURIComponent(dmSelectedUserId)}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) return;
+                dmSelectedUserSafety = {
+                    blocked: !!data.blocked,
+                    blocked_by: !!data.blocked_by,
+                    muted_all: !!data.muted_all,
+                    muted_dm: !!data.muted_dm,
+                    muted_community: !!data.muted_community
+                };
+                dmSelectedSafetyLoadedFor = dmSelectedUserId;
+                updateDmHeader(dmSelectedUserId);
+            } catch (_) {}
         }
 
         function renderDmThreads(threads) {
@@ -8773,7 +8985,13 @@
                 const data = await res.json();
                 if (!res.ok || data.error) return;
                 let list = Array.isArray(data) ? data : [];
-                if (dmSelectedUserId && !list.some(t => t.user_id === dmSelectedUserId)) {
+                const selectedHiddenBySafety = !!(
+                    dmSelectedUserSafety.blocked ||
+                    dmSelectedUserSafety.blocked_by ||
+                    dmSelectedUserSafety.muted_all ||
+                    dmSelectedUserSafety.muted_dm
+                );
+                if (dmSelectedUserId && !selectedHiddenBySafety && !list.some(t => t.user_id === dmSelectedUserId)) {
                     const fallback = dmThreadsCache[dmSelectedUserId] || {
                         user_id: dmSelectedUserId,
                         name: dmSelectedUserName || `User #${dmSelectedUserId}`,
@@ -8802,8 +9020,15 @@
             loadDmMessagesInFlight = true;
             try {
                 const res = await fetch(`/api/dm/messages/${dmSelectedUserId}`, { cache: 'no-store' });
-                const data = await res.json();
-                if (!res.ok || data.error) return;
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    const box = document.getElementById('dmMessages');
+                    if (data.error === 'blocked' && box) {
+                        box.innerHTML = '<div class="empty-state"><div class="empty-state-text">Messaging unavailable for this user.</div></div>';
+                        refreshDmSafetyState(true);
+                    }
+                    return;
+                }
                 const signature = buildDmMessagesSignature(data);
                 if (!force && signature === dmMessagesSignature) return;
                 dmMessagesSignature = signature;
@@ -8820,6 +9045,14 @@
             if (currentTab !== 'comments') switchTab('comments');
             if (currentCommentsView !== 'dm') switchCommentsView('dm');
             dmSelectedUserId = userId;
+            dmSelectedSafetyLoadedFor = null;
+            dmSelectedUserSafety = {
+                blocked: false,
+                blocked_by: false,
+                muted_all: false,
+                muted_dm: false,
+                muted_community: false
+            };
             if (userName) dmSelectedUserName = userName;
             if (userDecor) dmSelectedUserDecor = userDecor;
             dmMessagesSignature = '';
@@ -8833,6 +9066,7 @@
                     unread: 0
                 };
             }
+            if (dmThreadsCache[userId]?.name) dmSelectedUserName = dmThreadsCache[userId].name;
             updateDmHeader(userId);
             const results = document.getElementById('dmSearchResults');
             if (results) {
@@ -8843,8 +9077,256 @@
             lastDmThreadsPollAt = 0;
             lastDmMessagesPollAt = 0;
             lastDmTypingPollAt = 0;
+            refreshDmSafetyState(true);
             loadDmThreads(true);
             loadDmMessages(true);
+        }
+
+        async function callSafetyBlock(targetUserId, blocked = null) {
+            const body = { target_user_id: targetUserId };
+            if (blocked !== null) body.blocked = !!blocked;
+            const res = await fetch('/api/safety/block', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) throw new Error(data.message || data.error || 'Action failed');
+            return data;
+        }
+
+        async function callSafetyMute(targetUserId, scope = 'community', muted = null) {
+            const body = { target_user_id: targetUserId, scope };
+            if (muted !== null) body.muted = !!muted;
+            const res = await fetch('/api/safety/mute', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) throw new Error(data.message || data.error || 'Action failed');
+            return data;
+        }
+
+        async function callSafetyReport(targetUserId, targetType = 'user', targetId = null, reason = '', details = '') {
+            const body = {
+                target_user_id: targetUserId,
+                target_type: targetType || 'user',
+                reason: reason || 'Inappropriate behavior'
+            };
+            if (targetId !== null && targetId !== undefined) body.target_id = targetId;
+            if (details) body.details = details;
+            const res = await fetch('/api/safety/report', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) throw new Error(data.message || data.error || 'Report failed');
+            return data;
+        }
+
+        async function toggleUserBlock(userId, userName = 'User', desired = null) {
+            if (!userId) return null;
+            const data = await callSafetyBlock(userId, desired);
+            const nowBlocked = !!data.blocked;
+            showToast(`${userName} ${nowBlocked ? 'blocked' : 'unblocked'}`);
+            loadSafetyManager(true);
+            loadComments(true);
+            loadCommunityMessages(true);
+            loadDmThreads(true);
+            if (dmSelectedUserId && Number(dmSelectedUserId) === Number(userId)) {
+                dmSelectedUserSafety = {
+                    blocked: !!data.blocked,
+                    blocked_by: !!data.blocked_by,
+                    muted_all: !!data.muted_all,
+                    muted_dm: !!data.muted_dm,
+                    muted_community: !!data.muted_community
+                };
+                dmSelectedSafetyLoadedFor = dmSelectedUserId;
+                loadDmMessages(true);
+                updateDmHeader(dmSelectedUserId);
+            }
+            return data;
+        }
+
+        async function toggleUserMute(userId, userName = 'User', scope = 'community', desired = null) {
+            if (!userId) return null;
+            const data = await callSafetyMute(userId, scope, desired);
+            const isMuted = scope === 'dm'
+                ? !!(data.muted_all || data.muted_dm)
+                : !!(data.muted_all || data.muted_community);
+            showToast(`${userName} ${isMuted ? 'muted' : 'unmuted'}`);
+            loadSafetyManager(true);
+            loadComments(true);
+            loadCommunityMessages(true);
+            loadDmThreads(true);
+            if (dmSelectedUserId && Number(dmSelectedUserId) === Number(userId)) {
+                dmSelectedUserSafety = {
+                    blocked: !!data.blocked,
+                    blocked_by: !!data.blocked_by,
+                    muted_all: !!data.muted_all,
+                    muted_dm: !!data.muted_dm,
+                    muted_community: !!data.muted_community
+                };
+                dmSelectedSafetyLoadedFor = dmSelectedUserId;
+                updateDmHeader(dmSelectedUserId);
+            }
+            return data;
+        }
+
+        async function reportUser(userId, userName = 'User', targetType = 'user', targetId = null) {
+            if (!userId) return;
+            const reason = prompt(`Report ${userName} for what reason?`, 'Harassment or abusive content');
+            if (reason === null) return;
+            const trimmedReason = (reason || '').trim();
+            if (trimmedReason.length < 3) {
+                showToast('Report reason is too short');
+                return;
+            }
+            const details = prompt('Optional details (can be blank):', '') || '';
+            await callSafetyReport(userId, targetType, targetId, trimmedReason, details.trim());
+            showToast('Report submitted');
+        }
+
+        async function loadSafetyManager(force = false) {
+            const container = document.getElementById('safetyManagerList');
+            if (!container) return;
+            if (safetyManagerInFlight && !force) return;
+            if (!force && safetyManagerLoadedAt && (Date.now() - safetyManagerLoadedAt) < 5000) return;
+            safetyManagerInFlight = true;
+            if (force) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-text">Refreshing safety lists...</div></div>';
+            }
+            try {
+                const res = await fetch('/api/safety/lists', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-state-text">${escapeHtml(data.error || 'Unable to load safety lists')}</div></div>`;
+                    return;
+                }
+                const blocked = Array.isArray(data.blocked) ? data.blocked : [];
+                const muted = Array.isArray(data.muted) ? data.muted : [];
+                if (!blocked.length && !muted.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-text">No blocked or muted users.</div></div>';
+                    safetyManagerLoadedAt = Date.now();
+                    return;
+                }
+
+                const blockedRows = blocked.map(item => {
+                    const uid = Number(item.target_user_id || 0);
+                    const name = item.name || `User #${uid}`;
+                    return `
+                        <div class="safety-manager-item">
+                            <div class="safety-manager-meta">
+                                <div><strong>${escapeHtml(name)}</strong></div>
+                                <div>Blocked • ID ${escapeHtml(String(uid))}</div>
+                            </div>
+                            <button class="btn btn-warning" style="padding:6px 10px;font-size:11px;" onclick="removeSafetyBlock(${uid}, ${JSON.stringify(name)})">Unblock</button>
+                        </div>
+                    `;
+                }).join('');
+
+                const mutedRows = muted.map(item => {
+                    const uid = Number(item.target_user_id || 0);
+                    const scope = String(item.scope || 'all').toLowerCase();
+                    const name = item.name || `User #${uid}`;
+                    return `
+                        <div class="safety-manager-item">
+                            <div class="safety-manager-meta">
+                                <div><strong>${escapeHtml(name)}</strong></div>
+                                <div>Muted (${escapeHtml(scope)}) • ID ${escapeHtml(String(uid))}</div>
+                            </div>
+                            <button class="btn btn-warning" style="padding:6px 10px;font-size:11px;" onclick="removeSafetyMute(${uid}, '${scope}', ${JSON.stringify(name)})">Unmute</button>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = `
+                    ${blockedRows ? `<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;">Blocked Users</div>${blockedRows}` : ''}
+                    ${mutedRows ? `<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Muted Users</div>${mutedRows}` : ''}
+                `;
+                safetyManagerLoadedAt = Date.now();
+            } catch (_) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-text">Unable to load safety lists.</div></div>';
+            } finally {
+                safetyManagerInFlight = false;
+            }
+        }
+
+        async function removeSafetyBlock(userId, userName = 'User') {
+            if (!userId) return;
+            try {
+                await callSafetyBlock(userId, false);
+                showToast(`${userName} unblocked`);
+                await loadSafetyManager(true);
+                loadComments(true);
+                loadCommunityMessages(true);
+                loadDmThreads(true);
+                if (Number(dmSelectedUserId) === Number(userId)) {
+                    refreshDmSafetyState(true);
+                    loadDmMessages(true);
+                }
+            } catch (err) {
+                showToast(err.message || 'Unblock failed');
+            }
+        }
+
+        async function removeSafetyMute(userId, scope = 'all', userName = 'User') {
+            if (!userId) return;
+            try {
+                await callSafetyMute(userId, scope || 'all', false);
+                showToast(`${userName} unmuted`);
+                await loadSafetyManager(true);
+                loadComments(true);
+                loadCommunityMessages(true);
+                loadDmThreads(true);
+                if (Number(dmSelectedUserId) === Number(userId)) {
+                    refreshDmSafetyState(true);
+                }
+            } catch (err) {
+                showToast(err.message || 'Unmute failed');
+            }
+        }
+
+        async function toggleDmBlock() {
+            if (!dmSelectedUserId) {
+                showToast('Pick a conversation first');
+                return;
+            }
+            const targetBlocked = !dmSelectedUserSafety.blocked;
+            const actionText = targetBlocked ? 'block' : 'unblock';
+            if (!confirm(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} this user?`)) return;
+            try {
+                await toggleUserBlock(dmSelectedUserId, dmSelectedUserName || `User #${dmSelectedUserId}`, targetBlocked);
+            } catch (err) {
+                showToast(err.message || 'Block action failed');
+            }
+        }
+
+        async function toggleDmMute() {
+            if (!dmSelectedUserId) {
+                showToast('Pick a conversation first');
+                return;
+            }
+            const currentlyMuted = !!(dmSelectedUserSafety.muted_all || dmSelectedUserSafety.muted_dm);
+            try {
+                await toggleUserMute(dmSelectedUserId, dmSelectedUserName || `User #${dmSelectedUserId}`, 'dm', !currentlyMuted);
+            } catch (err) {
+                showToast(err.message || 'Mute action failed');
+            }
+        }
+
+        async function reportDmUser() {
+            if (!dmSelectedUserId) {
+                showToast('Pick a conversation first');
+                return;
+            }
+            try {
+                await reportUser(dmSelectedUserId, dmSelectedUserName || `User #${dmSelectedUserId}`, 'dm', dmSelectedUserId);
+            } catch (err) {
+                showToast(err.message || 'Report failed');
+            }
         }
 
         async function sendDm() {
@@ -9055,7 +9537,9 @@
         }
         
         function renderCommentItem(c, type) {
-            const isOwner = c.user_id === parseInt('{{ user.id }}');
+            const currentUserId = parseInt('{{ user.id }}', 10);
+            const userIdNum = Number(c.user_id || 0);
+            const isOwner = userIdNum > 0 && userIdNum === currentUserId;
             const reactions = c.reactions || { 'heart': 0, 'pray': 0, 'cross': 0 };
             const replies = Array.isArray(c.replies) ? c.replies : [];
             const role = (c.user_role || 'user').toLowerCase();
@@ -9064,7 +9548,9 @@
             const replyKey = `${type}-${c.id}`;
             const replyOpen = openReplyKey === replyKey;
             const replyDraft = replyDrafts[replyKey] || '';
-            const canDm = c.user_id && !isOwner;
+            const canDm = userIdNum > 0 && !isOwner;
+            const canSafety = userIdNum > 0 && !isOwner;
+            const safetyTargetType = type === 'community' ? 'community' : 'comment';
             
             // Extract equipped items from comment data
             const frameClass = c.equipped_frame ? `profile-frame profile-frame-${c.equipped_frame.item_id}` : '';
@@ -9118,8 +9604,11 @@
                         <button class="reaction-btn" onclick="addReaction(${c.id}, '${type}', 'heart', this)">❤️ ${reactions['heart'] || 0}</button>
                         <button class="reaction-btn" onclick="addReaction(${c.id}, '${type}', 'pray', this)">🙏 ${reactions['pray'] || 0}</button>
                         <button class="reaction-btn" onclick="addReaction(${c.id}, '${type}', 'cross', this)">✝️ ${reactions['cross'] || 0}</button>
-                        <button class="reply-btn" ${replyDisabled} onclick="showReplyBox(${c.id}, '${type}')">Reply (${c.reply_count || replies.length || 0})</button>
+                        <button class="reply-btn reply-compose-btn" ${replyDisabled} onclick="showReplyBox(${c.id}, '${type}')">Reply (${c.reply_count || replies.length || 0})</button>
                         ${canDm ? `<button class="reply-btn dm-btn" data-user-id="${c.user_id}" data-user-name="${escapeHtml(c.user_name || 'User')}" data-user-picture="${escapeHtml(c.user_picture || '')}" data-user-decor="${escapeHtml(c.avatar_decoration || '')}">DM</button>` : ''}
+                        ${canSafety ? `<button class="reply-btn safety-action-btn" data-action="mute" data-scope="community" data-user-id="${c.user_id}" data-user-name="${escapeHtml(c.user_name || 'User')}" data-target-type="${safetyTargetType}" data-target-id="${c.id}">Mute</button>` : ''}
+                        ${canSafety ? `<button class="reply-btn safety-action-btn safety-action-btn-danger" data-action="block" data-user-id="${c.user_id}" data-user-name="${escapeHtml(c.user_name || 'User')}" data-target-type="${safetyTargetType}" data-target-id="${c.id}">Block</button>` : ''}
+                        ${canSafety ? `<button class="reply-btn safety-action-btn" data-action="report" data-user-id="${c.user_id}" data-user-name="${escapeHtml(c.user_name || 'User')}" data-target-type="${safetyTargetType}" data-target-id="${c.id}">Report</button>` : ''}
                     </div>
                     <div class="comment-replies" id="replies-${type}-${c.id}">${renderReplies(replies)}</div>
                     <div class="reply-input-area" id="reply-box-${type}-${c.id}" style="display: ${replyOpen ? 'flex' : 'none'};">
@@ -9157,6 +9646,10 @@
         function renderReplies(replies) {
             if (!Array.isArray(replies) || !replies.length) return '';
             return replies.map(r => {
+                const currentUserId = parseInt('{{ user.id }}', 10);
+                const userIdNum = Number(r.user_id || 0);
+                const canDm = userIdNum > 0 && userIdNum !== currentUserId;
+                const canSafety = userIdNum > 0 && userIdNum !== currentUserId;
                 const role = String(r.user_role || 'user').toLowerCase();
                 const roleDisplay = role.replace('_', ' ');
                 
@@ -9205,6 +9698,14 @@
                             </div>
                         </div>
                         <div class="comment-text ${chatEffectClass}" data-user-id="${r.user_id || ''}">${escapeHtml(r.text || '')}</div>
+                        ${(canDm || canSafety) ? `
+                            <div class="reply-item-actions">
+                                ${canDm ? `<button class="reply-btn dm-btn" data-user-id="${r.user_id}" data-user-name="${escapeHtml(r.user_name || 'User')}" data-user-picture="${escapeHtml(r.user_picture || '')}" data-user-decor="${escapeHtml(r.avatar_decoration || '')}">DM</button>` : ''}
+                                ${canSafety ? `<button class="reply-btn safety-action-btn" data-action="mute" data-scope="community" data-user-id="${r.user_id}" data-user-name="${escapeHtml(r.user_name || 'User')}" data-target-type="reply" data-target-id="${r.id}">Mute</button>` : ''}
+                                ${canSafety ? `<button class="reply-btn safety-action-btn safety-action-btn-danger" data-action="block" data-user-id="${r.user_id}" data-user-name="${escapeHtml(r.user_name || 'User')}" data-target-type="reply" data-target-id="${r.id}">Block</button>` : ''}
+                                ${canSafety ? `<button class="reply-btn safety-action-btn" data-action="report" data-user-id="${r.user_id}" data-user-name="${escapeHtml(r.user_name || 'User')}" data-target-type="reply" data-target-id="${r.id}">Report</button>` : ''}
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -11524,7 +12025,7 @@ async function checkAchievement(type, value) {
             if (communityArea) communityArea.classList.toggle('is-disabled', restricted);
             updateDmActionState();
 
-            document.querySelectorAll('.reply-btn').forEach(btn => { btn.disabled = restricted; });
+            document.querySelectorAll('.reply-compose-btn').forEach(btn => { btn.disabled = restricted; });
             document.querySelectorAll('.reply-input-area .comment-input').forEach(inp => { inp.disabled = restricted; });
             document.querySelectorAll('.reply-input-area .send-btn').forEach(btn => { btn.disabled = restricted; });
         }
@@ -12393,6 +12894,7 @@ async function checkAchievement(type, value) {
         // Settings
         function openSettings() {
             document.getElementById('settingsModal').classList.add('active');
+            loadSafetyManager();
             AudioSys.playModal();
         }
 

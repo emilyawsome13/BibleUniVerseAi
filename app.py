@@ -471,6 +471,12 @@ def ensure_performance_indexes(c, db_type):
         "CREATE INDEX IF NOT EXISTS idx_direct_messages_recipient_unread ON direct_messages(recipient_id, is_read, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_direct_messages_recipient_sender ON direct_messages(recipient_id, sender_id, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_dm_typing_other_user ON dm_typing(other_id, user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker ON user_blocks(blocker_id, blocked_id)",
+        "CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks(blocked_id, blocker_id)",
+        "CREATE INDEX IF NOT EXISTS idx_user_mutes_user_scope ON user_mutes(user_id, scope, muted_user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_user_reports_reported ON user_reports(reported_user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_user_reports_reporter ON user_reports(reporter_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_daily_actions_user_date ON daily_actions(user_id, event_date, action)",
         "CREATE INDEX IF NOT EXISTS idx_notifications_user_state ON user_notifications(user_id, is_read, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_presence_seen ON user_presence(last_seen)",
@@ -2293,6 +2299,226 @@ def ensure_dm_tables(c, db_type):
     ensure_performance_indexes(c, db_type)
     _mark_schema_ready(db_type, "dm")
 
+def normalize_mute_scope(scope):
+    value = str(scope or 'all').strip().lower()
+    if value in ('dm', 'direct', 'direct_message', 'direct_messages'):
+        return 'dm'
+    if value in ('community', 'comments', 'chat', 'public'):
+        return 'community'
+    return 'all'
+
+def parse_optional_bool(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ('1', 'true', 'yes', 'on'):
+        return True
+    if text in ('0', 'false', 'no', 'off'):
+        return False
+    return None
+
+def ensure_user_safety_tables(c, db_type):
+    """Ensure block/mute/report tables exist before use."""
+    if _is_schema_ready(db_type, "user_safety"):
+        return
+    if db_type == 'postgres':
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_blocks (
+                id SERIAL PRIMARY KEY,
+                blocker_id INTEGER NOT NULL,
+                blocked_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(blocker_id, blocked_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_mutes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                muted_user_id INTEGER NOT NULL,
+                scope TEXT NOT NULL DEFAULT 'all',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, muted_user_id, scope)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_reports (
+                id SERIAL PRIMARY KEY,
+                reporter_id INTEGER NOT NULL,
+                reported_user_id INTEGER NOT NULL,
+                target_type TEXT NOT NULL DEFAULT 'user',
+                target_id INTEGER,
+                reason TEXT NOT NULL,
+                details TEXT,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                blocker_id INTEGER NOT NULL,
+                blocked_id INTEGER NOT NULL,
+                created_at TEXT,
+                UNIQUE(blocker_id, blocked_id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_mutes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                muted_user_id INTEGER NOT NULL,
+                scope TEXT NOT NULL DEFAULT 'all',
+                created_at TEXT,
+                UNIQUE(user_id, muted_user_id, scope)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reporter_id INTEGER NOT NULL,
+                reported_user_id INTEGER NOT NULL,
+                target_type TEXT NOT NULL DEFAULT 'user',
+                target_id INTEGER,
+                reason TEXT NOT NULL,
+                details TEXT,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT
+            )
+        """)
+    ensure_performance_indexes(c, db_type)
+    _mark_schema_ready(db_type, "user_safety")
+
+def get_user_safety_filters(c, db_type, user_id):
+    """
+    Returns per-user safety filters:
+    - blocked_users: users blocked by this user
+    - blocked_by_users: users who blocked this user
+    - muted_all_users / muted_dm_users / muted_community_users
+    - hidden_dm_users: should be hidden in DM inbox/recent
+    - hidden_public_users: should be hidden in comments/community
+    """
+    result = {
+        "blocked_users": set(),
+        "blocked_by_users": set(),
+        "muted_all_users": set(),
+        "muted_dm_users": set(),
+        "muted_community_users": set(),
+        "hidden_dm_users": set(),
+        "hidden_public_users": set()
+    }
+    if not user_id:
+        return result
+
+    ensure_user_safety_tables(c, db_type)
+    uid = int(user_id)
+
+    if db_type == 'postgres':
+        c.execute("""
+            SELECT blocker_id, blocked_id
+            FROM user_blocks
+            WHERE blocker_id = %s OR blocked_id = %s
+        """, (uid, uid))
+    else:
+        c.execute("""
+            SELECT blocker_id, blocked_id
+            FROM user_blocks
+            WHERE blocker_id = ? OR blocked_id = ?
+        """, (uid, uid))
+
+    for row in c.fetchall():
+        try:
+            blocker_id = int(row['blocker_id'])
+            blocked_id = int(row['blocked_id'])
+        except Exception:
+            blocker_id = int(row[0])
+            blocked_id = int(row[1])
+        if blocker_id == uid:
+            result["blocked_users"].add(blocked_id)
+        if blocked_id == uid:
+            result["blocked_by_users"].add(blocker_id)
+
+    if db_type == 'postgres':
+        c.execute("""
+            SELECT muted_user_id, scope
+            FROM user_mutes
+            WHERE user_id = %s
+        """, (uid,))
+    else:
+        c.execute("""
+            SELECT muted_user_id, scope
+            FROM user_mutes
+            WHERE user_id = ?
+        """, (uid,))
+
+    for row in c.fetchall():
+        try:
+            muted_user_id = int(row['muted_user_id'])
+            scope = normalize_mute_scope(row['scope'])
+        except Exception:
+            muted_user_id = int(row[0])
+            scope = normalize_mute_scope(row[1] if len(row) > 1 else 'all')
+
+        if scope == 'dm':
+            result["muted_dm_users"].add(muted_user_id)
+        elif scope == 'community':
+            result["muted_community_users"].add(muted_user_id)
+        else:
+            result["muted_all_users"].add(muted_user_id)
+
+    hidden_block = result["blocked_users"] | result["blocked_by_users"]
+    result["hidden_dm_users"] = hidden_block | result["muted_all_users"] | result["muted_dm_users"]
+    result["hidden_public_users"] = hidden_block | result["muted_all_users"] | result["muted_community_users"]
+    return result
+
+def get_user_safety_state(c, db_type, user_id, target_user_id):
+    filters = get_user_safety_filters(c, db_type, user_id)
+    target = int(target_user_id or 0)
+    if target <= 0:
+        return {
+            "blocked": False,
+            "blocked_by": False,
+            "muted_all": False,
+            "muted_dm": False,
+            "muted_community": False
+        }
+    return {
+        "blocked": target in filters["blocked_users"],
+        "blocked_by": target in filters["blocked_by_users"],
+        "muted_all": target in filters["muted_all_users"],
+        "muted_dm": target in filters["muted_dm_users"],
+        "muted_community": target in filters["muted_community_users"]
+    }
+
+def is_user_pair_blocked(c, db_type, user_a, user_b):
+    if not user_a or not user_b:
+        return False
+    a = int(user_a)
+    b = int(user_b)
+    if a == b:
+        return False
+    ensure_user_safety_tables(c, db_type)
+    if db_type == 'postgres':
+        c.execute("""
+            SELECT 1
+            FROM user_blocks
+            WHERE (blocker_id = %s AND blocked_id = %s)
+               OR (blocker_id = %s AND blocked_id = %s)
+            LIMIT 1
+        """, (a, b, b, a))
+    else:
+        c.execute("""
+            SELECT 1
+            FROM user_blocks
+            WHERE (blocker_id = ? AND blocked_id = ?)
+               OR (blocker_id = ? AND blocked_id = ?)
+            LIMIT 1
+        """, (a, b, b, a))
+    return c.fetchone() is not None
+
 def get_reaction_counts(c, db_type, item_type, item_id):
     reactions = {"heart": 0, "pray": 0, "cross": 0}
     if db_type == 'postgres':
@@ -2361,7 +2587,7 @@ def get_reaction_counts_bulk(c, db_type, item_type, item_ids):
         reactions_by_item.setdefault(item_int, {"heart": 0, "pray": 0, "cross": 0})
     return reactions_by_item
 
-def get_replies_for_parent(c, db_type, parent_type, parent_id, equipped_cache=None):
+def get_replies_for_parent(c, db_type, parent_type, parent_id, equipped_cache=None, hidden_user_ids=None):
     if db_type == 'postgres':
         c.execute("""
             SELECT
@@ -2387,6 +2613,7 @@ def get_replies_for_parent(c, db_type, parent_type, parent_id, equipped_cache=No
     rows = c.fetchall()
     replies = []
     equipped_cache = equipped_cache if isinstance(equipped_cache, dict) else {}
+    hidden_user_ids = set(hidden_user_ids or ())
     for row in rows:
         try:
             reply_id = row['id']
@@ -2410,6 +2637,8 @@ def get_replies_for_parent(c, db_type, parent_type, parent_id, equipped_cache=No
             db_picture = row[7] if len(row) > 7 else None
             db_role = row[8] if len(row) > 8 else None
             db_decor = row[9] if len(row) > 9 else None
+        if user_id is not None and int(user_id) in hidden_user_ids:
+            continue
         # Get user's equipped items for display (cached per user to avoid repeated queries)
         cache_key = int(user_id) if user_id is not None else None
         if cache_key is not None and cache_key in equipped_cache:
@@ -2436,7 +2665,7 @@ def get_replies_for_parent(c, db_type, parent_type, parent_id, equipped_cache=No
         })
     return replies
 
-def get_replies_for_parents(c, db_type, parent_type, parent_ids, equipped_cache=None):
+def get_replies_for_parents(c, db_type, parent_type, parent_ids, equipped_cache=None, hidden_user_ids=None):
     replies_map = {}
     ids_sql, params = _build_in_clause_params(db_type, parent_ids)
     if not ids_sql:
@@ -2470,6 +2699,7 @@ def get_replies_for_parents(c, db_type, parent_type, parent_ids, equipped_cache=
         """, tuple([parent_type, *params]))
 
     equipped_cache = equipped_cache if isinstance(equipped_cache, dict) else {}
+    hidden_user_ids = set(hidden_user_ids or ())
     for row in c.fetchall():
         try:
             reply_id = row['id']
@@ -2495,6 +2725,9 @@ def get_replies_for_parents(c, db_type, parent_type, parent_ids, equipped_cache=
             db_picture = row[8] if len(row) > 8 else None
             db_role = row[9] if len(row) > 9 else None
             db_decor = row[10] if len(row) > 10 else None
+
+        if user_id is not None and int(user_id) in hidden_user_ids:
+            continue
 
         cache_key = int(user_id) if user_id is not None else None
         if cache_key is not None and cache_key in equipped_cache:
@@ -8053,7 +8286,10 @@ def community_room_messages(slug):
     c = get_cursor(conn, db_type)
     try:
         ensure_research_feature_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
+        safety = get_user_safety_filters(c, db_type, session['user_id'])
+        hidden_public_users = safety["hidden_public_users"]
 
         if request.method == 'POST':
             is_banned, _, _ = check_ban_status(session['user_id'])
@@ -8092,10 +8328,17 @@ def community_room_messages(slug):
         rows = c.fetchall()
         messages = []
         for row in rows:
+            author_id = row_pick(row, 'user_id', 2)
+            try:
+                author_id_int = int(author_id) if author_id is not None else None
+            except Exception:
+                author_id_int = None
+            if author_id_int is not None and author_id_int in hidden_public_users:
+                continue
             messages.append({
                 "id": row_pick(row, 'id', 0),
                 "room_slug": row_pick(row, 'room_slug', 1),
-                "user_id": row_pick(row, 'user_id', 2),
+                "user_id": author_id_int,
                 "text": row_pick(row, 'text', 3),
                 "timestamp": row_pick(row, 'timestamp', 4),
                 "user_name": row_pick(row, 'name', 7) or row_pick(row, 'google_name', 5) or "Anonymous",
@@ -8860,7 +9103,12 @@ def get_comments(verse_id):
     
     try:
         ensure_comment_social_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
+        viewer_id = session.get('user_id')
+        hidden_public_users = set()
+        if viewer_id:
+            hidden_public_users = get_user_safety_filters(c, db_type, viewer_id)["hidden_public_users"]
 
         if db_type == 'postgres':
             c.execute("""
@@ -8916,9 +9164,16 @@ def get_comments(verse_id):
                 db_role = row[8] if len(row) > 8 else None
                 db_decor = row[9] if len(row) > 9 else ""
 
+            try:
+                user_id_int = int(user_id) if user_id is not None else None
+            except Exception:
+                user_id_int = None
+            if user_id_int is not None and user_id_int in hidden_public_users:
+                continue
+
             prepared.append({
                 "id": int(comment_id),
-                "user_id": user_id,
+                "user_id": user_id_int,
                 "text": text,
                 "timestamp": timestamp,
                 "user_name": db_name or google_name or "Anonymous",
@@ -8929,7 +9184,14 @@ def get_comments(verse_id):
             comment_ids.append(int(comment_id))
 
         reactions_map = get_reaction_counts_bulk(c, db_type, "comment", comment_ids)
-        replies_map = get_replies_for_parents(c, db_type, "comment", comment_ids, equipped_cache=equipped_cache)
+        replies_map = get_replies_for_parents(
+            c,
+            db_type,
+            "comment",
+            comment_ids,
+            equipped_cache=equipped_cache,
+            hidden_user_ids=hidden_public_users
+        )
 
         comments = []
         for item in prepared:
@@ -9087,6 +9349,13 @@ def get_community_messages():
     c = get_cursor(conn, db_type)
     
     try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        viewer_id = session.get('user_id')
+        hidden_public_users = set()
+        if viewer_id:
+            hidden_public_users = get_user_safety_filters(c, db_type, viewer_id)["hidden_public_users"]
+
         room_slug = (request.args.get('room') or '').strip().lower()
         if room_slug and room_slug != 'general':
             ensure_research_feature_tables(c, db_type)
@@ -9111,6 +9380,13 @@ def get_community_messages():
             rows = c.fetchall()
             payload = []
             for row in rows:
+                author_id = row_pick(row, 'user_id', 1)
+                try:
+                    author_id_int = int(author_id) if author_id is not None else None
+                except Exception:
+                    author_id_int = None
+                if author_id_int is not None and author_id_int in hidden_public_users:
+                    continue
                 payload.append({
                     "id": row_pick(row, 'id', 0),
                     "text": row_pick(row, 'text', 2) or "",
@@ -9118,7 +9394,7 @@ def get_community_messages():
                     "user_name": row_pick(row, 'name', 6) or row_pick(row, 'google_name', 4) or "Anonymous",
                     "user_picture": row_pick(row, 'picture', 7) or row_pick(row, 'google_picture', 5) or "",
                     "avatar_decoration": row_pick(row, 'avatar_decoration', 9) or "",
-                    "user_id": row_pick(row, 'user_id', 1),
+                    "user_id": author_id_int,
                     "user_role": row_pick(row, 'role', 8) or "user",
                     "reactions": {},
                     "replies": [],
@@ -9181,9 +9457,16 @@ def get_community_messages():
                 db_role = row[8] if len(row) > 8 else None
                 db_decor = row[9] if len(row) > 9 else ""
 
+            try:
+                user_id_int = int(user_id) if user_id is not None else None
+            except Exception:
+                user_id_int = None
+            if user_id_int is not None and user_id_int in hidden_public_users:
+                continue
+
             prepared.append({
                 "id": int(msg_id),
-                "user_id": user_id,
+                "user_id": user_id_int,
                 "text": text,
                 "timestamp": timestamp,
                 "user_name": db_name or google_name or "Anonymous",
@@ -9194,7 +9477,14 @@ def get_community_messages():
             msg_ids.append(int(msg_id))
 
         reactions_map = get_reaction_counts_bulk(c, db_type, "community", msg_ids)
-        replies_map = get_replies_for_parents(c, db_type, "community", msg_ids, equipped_cache=equipped_cache)
+        replies_map = get_replies_for_parents(
+            c,
+            db_type,
+            "community",
+            msg_ids,
+            equipped_cache=equipped_cache,
+            hidden_user_ids=hidden_public_users
+        )
 
         messages = []
         for item in prepared:
@@ -9316,6 +9606,10 @@ def search_users():
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        safety = get_user_safety_filters(c, db_type, session['user_id'])
+        hidden_users = safety["blocked_users"] | safety["blocked_by_users"]
         token = f"%{q}%"
         if db_type == 'postgres':
             c.execute("""
@@ -9327,7 +9621,7 @@ def search_users():
                     OR CAST(id AS TEXT) ILIKE %s
                 )
                 ORDER BY id DESC
-                LIMIT 10
+                LIMIT 30
             """, (session['user_id'], token, token, token))
         else:
             c.execute("""
@@ -9339,14 +9633,20 @@ def search_users():
                     OR CAST(id AS TEXT) LIKE ?
                 )
                 ORDER BY id DESC
-                LIMIT 10
+                LIMIT 30
             """, (session['user_id'], token, token, token))
         rows = c.fetchall()
         results = []
         for row in rows:
             try:
+                row_id = int(row['id'])
+            except Exception:
+                row_id = int(row[0])
+            if row_id in hidden_users:
+                continue
+            try:
                 results.append({
-                    "id": row['id'],
+                    "id": row_id,
                     "name": row['name'] or "User",
                     "email": row_value(row, 'email') or "",
                     "picture": row['picture'] or "",
@@ -9355,13 +9655,15 @@ def search_users():
                 })
             except Exception:
                 results.append({
-                    "id": row[0],
+                    "id": row_id,
                     "name": row[1] or "User",
                     "email": row[2] or "",
                     "picture": row[3] or "",
                     "role": normalize_role(row[4] if len(row) > 4 else 'user'),
                     "avatar_decoration": row[5] if len(row) > 5 else ""
                 })
+            if len(results) >= 10:
+                break
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -9375,8 +9677,11 @@ def recent_users():
     conn, db_type = get_db()
     c = get_cursor(conn, db_type)
     try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
         limit = max(1, min(12, int(request.args.get('limit', 8))))
         uid = session['user_id']
+        hidden_users = get_user_safety_filters(c, db_type, uid)["hidden_dm_users"]
         if db_type == 'postgres':
             c.execute(f"""
                 SELECT u.id, u.name, COALESCE(u.custom_picture, u.picture) AS picture, u.role, u.avatar_decoration
@@ -9405,8 +9710,14 @@ def recent_users():
         results = []
         for row in rows:
             try:
+                row_id = int(row['id'])
+            except Exception:
+                row_id = int(row[0])
+            if row_id in hidden_users:
+                continue
+            try:
                 results.append({
-                    "id": row['id'],
+                    "id": row_id,
                     "name": row['name'] or "User",
                     "picture": row['picture'] or "",
                     "role": normalize_role(row['role'] or 'user'),
@@ -9414,14 +9725,327 @@ def recent_users():
                 })
             except Exception:
                 results.append({
-                    "id": row[0],
+                    "id": row_id,
                     "name": row[1] or "User",
                     "picture": row[2] or "",
                     "role": normalize_role(row[3] if len(row) > 3 else 'user'),
                     "avatar_decoration": row[4] if len(row) > 4 else ""
                 })
+            if len(results) >= limit:
+                break
         return jsonify(results)
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/safety/state')
+def safety_state():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    try:
+        target_user_id = int(request.args.get('target_user_id') or 0)
+    except Exception:
+        target_user_id = 0
+    if not target_user_id or target_user_id == session['user_id']:
+        return jsonify({
+            "success": True,
+            "blocked": False,
+            "blocked_by": False,
+            "muted_all": False,
+            "muted_dm": False,
+            "muted_community": False
+        })
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        state = get_user_safety_state(c, db_type, session['user_id'], target_user_id)
+        return jsonify({"success": True, **state})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/safety/lists')
+def safety_lists():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        uid = int(session['user_id'])
+        blocked = []
+        muted = []
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT b.blocked_id AS target_user_id, b.created_at, u.name, u.email,
+                       COALESCE(u.custom_picture, u.picture) AS picture
+                FROM user_blocks b
+                LEFT JOIN users u ON u.id = b.blocked_id
+                WHERE b.blocker_id = %s
+                ORDER BY b.created_at DESC NULLS LAST, b.blocked_id DESC
+            """, (uid,))
+        else:
+            c.execute("""
+                SELECT b.blocked_id AS target_user_id, b.created_at, u.name, u.email,
+                       COALESCE(u.custom_picture, u.picture) AS picture
+                FROM user_blocks b
+                LEFT JOIN users u ON u.id = b.blocked_id
+                WHERE b.blocker_id = ?
+                ORDER BY b.created_at DESC, b.blocked_id DESC
+            """, (uid,))
+
+        for row in c.fetchall():
+            try:
+                target_user_id = int(row['target_user_id'])
+                created_at = row_value(row, 'created_at')
+                name = row_value(row, 'name') or f"User #{target_user_id}"
+                email = row_value(row, 'email') or ""
+                picture = row_value(row, 'picture') or ""
+            except Exception:
+                target_user_id = int(row[0])
+                created_at = row[1] if len(row) > 1 else None
+                name = (row[2] if len(row) > 2 else None) or f"User #{target_user_id}"
+                email = row[3] if len(row) > 3 and row[3] else ""
+                picture = row[4] if len(row) > 4 and row[4] else ""
+            blocked.append({
+                "target_user_id": target_user_id,
+                "name": name,
+                "email": email,
+                "picture": picture,
+                "created_at": created_at
+            })
+
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT m.muted_user_id AS target_user_id, m.scope, m.created_at, u.name, u.email,
+                       COALESCE(u.custom_picture, u.picture) AS picture
+                FROM user_mutes m
+                LEFT JOIN users u ON u.id = m.muted_user_id
+                WHERE m.user_id = %s
+                ORDER BY m.created_at DESC NULLS LAST, m.muted_user_id DESC
+            """, (uid,))
+        else:
+            c.execute("""
+                SELECT m.muted_user_id AS target_user_id, m.scope, m.created_at, u.name, u.email,
+                       COALESCE(u.custom_picture, u.picture) AS picture
+                FROM user_mutes m
+                LEFT JOIN users u ON u.id = m.muted_user_id
+                WHERE m.user_id = ?
+                ORDER BY m.created_at DESC, m.muted_user_id DESC
+            """, (uid,))
+
+        for row in c.fetchall():
+            try:
+                target_user_id = int(row['target_user_id'])
+                scope = normalize_mute_scope(row_value(row, 'scope'))
+                created_at = row_value(row, 'created_at')
+                name = row_value(row, 'name') or f"User #{target_user_id}"
+                email = row_value(row, 'email') or ""
+                picture = row_value(row, 'picture') or ""
+            except Exception:
+                target_user_id = int(row[0])
+                scope = normalize_mute_scope(row[1] if len(row) > 1 else 'all')
+                created_at = row[2] if len(row) > 2 else None
+                name = (row[3] if len(row) > 3 else None) or f"User #{target_user_id}"
+                email = row[4] if len(row) > 4 and row[4] else ""
+                picture = row[5] if len(row) > 5 and row[5] else ""
+            muted.append({
+                "target_user_id": target_user_id,
+                "scope": scope,
+                "name": name,
+                "email": email,
+                "picture": picture,
+                "created_at": created_at
+            })
+
+        return jsonify({"success": True, "blocked": blocked, "muted": muted})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/safety/block', methods=['POST'])
+def safety_block():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    data = request.get_json(silent=True) or {}
+    try:
+        target_user_id = int(data.get('target_user_id') or 0)
+    except Exception:
+        target_user_id = 0
+    if not target_user_id or target_user_id == session['user_id']:
+        return jsonify({"error": "Invalid target"}), 400
+
+    requested = parse_optional_bool(data.get('blocked'))
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        ensure_dm_tables(c, db_type)
+        conn.commit()
+        uid = session['user_id']
+        if db_type == 'postgres':
+            c.execute("SELECT 1 FROM user_blocks WHERE blocker_id = %s AND blocked_id = %s LIMIT 1", (uid, target_user_id))
+        else:
+            c.execute("SELECT 1 FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1", (uid, target_user_id))
+        exists = c.fetchone() is not None
+        should_block = (not exists) if requested is None else bool(requested)
+
+        if should_block:
+            now = datetime.now().isoformat()
+            if db_type == 'postgres':
+                c.execute("""
+                    INSERT INTO user_blocks (blocker_id, blocked_id, created_at)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (blocker_id, blocked_id) DO NOTHING
+                """, (uid, target_user_id, now))
+                c.execute("DELETE FROM dm_typing WHERE (user_id = %s AND other_id = %s) OR (user_id = %s AND other_id = %s)", (uid, target_user_id, target_user_id, uid))
+            else:
+                c.execute("""
+                    INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id, created_at)
+                    VALUES (?, ?, ?)
+                """, (uid, target_user_id, now))
+                c.execute("DELETE FROM dm_typing WHERE (user_id = ? AND other_id = ?) OR (user_id = ? AND other_id = ?)", (uid, target_user_id, target_user_id, uid))
+        else:
+            if db_type == 'postgres':
+                c.execute("DELETE FROM user_blocks WHERE blocker_id = %s AND blocked_id = %s", (uid, target_user_id))
+            else:
+                c.execute("DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?", (uid, target_user_id))
+
+        conn.commit()
+        state = get_user_safety_state(c, db_type, uid, target_user_id)
+        return jsonify({"success": True, **state})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/safety/mute', methods=['POST'])
+def safety_mute():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    data = request.get_json(silent=True) or {}
+    try:
+        target_user_id = int(data.get('target_user_id') or 0)
+    except Exception:
+        target_user_id = 0
+    if not target_user_id or target_user_id == session['user_id']:
+        return jsonify({"error": "Invalid target"}), 400
+
+    scope = normalize_mute_scope(data.get('scope') or 'all')
+    requested = parse_optional_bool(data.get('muted'))
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        uid = session['user_id']
+        if db_type == 'postgres':
+            c.execute("""
+                SELECT 1 FROM user_mutes
+                WHERE user_id = %s AND muted_user_id = %s AND scope = %s
+                LIMIT 1
+            """, (uid, target_user_id, scope))
+        else:
+            c.execute("""
+                SELECT 1 FROM user_mutes
+                WHERE user_id = ? AND muted_user_id = ? AND scope = ?
+                LIMIT 1
+            """, (uid, target_user_id, scope))
+        exists = c.fetchone() is not None
+        should_mute = (not exists) if requested is None else bool(requested)
+
+        if should_mute:
+            now = datetime.now().isoformat()
+            if db_type == 'postgres':
+                c.execute("""
+                    INSERT INTO user_mutes (user_id, muted_user_id, scope, created_at)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (user_id, muted_user_id, scope) DO NOTHING
+                """, (uid, target_user_id, scope, now))
+            else:
+                c.execute("""
+                    INSERT OR IGNORE INTO user_mutes (user_id, muted_user_id, scope, created_at)
+                    VALUES (?, ?, ?, ?)
+                """, (uid, target_user_id, scope, now))
+        else:
+            if db_type == 'postgres':
+                c.execute("""
+                    DELETE FROM user_mutes
+                    WHERE user_id = %s AND muted_user_id = %s AND scope = %s
+                """, (uid, target_user_id, scope))
+            else:
+                c.execute("""
+                    DELETE FROM user_mutes
+                    WHERE user_id = ? AND muted_user_id = ? AND scope = ?
+                """, (uid, target_user_id, scope))
+
+        conn.commit()
+        state = get_user_safety_state(c, db_type, uid, target_user_id)
+        return jsonify({"success": True, "scope": scope, **state})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/safety/report', methods=['POST'])
+def safety_report():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    data = request.get_json(silent=True) or {}
+    try:
+        target_user_id = int(data.get('target_user_id') or 0)
+    except Exception:
+        target_user_id = 0
+    if not target_user_id or target_user_id == session['user_id']:
+        return jsonify({"error": "Invalid target"}), 400
+
+    target_type = str(data.get('target_type') or 'user').strip().lower()[:40] or 'user'
+    target_id = None
+    try:
+        raw_target_id = data.get('target_id')
+        if raw_target_id not in (None, ''):
+            target_id = int(raw_target_id)
+    except Exception:
+        target_id = None
+    reason = str(data.get('reason') or '').strip()
+    details = str(data.get('details') or '').strip()
+
+    if len(reason) < 3:
+        return jsonify({"error": "Reason is too short"}), 400
+    reason = reason[:160]
+    details = details[:2000] if details else ""
+
+    conn, db_type = get_db()
+    c = get_cursor(conn, db_type)
+    try:
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        now = datetime.now().isoformat()
+        if db_type == 'postgres':
+            c.execute("""
+                INSERT INTO user_reports (reporter_id, reported_user_id, target_type, target_id, reason, details, status, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (session['user_id'], target_user_id, target_type, target_id, reason, details, 'open', now))
+        else:
+            c.execute("""
+                INSERT INTO user_reports (reporter_id, reported_user_id, target_type, target_id, reason, details, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (session['user_id'], target_user_id, target_type, target_id, reason, details, 'open', now))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -9437,8 +10061,10 @@ def dm_threads():
     c = get_cursor(conn, db_type)
     try:
         ensure_dm_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
         uid = session['user_id']
+        hidden_dm_users = get_user_safety_filters(c, db_type, uid)["hidden_dm_users"]
         if db_type == 'postgres':
             c.execute("""
                 WITH user_threads AS (
@@ -9523,8 +10149,14 @@ def dm_threads():
         threads = []
         for row in rows:
             try:
+                row_user_id = int(row['other_id'])
+            except Exception:
+                row_user_id = int(row[0])
+            if row_user_id in hidden_dm_users:
+                continue
+            try:
                 threads.append({
-                    "user_id": row['other_id'],
+                    "user_id": row_user_id,
                     "name": row['name'] or 'User',
                     "picture": row['picture'] or '',
                     "role": normalize_role(row['role'] or 'user'),
@@ -9536,7 +10168,7 @@ def dm_threads():
                 })
             except Exception:
                 threads.append({
-                    "user_id": row[0],
+                    "user_id": row_user_id,
                     "name": (row[1] if len(row) > 1 else None) or 'User',
                     "picture": (row[2] if len(row) > 2 else None) or '',
                     "role": normalize_role(row[3] if len(row) > 3 else 'user'),
@@ -9565,8 +10197,11 @@ def dm_messages(other_id):
     c = get_cursor(conn, db_type)
     try:
         ensure_dm_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
         uid = session['user_id']
+        if is_user_pair_blocked(c, db_type, uid, other_id):
+            return jsonify({"error": "blocked", "message": "You cannot message this user."}), 403
         if db_type == 'postgres':
             c.execute("""
                 SELECT id, sender_id, recipient_id, message, created_at, is_read
@@ -9643,7 +10278,10 @@ def dm_send():
     c = get_cursor(conn, db_type)
     try:
         ensure_dm_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
+        if is_user_pair_blocked(c, db_type, session['user_id'], recipient_id):
+            return jsonify({"error": "blocked", "message": "You cannot message this user."}), 403
         now = datetime.now().isoformat()
         if db_type == 'postgres':
             c.execute("""
@@ -9710,7 +10348,10 @@ def dm_typing():
     c = get_cursor(conn, db_type)
     try:
         ensure_dm_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
+        if is_user_pair_blocked(c, db_type, session['user_id'], other_id):
+            return jsonify({"error": "blocked"}), 403
         now = datetime.now().isoformat()
         uid = session['user_id']
         if db_type == 'postgres':
@@ -9741,8 +10382,11 @@ def dm_typing_status(other_id):
     c = get_cursor(conn, db_type)
     try:
         ensure_dm_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
         conn.commit()
         uid = session['user_id']
+        if is_user_pair_blocked(c, db_type, uid, other_id):
+            return jsonify({"typing": False})
         if db_type == 'postgres':
             c.execute("SELECT updated_at FROM dm_typing WHERE user_id = %s AND other_id = %s", (other_id, uid))
         else:
@@ -9786,6 +10430,26 @@ def add_comment_reaction():
     c = get_cursor(conn, db_type)
     try:
         ensure_comment_social_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
+        owner_user_id = None
+        if item_type == 'comment':
+            if db_type == 'postgres':
+                c.execute("SELECT user_id FROM comments WHERE id = %s", (item_id,))
+            else:
+                c.execute("SELECT user_id FROM comments WHERE id = ?", (item_id,))
+        else:
+            if db_type == 'postgres':
+                c.execute("SELECT user_id FROM community_messages WHERE id = %s", (item_id,))
+            else:
+                c.execute("SELECT user_id FROM community_messages WHERE id = ?", (item_id,))
+        owner_row = c.fetchone()
+        if owner_row:
+            try:
+                owner_user_id = int(owner_row['user_id'])
+            except Exception:
+                owner_user_id = int(owner_row[0])
+        if owner_user_id and is_user_pair_blocked(c, db_type, session['user_id'], owner_user_id):
+            return jsonify({"error": "blocked"}), 403
         now = datetime.now().isoformat()
 
         if db_type == 'postgres':
@@ -9869,19 +10533,48 @@ def post_comment_reply():
     c = get_cursor(conn, db_type)
     try:
         ensure_comment_social_tables(c, db_type)
+        ensure_user_safety_tables(c, db_type)
+        conn.commit()
+        uid = session['user_id']
+        try:
+            parent_id_int = int(parent_id)
+        except Exception:
+            return jsonify({"error": "parent_id required"}), 400
+
+        parent_owner_id = None
+        if parent_type == 'comment':
+            if db_type == 'postgres':
+                c.execute("SELECT user_id FROM comments WHERE id = %s", (parent_id_int,))
+            else:
+                c.execute("SELECT user_id FROM comments WHERE id = ?", (parent_id_int,))
+        else:
+            if db_type == 'postgres':
+                c.execute("SELECT user_id FROM community_messages WHERE id = %s", (parent_id_int,))
+            else:
+                c.execute("SELECT user_id FROM community_messages WHERE id = ?", (parent_id_int,))
+        parent_row = c.fetchone()
+        if parent_row:
+            try:
+                parent_owner_id = int(parent_row['user_id'])
+            except Exception:
+                parent_owner_id = int(parent_row[0])
+        if parent_owner_id and is_user_pair_blocked(c, db_type, uid, parent_owner_id):
+            return jsonify({"error": "blocked", "message": "You cannot reply to this user."}), 403
+
         now = datetime.now().isoformat()
         if db_type == 'postgres':
             c.execute("""
                 INSERT INTO comment_replies (parent_type, parent_id, user_id, text, timestamp, google_name, google_picture)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (parent_type, parent_id, session['user_id'], text, now, session.get('user_name'), session.get('user_picture')))
+            """, (parent_type, parent_id_int, session['user_id'], text, now, session.get('user_name'), session.get('user_picture')))
         else:
             c.execute("""
                 INSERT INTO comment_replies (parent_type, parent_id, user_id, text, timestamp, google_name, google_picture)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (parent_type, parent_id, session['user_id'], text, now, session.get('user_name'), session.get('user_picture')))
+            """, (parent_type, parent_id_int, session['user_id'], text, now, session.get('user_name'), session.get('user_picture')))
         conn.commit()
-        replies = get_replies_for_parent(c, db_type, parent_type, int(parent_id))
+        hidden_public_users = get_user_safety_filters(c, db_type, uid)["hidden_public_users"]
+        replies = get_replies_for_parent(c, db_type, parent_type, parent_id_int, hidden_user_ids=hidden_public_users)
         return jsonify({"success": True, "replies": replies, "reply_count": len(replies)})
     except Exception as e:
         logger.error(f"Post reply error: {e}")
