@@ -2062,6 +2062,238 @@
             background: rgba(255,255,255,0.08);
         }
 
+        /* DM refresh: cleaner messenger-style layout */
+        .dm-shell {
+            background: linear-gradient(165deg, rgba(7, 15, 30, 0.74), rgba(8, 16, 33, 0.66));
+            border: 1px solid rgba(126, 158, 214, 0.26);
+            border-radius: 18px;
+            padding: 12px;
+            box-shadow: 0 14px 34px rgba(6, 16, 34, 0.28), inset 0 0 0 1px rgba(86, 118, 172, 0.1);
+        }
+        .dm-search-row {
+            margin-bottom: 10px;
+            background: rgba(6, 14, 28, 0.62);
+            border: 1px solid rgba(130, 160, 212, 0.28);
+            border-radius: 13px;
+            padding: 8px;
+        }
+        .dm-layout {
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 12px;
+        }
+        .dm-pane {
+            background: rgba(7, 15, 29, 0.62);
+            border: 1px solid rgba(126, 158, 214, 0.2);
+            border-radius: 14px;
+            padding: 8px;
+        }
+        .dm-pane + .dm-pane {
+            margin-top: 10px;
+        }
+        .dm-thread-list-title {
+            font-size: 10px;
+            letter-spacing: 1px;
+            margin: 0 4px 8px;
+        }
+        .dm-thread-list {
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            padding: 2px;
+            box-shadow: none;
+            max-height: 300px;
+        }
+        .dm-thread {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 11px;
+            border-radius: 13px;
+            border: 1px solid rgba(110, 145, 208, 0.16);
+            background: rgba(22, 39, 74, 0.26);
+        }
+        .dm-thread:hover {
+            background: rgba(74, 134, 238, 0.2);
+            border-color: rgba(134, 184, 255, 0.44);
+            transform: translateY(-1px);
+        }
+        .dm-thread.active {
+            background: linear-gradient(135deg, rgba(48, 130, 255, 0.38), rgba(97, 82, 242, 0.34));
+            border-color: rgba(146, 198, 255, 0.66);
+            box-shadow: 0 10px 20px rgba(24, 66, 136, 0.32), inset 0 0 0 1px rgba(168, 212, 255, 0.28);
+        }
+        .dm-thread-main {
+            min-width: 0;
+        }
+        .dm-thread-name {
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dm-thread-last {
+            font-size: 11px;
+            color: rgba(224, 234, 252, 0.72);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        .dm-thread-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            min-width: 52px;
+        }
+        .dm-thread-time {
+            font-size: 10px;
+            color: rgba(205, 220, 248, 0.68);
+        }
+        .dm-unread {
+            min-width: 22px;
+            text-align: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(255, 98, 124, 0.26), rgba(255, 68, 98, 0.2));
+            border-color: rgba(255, 95, 124, 0.54);
+            color: #ffb9c2;
+        }
+        .dm-main {
+            background: rgba(7, 15, 29, 0.62);
+            border: 1px solid rgba(126, 158, 214, 0.2);
+            border-radius: 14px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .dm-main-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 4px 4px 10px;
+            border-bottom: 1px solid rgba(126, 158, 214, 0.18);
+            margin-bottom: 10px;
+        }
+        .dm-main-user {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+        }
+        .dm-header-avatar-slot {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(60, 84, 130, 0.45);
+            border: 1px solid rgba(142, 176, 238, 0.34);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .dm-header-avatar-fallback {
+            font-size: 15px;
+            opacity: 0.8;
+        }
+        .dm-main-user-meta {
+            min-width: 0;
+        }
+        .dm-header-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #edf4ff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dm-header-sub {
+            font-size: 11px;
+            color: rgba(201, 218, 246, 0.72);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dm-messages {
+            background: linear-gradient(165deg, rgba(4, 11, 22, 0.76), rgba(8, 16, 32, 0.64));
+            border-color: rgba(121, 158, 222, 0.22);
+            border-radius: 13px;
+            min-height: 320px;
+            max-height: 470px;
+            gap: 8px;
+            padding: 12px;
+        }
+        .dm-message-row {
+            display: flex;
+        }
+        .dm-message-row.self {
+            justify-content: flex-end;
+        }
+        .dm-message {
+            max-width: min(76%, 520px);
+            padding: 10px 12px 8px;
+            border-radius: 15px 15px 15px 7px;
+            background: rgba(255, 255, 255, 0.11);
+            border: 1px solid rgba(196, 211, 241, 0.2);
+            font-size: 13px;
+            line-height: 1.45;
+            color: #e8f0ff;
+        }
+        .dm-message.self {
+            border-radius: 15px 15px 7px 15px;
+            background: linear-gradient(140deg, rgba(72, 145, 255, 0.44), rgba(105, 91, 255, 0.34));
+            border-color: rgba(151, 201, 255, 0.42);
+            box-shadow: 0 7px 16px rgba(24, 70, 148, 0.28);
+        }
+        .dm-time {
+            opacity: 0.72;
+            font-size: 10px;
+            margin-top: 6px;
+            text-align: right;
+            color: rgba(215, 228, 252, 0.78);
+        }
+        .dm-message:hover .dm-time {
+            opacity: 1;
+        }
+        .dm-input-area {
+            margin-top: 10px;
+            background: rgba(5, 10, 20, 0.5);
+            border-color: rgba(136, 171, 230, 0.32);
+            border-radius: 14px;
+            padding: 9px;
+        }
+        .dm-input {
+            background: rgba(4, 8, 16, 0.68);
+            border-color: rgba(136, 171, 230, 0.34);
+            border-radius: 12px;
+            padding: 10px 11px;
+        }
+        .dm-input:focus {
+            border-color: rgba(132, 200, 255, 0.6);
+            box-shadow: 0 0 0 2px rgba(76, 150, 255, 0.24);
+        }
+        .dm-search-results {
+            background: rgba(4, 10, 20, 0.7);
+            border-color: rgba(136, 171, 230, 0.28);
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 900px) {
+            .dm-layout {
+                grid-template-columns: 1fr;
+            }
+            .dm-main-header {
+                flex-wrap: wrap;
+            }
+            .dm-message {
+                max-width: 90%;
+            }
+        }
+
         .comment-input-area {
             background: var(--glass-bg);
             border-radius: 20px;
@@ -4296,7 +4528,7 @@
         .xp-guide-special { background: linear-gradient(135deg, rgba(191,90,242,0.1), var(--surface)); border-color: rgba(191,90,242,0.3); }
         
         /* Profile customization display */
-        .profile-frame { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; }
+        .profile-frame { position: absolute; inset: -14px; border-radius: 50%; pointer-events: none; z-index: 3; transform: scale(1.03); filter: drop-shadow(0 0 14px rgba(125, 170, 255, 0.24)); }
         .profile-frame.gold { border: 3px solid #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.5); animation: goldPulse 2s ease-in-out infinite; }
         .profile-frame.silver { border: 3px solid #C0C0C0; box-shadow: 0 0 15px rgba(192,192,192,0.4); }
         .profile-frame.bronze { border: 3px solid #CD7F32; box-shadow: 0 0 12px rgba(205,127,50,0.4); }
@@ -4352,7 +4584,7 @@
         .profile-bg-fire { background: linear-gradient(135deg, rgba(255,69,0,0.3), rgba(255,215,0,0.2)) !important; }
         
         /* Comment Avatar Frames */
-        .comment-avatar-frame { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; }
+        .comment-avatar-frame { position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; filter: drop-shadow(0 0 10px rgba(125, 170, 255, 0.24)); }
         .comment-avatar-frame.gold { border: 2px solid #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
         .comment-avatar-frame.silver { border: 2px solid #C0C0C0; box-shadow: 0 0 8px rgba(192,192,192,0.3); }
         .comment-avatar-frame.bronze { border: 2px solid #CD7F32; box-shadow: 0 0 6px rgba(205,127,50,0.3); }
@@ -4363,6 +4595,10 @@
         .comment-avatar-frame.ice { border: 2px solid #00CED1; box-shadow: 0 0 8px rgba(0,206,209,0.4); }
         .comment-avatar-frame.nature { border: 2px solid #228B22; box-shadow: 0 0 8px rgba(34,139,34,0.3); }
         .comment-avatar-frame.stars { border: 2px solid transparent; background: linear-gradient(135deg, #FFD700, #FF69B4) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .comment-avatar-frame.divine { border: 3px solid transparent; background: linear-gradient(135deg, #ffd765, #ff4db1, #74fff7) border-box; box-shadow: 0 0 16px rgba(255, 90, 188, 0.44), 0 0 18px rgba(116, 255, 247, 0.34); animation: mythicPulse 1.6s infinite; }
+        .comment-avatar-frame.cosmic { border: 3px solid #a45cff; box-shadow: 0 0 14px rgba(156, 92, 255, 0.54), inset 0 0 8px rgba(89, 43, 170, 0.44); animation: starTwinkle 1.3s infinite; }
+        .comment-avatar-frame.infinity { border: 3px solid transparent; background: linear-gradient(135deg, #ff35a8, #65f8ff, #8fff8d) border-box; box-shadow: 0 0 18px rgba(100, 248, 255, 0.45); animation: rainbow 3s linear infinite; }
+        .comment-avatar-frame.seraphic { border: 3px solid transparent; background: linear-gradient(135deg, #90fff8, #bf84ff, #fff2b3) border-box; box-shadow: 0 0 18px rgba(130, 255, 246, 0.55), inset 0 0 10px rgba(196, 132, 255, 0.35); animation: transcendentCardPulse 1.2s ease-in-out infinite; }
         
         /* Animations */
         @keyframes rainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
@@ -4411,7 +4647,7 @@
         }
         
         /* Shop Item Effects - Profile Frames */
-        .profile-frame { position: relative; }
+        .profile-frame { position: absolute; inset: -14px; border-radius: 50%; pointer-events: none; z-index: 3; transform: scale(1.03); }
         .profile-frame-frame_gold { border: 3px solid #FFD700 !important; box-shadow: 0 0 20px rgba(255,215,0,0.5), inset 0 0 10px rgba(255,215,0,0.2) !important; animation: goldPulse 2s infinite; }
         .profile-frame-frame_silver { border: 3px solid #C0C0C0 !important; box-shadow: 0 0 15px rgba(192,192,192,0.4) !important; }
         .profile-frame-frame_bronze { border: 3px solid #CD7F32 !important; box-shadow: 0 0 12px rgba(205,127,50,0.4) !important; }
@@ -4437,6 +4673,25 @@
         .profile-frame-frame_infinity::after { content: '♾️'; position: absolute; bottom: -8px; right: -8px; font-size: 22px; }
         .profile-frame-frame_seraphic { border: 3px solid transparent !important; background: linear-gradient(135deg, #7dfff8, #b67cff, #fff3a1) border-box !important; box-shadow: 0 0 28px rgba(122,255,242,0.55), inset 0 0 14px rgba(196,132,255,0.35) !important; animation: transcendentCardPulse 1.5s ease-in-out infinite; }
         .profile-frame-frame_seraphic::after { content: '✶'; position: absolute; top: -9px; right: -7px; font-size: 20px; color: #bdfef8; text-shadow: 0 0 12px rgba(125,255,248,0.75); }
+        .profile-frame.gold,
+        .profile-frame.silver,
+        .profile-frame.bronze,
+        .profile-frame.angel,
+        .profile-frame.cross,
+        .profile-frame.heart,
+        .profile-frame.fire,
+        .profile-frame.ice,
+        .profile-frame.nature,
+        .profile-frame.stars,
+        .profile-frame.wood,
+        .profile-frame.stone,
+        .profile-frame.divine,
+        .profile-frame.cosmic,
+        .profile-frame.infinity,
+        .profile-frame.seraphic,
+        .profile-frame[class*="profile-frame-frame_"] {
+            border-width: 4px !important;
+        }
         
         /* Shop Item Effects - Name Colors */
         .profile-name-color_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
@@ -5081,31 +5336,45 @@
                             <span>Direct Messages</span>
                         </div>
 
-                        <div class="dm-search">
-                            <input type="text" id="dmSearchInput" class="dm-input" placeholder="Search by name, email, or ID...">
-                            <button class="btn btn-primary" onclick="searchDmUsers()">Find</button>
-                        </div>
-                        <div class="dm-search-results" id="dmSearchResults" style="display:none;"></div>
-
-                        <div class="dm-layout">
-                            <div class="dm-sidebar">
-                                <div class="dm-thread-list-title">Conversations</div>
-                                <div class="dm-thread-list" id="dmThreadList"></div>
-                                <div class="dm-thread-list-title" style="margin-top:8px;">Suggestions</div>
-                                <div class="dm-thread-list" id="dmSuggestedList"></div>
+                        <div class="dm-shell">
+                            <div class="dm-search dm-search-row">
+                                <input type="text" id="dmSearchInput" class="dm-input" placeholder="Search by name, email, or ID...">
+                                <button class="btn btn-primary" onclick="searchDmUsers()">Find</button>
                             </div>
-                            <div class="dm-main">
-                                <div class="dm-actions">
-                                    <div style="font-size:12px;color:var(--text-secondary);" id="dmHeaderLabel">No conversation selected</div>
-                                    <button class="btn btn-secondary" onclick="deleteDmThread()">Delete Thread</button>
+                            <div class="dm-search-results" id="dmSearchResults" style="display:none;"></div>
+
+                            <div class="dm-layout">
+                                <div class="dm-sidebar">
+                                    <div class="dm-pane">
+                                        <div class="dm-thread-list-title">Inbox</div>
+                                        <div class="dm-thread-list" id="dmThreadList"></div>
+                                    </div>
+                                    <div class="dm-pane dm-pane-suggested">
+                                        <div class="dm-thread-list-title">Suggestions</div>
+                                        <div class="dm-thread-list" id="dmSuggestedList"></div>
+                                    </div>
                                 </div>
-                                <div class="dm-messages" id="dmMessages">
-                                    <div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>
-                                </div>
-                                <div class="dm-typing" id="dmTypingIndicator"></div>
-                                <div class="dm-input-area">
-                                    <input type="text" id="dmInput" class="dm-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendDm()" oninput="scheduleTypingPing()">
-                                    <button class="send-btn" onclick="sendDm()">Send</button>
+                                <div class="dm-main">
+                                    <div class="dm-main-header">
+                                        <div class="dm-main-user">
+                                            <div class="dm-header-avatar-slot" id="dmHeaderAvatarSlot">
+                                                <span class="dm-header-avatar-fallback">💬</span>
+                                            </div>
+                                            <div class="dm-main-user-meta">
+                                                <div class="dm-header-label" id="dmHeaderLabel">No conversation selected</div>
+                                                <div class="dm-header-sub" id="dmHeaderSubLabel">Choose a conversation to start chatting.</div>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-secondary" onclick="deleteDmThread()">Delete Thread</button>
+                                    </div>
+                                    <div class="dm-messages" id="dmMessages">
+                                        <div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>
+                                    </div>
+                                    <div class="dm-typing" id="dmTypingIndicator"></div>
+                                    <div class="dm-input-area">
+                                        <input type="text" id="dmInput" class="dm-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendDm()" oninput="scheduleTypingPing()">
+                                        <button class="send-btn" onclick="sendDm()">Send</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -8123,6 +8392,45 @@
             return messages.map(m => `${m.id}:${m.sender_id}:${(m.message || '').length}`).join('|');
         }
 
+        function formatDmThreadTime(ts) {
+            if (!ts) return '';
+            const raw = String(ts).trim();
+            if (!raw) return '';
+            const hasZone = /Z|[+-]\d{2}:?\d{2}$/.test(raw);
+            const dt = new Date(hasZone ? raw : `${raw}Z`);
+            if (Number.isNaN(dt.getTime())) return '';
+            const now = new Date();
+            const sameDay = dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate();
+            if (sameDay) {
+                return dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            }
+            return dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function updateDmHeader(userId = null) {
+            const label = document.getElementById('dmHeaderLabel');
+            const sub = document.getElementById('dmHeaderSubLabel');
+            const avatarSlot = document.getElementById('dmHeaderAvatarSlot');
+            if (!userId) {
+                if (label) label.textContent = 'No conversation selected';
+                if (sub) sub.textContent = 'Choose a conversation to start chatting.';
+                if (avatarSlot) avatarSlot.innerHTML = '<span class="dm-header-avatar-fallback">💬</span>';
+                return;
+            }
+            const thread = dmThreadsCache[userId] || {};
+            const displayName = thread.name || dmSelectedUserName || `User #${userId}`;
+            if (label) label.textContent = displayName;
+            if (sub) sub.textContent = thread.last_message ? `Last: ${thread.last_message}` : 'Direct message channel';
+            if (avatarSlot) {
+                avatarSlot.innerHTML = renderAvatarMarkup(
+                    thread.picture || '',
+                    displayName,
+                    thread.avatar_decoration || dmSelectedUserDecor || '',
+                    'dm-thread-avatar'
+                );
+            }
+        }
+
         function renderDmThreads(threads) {
             const list = document.getElementById('dmThreadList');
             if (!list) return;
@@ -8138,16 +8446,19 @@
             threads.forEach(t => { dmThreadsCache[t.user_id] = t; });
             list.innerHTML = threads.map(t => {
                 const active = dmSelectedUserId === t.user_id ? 'active' : '';
-                const unread = t.unread ? ` • ${t.unread} new` : '';
                 const avatarHtml = renderAvatarMarkup(t.picture || '', t.name || 'User', t.avatar_decoration || '', 'dm-thread-avatar');
+                const lastTime = formatDmThreadTime(t.last_at || '');
                 return `
                     <div class="dm-thread ${active}" onclick="openDmThread(${t.user_id})">
                         ${avatarHtml}
-                        <div>
+                        <div class="dm-thread-main">
                             <div class="dm-thread-name">${escapeHtml(t.name || 'User')}</div>
                             <div class="dm-thread-last">${escapeHtml(t.last_message || 'No messages yet')}</div>
                         </div>
-                        ${t.unread ? `<span class="dm-unread">${t.unread}</span>` : ''}
+                        <div class="dm-thread-meta">
+                            <div class="dm-thread-time">${escapeHtml(lastTime)}</div>
+                            ${t.unread ? `<span class="dm-unread">${t.unread}</span>` : ''}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -8168,10 +8479,11 @@
                     return `
                     <div class="dm-thread" onclick="openDmThread(${u.id}, ${JSON.stringify(u.name || 'User')}, ${JSON.stringify(u.picture || '')}, ${JSON.stringify(u.avatar_decoration || '')})">
                         ${avatarHtml}
-                        <div>
+                        <div class="dm-thread-main">
                             <div class="dm-thread-name">${escapeHtml(u.name || 'User')}</div>
                             <div class="dm-thread-last">Suggested • ${escapeHtml(u.role || 'user')}</div>
                         </div>
+                        <div class="dm-thread-meta"><div class="dm-thread-time">New</div></div>
                     </div>
                     `;
                 }).join('');
@@ -8241,9 +8553,11 @@
             box.innerHTML = messages.map(m => {
                 const self = m.sender_id === {{ user.id }};
                 return `
-                    <div class="dm-message ${self ? 'self' : ''}">
-                        ${escapeHtml(m.message || '')}
-                        <div class="dm-time">${formatLocalTimestamp(m.created_at)}</div>
+                    <div class="dm-message-row ${self ? 'self' : ''}">
+                        <div class="dm-message ${self ? 'self' : ''}">
+                            ${escapeHtml(m.message || '')}
+                            <div class="dm-time">${formatLocalTimestamp(m.created_at)}</div>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -8272,6 +8586,7 @@
                 if (!force && signature === dmThreadsSignature) return;
                 dmThreadsSignature = signature;
                 renderDmThreads(list);
+                updateDmHeader(dmSelectedUserId);
             } catch (_) {}
         }
 
@@ -8308,12 +8623,7 @@
                     unread: 0
                 };
             }
-            const label = document.getElementById('dmHeaderLabel');
-            if (label) {
-                const thread = dmThreadsCache[userId];
-                const name = thread && thread.name ? thread.name : `#${userId}`;
-                label.textContent = `Conversation with ${name}`;
-            }
+            updateDmHeader(userId);
             const results = document.getElementById('dmSearchResults');
             if (results) {
                 results.style.display = 'none';
@@ -8361,8 +8671,7 @@
             }
             dmSelectedUserId = null;
             dmMessagesSignature = '';
-            const label = document.getElementById('dmHeaderLabel');
-            if (label) label.textContent = 'No conversation selected';
+            updateDmHeader(null);
             const box = document.getElementById('dmMessages');
             if (box) box.innerHTML = '<div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>';
             loadDmThreads(true);
@@ -8427,10 +8736,11 @@
                 return `
                 <div class="dm-thread" onclick="openDmThread(${u.id}, ${JSON.stringify(u.name || 'User')}, ${JSON.stringify(u.picture || '')}, ${JSON.stringify(u.avatar_decoration || '')})">
                     ${avatarHtml}
-                    <div>
+                    <div class="dm-thread-main">
                         <div class="dm-thread-name">${escapeHtml(u.name || 'User')}</div>
                         <div class="dm-thread-last">${escapeHtml(meta.join(' • '))}</div>
                     </div>
+                    <div class="dm-thread-meta"><div class="dm-thread-time">Search</div></div>
                 </div>
                 `;
             }).join('');
@@ -8930,6 +9240,7 @@
                     const effects = equippedFrame.effects || {};
                     const itemId = equippedFrame.item_id || '';
                     frameEl.className = 'profile-frame';
+                    if (itemId) frameEl.classList.add(`profile-frame-${safeCssToken(itemId, 'frame')}`);
                     
                     // Apply frame based on item_id for more specific styling
                     if (itemId.includes('gold') || effects.frame_color === '#FFD700') frameEl.classList.add('gold');
@@ -8947,6 +9258,7 @@
                     else if (itemId.includes('divine')) frameEl.classList.add('divine');
                     else if (itemId.includes('cosmic')) frameEl.classList.add('cosmic');
                     else if (itemId.includes('infinity')) frameEl.classList.add('infinity');
+                    else if (itemId.includes('seraphic')) frameEl.classList.add('seraphic');
                 } else if (frameEl) {
                     frameEl.className = 'profile-frame';
                 }
@@ -9111,6 +9423,8 @@
                     frameDiv.className = 'comment-avatar-frame';
                     avatarEl.appendChild(frameDiv);
                 }
+                frameDiv.className = 'comment-avatar-frame';
+                if (itemId) frameDiv.classList.add(`profile-frame-${safeCssToken(itemId, 'frame')}`);
                 
                 if (itemId.includes('gold') || effects.frame_color === '#FFD700') frameDiv.classList.add('gold');
                 else if (itemId.includes('silver') || effects.frame_color === '#C0C0C0') frameDiv.classList.add('silver');
@@ -9122,6 +9436,10 @@
                 else if (itemId.includes('ice') || effects.frame_color === '#00CED1') frameDiv.classList.add('ice');
                 else if (itemId.includes('nature') || effects.frame_style === 'nature') frameDiv.classList.add('nature');
                 else if (itemId.includes('stars') || effects.frame_style === 'stars') frameDiv.classList.add('stars');
+                else if (itemId.includes('divine')) frameDiv.classList.add('divine');
+                else if (itemId.includes('cosmic')) frameDiv.classList.add('cosmic');
+                else if (itemId.includes('infinity')) frameDiv.classList.add('infinity');
+                else if (itemId.includes('seraphic')) frameDiv.classList.add('seraphic');
             }
             
             // Apply chat effect
@@ -9495,6 +9813,156 @@ const ACHIEVEMENTS = [
     { id: 'streak_730', icon: '🕯️', name: 'Everfaithful', desc: '730 day streak', goal: 730, category: 'streak', xp: 25000, progress: () => getStreakCount(), check: () => getStreakCount() >= 730 }
 ];
 
+function generateMilestoneSeries(start, count, multiplier, minStep = 1) {
+    const goals = [];
+    let cursor = Math.max(1, Number(start) || 1);
+    for (let i = 0; i < count; i += 1) {
+        let goal = Math.max(1, Math.round(cursor));
+        if (goals.length > 0 && goal <= goals[goals.length - 1]) {
+            goal = goals[goals.length - 1] + Math.max(1, Number(minStep) || 1);
+        }
+        goals.push(goal);
+        cursor *= Math.max(1.01, Number(multiplier) || 1.12);
+    }
+    return goals;
+}
+
+function buildAchievementLadder(config) {
+    const goals = Array.isArray(config.goals) ? config.goals : [];
+    const icons = Array.isArray(config.icons) && config.icons.length ? config.icons : ['⭐'];
+    const progressFn = typeof config.progressFn === 'function' ? config.progressFn : (() => 0);
+    const singular = String(config.singular || 'action');
+    const plural = String(config.plural || (singular + 's'));
+    const baseXp = Math.max(20, Number(config.baseXp || 60));
+    const xpStep = Math.max(5, Number(config.xpStep || 18));
+    const key = String(config.key || 'section').trim().toLowerCase();
+    const category = String(config.category || 'special').trim().toLowerCase();
+    const prefix = String(config.namePrefix || 'Milestone');
+    const verb = String(config.verb || 'Reach');
+    return goals.map((goal, index) => {
+        const idx = index + 1;
+        const icon = icons[index % icons.length];
+        const noun = goal === 1 ? singular : plural;
+        const xp = Math.max(60, Math.round(baseXp + (idx * xpStep) + (Math.log10(goal + 10) * 45)));
+        return {
+            id: `ladder_${key}_${String(idx).padStart(2, '0')}`,
+            icon,
+            name: `${prefix} ${idx}`,
+            desc: `${verb} ${goal.toLocaleString()} ${noun}`,
+            goal,
+            category,
+            xp,
+            progress: (d) => Number(progressFn(d)) || 0,
+            check: (d) => (Number(progressFn(d)) || 0) >= goal
+        };
+    });
+}
+
+const BULK_ACHIEVEMENTS_PER_SECTION = 42;
+const specialScoreProgress = (d) => {
+    const totalVerses = Number((d && d.total_verses) || 0);
+    const purchases = Number((d && d.purchases) || 0);
+    const likedComments = Number((d && d.liked_comments) || 0);
+    const level = Math.max(1, Number((userXP && userXP.level) || 1));
+    return totalVerses + (purchases * 40) + (likedComments * 8) + ((level - 1) * 28);
+};
+
+const BULK_ACHIEVEMENTS = [
+    ...buildAchievementLadder({
+        key: 'likes',
+        category: 'likes',
+        namePrefix: 'Heart Rank',
+        verb: 'Give',
+        singular: 'like',
+        plural: 'likes',
+        goals: generateMilestoneSeries(2, BULK_ACHIEVEMENTS_PER_SECTION, 1.23, 1),
+        progressFn: (d) => Number((d && d.liked) || 0),
+        icons: ['❤️', '💖', '💘', '💝', '💞', '💎'],
+        baseXp: 70,
+        xpStep: 22
+    }),
+    ...buildAchievementLadder({
+        key: 'saves',
+        category: 'saves',
+        namePrefix: 'Archive Rank',
+        verb: 'Save',
+        singular: 'verse',
+        plural: 'verses',
+        goals: generateMilestoneSeries(2, BULK_ACHIEVEMENTS_PER_SECTION, 1.22, 1),
+        progressFn: (d) => Number((d && d.saved) || 0),
+        icons: ['🔖', '📚', '📦', '🗂️', '🗄️', '🧾'],
+        baseXp: 68,
+        xpStep: 21
+    }),
+    ...buildAchievementLadder({
+        key: 'comments',
+        category: 'comments',
+        namePrefix: 'Voice Rank',
+        verb: 'Post',
+        singular: 'comment',
+        plural: 'comments',
+        goals: generateMilestoneSeries(2, BULK_ACHIEVEMENTS_PER_SECTION, 1.23, 1),
+        progressFn: (d) => Number((d && d.comments) || 0),
+        icons: ['💬', '🗨️', '📜', '🧠', '🔊', '🦉'],
+        baseXp: 78,
+        xpStep: 24
+    }),
+    ...buildAchievementLadder({
+        key: 'replies',
+        category: 'replies',
+        namePrefix: 'Helper Rank',
+        verb: 'Post',
+        singular: 'reply',
+        plural: 'replies',
+        goals: generateMilestoneSeries(2, BULK_ACHIEVEMENTS_PER_SECTION, 1.23, 1),
+        progressFn: (d) => Number((d && d.replies) || 0),
+        icons: ['🤝', '💡', '🕊️', '🌟', '🎓', '🧠'],
+        baseXp: 75,
+        xpStep: 24
+    }),
+    ...buildAchievementLadder({
+        key: 'shares',
+        category: 'shares',
+        namePrefix: 'Messenger Rank',
+        verb: 'Share',
+        singular: 'verse',
+        plural: 'verses',
+        goals: generateMilestoneSeries(1, BULK_ACHIEVEMENTS_PER_SECTION, 1.2, 1),
+        progressFn: () => Number(getSharedVerseCount() || 0),
+        icons: ['📤', '📢', '🌍', '📨', '✨', '📖'],
+        baseXp: 85,
+        xpStep: 26
+    }),
+    ...buildAchievementLadder({
+        key: 'streak',
+        category: 'streak',
+        namePrefix: 'Streak Rank',
+        verb: 'Maintain',
+        singular: 'day',
+        plural: 'days',
+        goals: generateMilestoneSeries(1, BULK_ACHIEVEMENTS_PER_SECTION, 1.18, 1),
+        progressFn: () => Number(getStreakCount() || 0),
+        icons: ['🔥', '🛡️', '🏆', '📅', '💯', '🕯️'],
+        baseXp: 95,
+        xpStep: 28
+    }),
+    ...buildAchievementLadder({
+        key: 'special',
+        category: 'special',
+        namePrefix: 'Ascension Rank',
+        verb: 'Reach',
+        singular: 'special score',
+        plural: 'special score',
+        goals: generateMilestoneSeries(8, BULK_ACHIEVEMENTS_PER_SECTION, 1.24, 2),
+        progressFn: (d) => specialScoreProgress(d),
+        icons: ['⭐', '🌠', '🧭', '🏔️', '⚡', '🗺️'],
+        baseXp: 110,
+        xpStep: 32
+    })
+];
+
+ACHIEVEMENTS.push(...BULK_ACHIEVEMENTS);
+
 const ACHIEVEMENT_XP_MULTIPLIER = 1.75;
 ACHIEVEMENTS.forEach((ach) => {
     const base = Number(ach.xp || 0);
@@ -9519,6 +9987,7 @@ function getAchievementProgress(ach, stats, isUnlocked) {
 let currentAchievementFilter = 'all';
 let currentAchievementStats = {};
 let achievementTotalXpEarned = 0;
+const ACHIEVEMENT_UNLOCK_BATCH_LIMIT = 12;
 
 function readAchievementStateCache() {
     try {
@@ -9596,10 +10065,13 @@ async function loadAchievements(stats) {
             const unlockedSet = new Set(unlockedAchievementIds);
             let totalXPEarned = Number(achievementState.total_xp || 0);
             let newUnlocks = false;
+            let unlockAttemptsThisPass = 0;
 
     for (const ach of ACHIEVEMENTS) {
         if (unlockedSet.has(ach.id)) continue;
         if (!ach.check(currentAchievementStats)) continue;
+        if (unlockAttemptsThisPass >= ACHIEVEMENT_UNLOCK_BATCH_LIMIT) break;
+        unlockAttemptsThisPass += 1;
         try {
             const res = await fetch('/api/achievements/unlock', {
                 method: 'POST',
