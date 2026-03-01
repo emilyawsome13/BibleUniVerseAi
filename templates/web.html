@@ -2322,6 +2322,9 @@
             line-height: 1.5;
             margin-left: 42px;
             word-wrap: break-word;
+            white-space: pre-wrap;
+            display: inline-block;
+            max-width: calc(100% - 42px);
         }
 
         .delete-comment-btn {
@@ -4312,9 +4315,9 @@
         .comment-text.chat-effect-chat_sparkle::before,
         .message-text.chat-effect-chat_sparkle::before { content: '✨'; position: absolute; left: -16px; top: 0.1em; animation: sparkle 1.5s infinite; }
         .comment-text.chat-effect-chat_rainbow,
-        .message-text.chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; }
+        .message-text.chat-effect-chat_rainbow { background: linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 5s linear infinite; display: inline-block; max-width: 100%; padding: 0 8px 1px; border-radius: 999px; background-repeat: no-repeat !important; background-size: 220% 100% !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
         .comment-text.chat-effect-chat_glow,
-        .message-text.chat-effect-chat_glow { color: inherit !important; text-shadow: 0 0 10px rgba(255,215,0,0.65), 0 0 20px rgba(255,215,0,0.28); background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; display: block; }
+        .message-text.chat-effect-chat_glow { color: inherit !important; text-shadow: 0 0 10px rgba(255,215,0,0.65), 0 0 20px rgba(255,215,0,0.28); background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; display: inline-block; max-width: 100%; }
         .comment-text.chat-effect-chat_fire,
         .message-text.chat-effect-chat_fire { color: #FF4500 !important; text-shadow: 0 0 15px #FF4500, 0 0 25px #FF6347 !important; animation: fireText 0.8s infinite alternate; }
         .comment-text.chat-effect-chat_shadow,
@@ -4325,7 +4328,7 @@
         .message-text.chat-effect-chat_gold { color: #FFD700 !important; text-shadow: 0 0 15px #FFD700 !important; animation: goldPulse 2s infinite; }
         /* Mythic Chat Effects */
         .comment-text.chat-effect-chat_universe,
-        .message-text.chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; }
+        .message-text.chat-effect-chat_universe { background: linear-gradient(90deg, #9400D3, #00CED1, #FF1493) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; animation: rainbow 3s linear infinite; font-weight: 700 !important; display: inline-block; max-width: 100%; padding: 0 8px 1px; border-radius: 999px; background-repeat: no-repeat !important; background-size: 220% 100% !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
         .comment-text.chat-effect-chat_godly,
         .message-text.chat-effect-chat_godly { color: #FFD700 !important; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF1493 !important; animation: mythicPulse 1s infinite; font-weight: 700 !important; }
     </style>
