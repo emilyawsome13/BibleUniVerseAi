@@ -5280,6 +5280,121 @@
             border: 1px solid var(--glass-border);
             background: #0f172a;
         }
+
+        /* ===== Global Bubble Controls ===== */
+        :root {
+            --bubble-ctrl-radius: 14px;
+            --bubble-ctrl-radius-pill: 999px;
+            --bubble-ctrl-border: rgba(120, 156, 218, 0.44);
+            --bubble-ctrl-border-strong: rgba(76, 154, 255, 0.76);
+            --bubble-ctrl-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(236, 243, 255, 0.88));
+            --bubble-ctrl-bg-soft: linear-gradient(160deg, rgba(255, 255, 255, 0.84), rgba(236, 243, 255, 0.74));
+            --bubble-ctrl-shadow: 0 8px 20px rgba(12, 36, 78, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+            --bubble-ctrl-shadow-hover: 0 12px 24px rgba(9, 45, 106, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        }
+        [data-theme="dark"] {
+            --bubble-ctrl-border: rgba(132, 172, 240, 0.44);
+            --bubble-ctrl-border-strong: rgba(128, 198, 255, 0.86);
+            --bubble-ctrl-bg: linear-gradient(160deg, rgba(24, 42, 78, 0.9), rgba(14, 29, 58, 0.86));
+            --bubble-ctrl-bg-soft: linear-gradient(160deg, rgba(20, 37, 70, 0.8), rgba(12, 24, 50, 0.76));
+            --bubble-ctrl-shadow: 0 10px 22px rgba(2, 8, 20, 0.44), inset 0 1px 0 rgba(183, 215, 255, 0.15);
+            --bubble-ctrl-shadow-hover: 0 14px 26px rgba(2, 10, 26, 0.56), inset 0 1px 0 rgba(194, 228, 255, 0.2);
+        }
+
+        :where(button, a.btn, .btn, .action-btn, .segment-btn, .shop-category-btn, .library-search-btn, .comment-pin-btn, .emoji-btn, .dm-action-btn, .reply-btn, .tab-btn, .nav-item, .icon-btn, .bible-reader-btn, .unlock-btn, .role-btn, .admin-panel-btn) {
+            border-radius: var(--bubble-ctrl-radius);
+            border: 1px solid var(--bubble-ctrl-border);
+            background: var(--bubble-ctrl-bg-soft);
+            box-shadow: var(--bubble-ctrl-shadow);
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+        }
+        :where(button, a.btn, .btn) {
+            font-weight: 700;
+            letter-spacing: 0.1px;
+        }
+        :where(a.btn, .btn) {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+            padding: 8px 14px;
+        }
+        :where(button, a.btn, .btn, .action-btn, .segment-btn, .shop-category-btn, .library-search-btn, .comment-pin-btn, .emoji-btn, .dm-action-btn, .reply-btn, .tab-btn, .nav-item, .icon-btn, .bible-reader-btn, .unlock-btn, .role-btn, .admin-panel-btn):hover:not(:disabled) {
+            border-color: var(--bubble-ctrl-border-strong);
+            box-shadow: var(--bubble-ctrl-shadow-hover);
+            transform: translateY(-1px);
+        }
+        :where(button, a.btn, .btn, .action-btn, .segment-btn, .shop-category-btn, .library-search-btn, .comment-pin-btn, .emoji-btn, .dm-action-btn, .reply-btn, .tab-btn, .nav-item, .icon-btn, .bible-reader-btn, .unlock-btn, .role-btn, .admin-panel-btn):active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+        :where(button, a.btn, .btn, .action-btn, .segment-btn, .shop-category-btn, .library-search-btn, .comment-pin-btn, .emoji-btn, .dm-action-btn, .reply-btn, .tab-btn, .nav-item, .icon-btn, .bible-reader-btn, .unlock-btn, .role-btn, .admin-panel-btn):disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-primary,
+        .btn.btn-primary,
+        .send-btn,
+        .dm-send-btn,
+        .segment-btn.active,
+        .tab-btn.active,
+        .nav-item.active,
+        .shop-category-btn.active {
+            background: linear-gradient(145deg, rgba(36, 128, 255, 0.95), rgba(66, 104, 255, 0.9));
+            border-color: rgba(140, 206, 255, 0.86);
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(18, 76, 162, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+        .btn-secondary,
+        .btn.btn-secondary {
+            background: var(--bubble-ctrl-bg);
+            border-color: var(--bubble-ctrl-border);
+            color: var(--text);
+        }
+        .btn-warning,
+        .btn.btn-warning {
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.94), rgba(235, 104, 26, 0.9));
+            border-color: rgba(255, 216, 150, 0.82);
+            color: #fff;
+        }
+        .btn-danger,
+        .btn.btn-danger,
+        .dm-action-btn-danger,
+        .safety-action-btn-danger {
+            background: linear-gradient(145deg, rgba(229, 78, 98, 0.94), rgba(191, 45, 84, 0.9));
+            border-color: rgba(255, 176, 196, 0.8);
+            color: #fff;
+        }
+
+        :where(input[type="text"], input[type="search"], input[type="email"], input[type="number"], input[type="password"], textarea, select, .library-search, .dm-input, .comment-input, .setting-select, .admin-code-input, .bible-picks-input, .bible-reader-input, .bible-picks-select, .bible-reader-select) {
+            border-radius: 13px;
+            border: 1px solid var(--bubble-ctrl-border);
+            background: var(--bubble-ctrl-bg);
+            color: var(--text);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 5px 12px rgba(10, 26, 54, 0.08);
+        }
+        :where(input[type="text"], input[type="search"], input[type="email"], input[type="number"], input[type="password"], textarea, select, .library-search, .dm-input, .comment-input, .setting-select, .admin-code-input, .bible-picks-input, .bible-reader-input, .bible-picks-select, .bible-reader-select):focus {
+            outline: none;
+            border-color: var(--bubble-ctrl-border-strong);
+            box-shadow: 0 0 0 2px rgba(88, 170, 255, 0.26), 0 10px 18px rgba(12, 46, 98, 0.16);
+        }
+
+        .toggle {
+            border-radius: var(--bubble-ctrl-radius-pill);
+            box-shadow: var(--bubble-ctrl-shadow);
+        }
+        .tab-bar .tab-btn {
+            min-width: 70px;
+            border-radius: 12px;
+            padding: 8px 4px;
+        }
+        .desktop-nav .nav-item {
+            border-radius: 16px;
+        }
     </style>
 </head>
 <body>
