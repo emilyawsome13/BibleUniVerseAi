@@ -150,10 +150,32 @@ ADMIN_CODE = os.environ.get('ADMIN_CODE', 'God Is All')
 MASTER_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'God Is All')
 
 ALLOWED_IMAGE_EXTS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+ALLOWED_DM_FILE_EXTS = {
+    'pdf', 'txt', 'csv', 'json',
+    'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'zip', 'rar', '7z',
+    'mp3', 'wav', 'm4a', 'mp4', 'mov', 'webm'
+}
+DM_ATTACHMENT_MAX_BYTES = max(
+    256 * 1024,
+    int(os.environ.get('DM_ATTACHMENT_MAX_BYTES', str(8 * 1024 * 1024)))
+)
 UPLOAD_ROOT = os.path.join(app.root_path, 'static', 'uploads')
 
 def allowed_image_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTS
+
+def allowed_dm_attachment_file(filename):
+    if '.' not in filename:
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    return ext in ALLOWED_IMAGE_EXTS or ext in ALLOWED_DM_FILE_EXTS
+
+def dm_attachment_kind(filename):
+    if '.' not in filename:
+        return 'file'
+    ext = filename.rsplit('.', 1)[1].lower()
+    return 'image' if ext in ALLOWED_IMAGE_EXTS else 'file'
 
 def require_min_role(min_role='host'):
     role = normalize_role(session.get('admin_role') or session.get('role') or 'user')
@@ -226,12 +248,16 @@ RESTRICTION_SCHEMA_READY = False
 SQLITE_TUNING_APPLIED = False
 _SCHEMA_READY_FLAGS = set()
 _SCHEMA_READY_LOCK = threading.Lock()
+IMMEDIATE_UPDATE_MODE = str(os.environ.get('IMMEDIATE_UPDATE_MODE', '1')).strip().lower() in ('1', 'true', 'yes', 'on')
 BAN_STATUS_CACHE_TTL = max(1.0, float(os.environ.get('BAN_STATUS_CACHE_TTL', '3.0')))
 _BAN_STATUS_CACHE = {}
 _BAN_STATUS_CACHE_LOCK = threading.Lock()
 API_RESPONSE_CACHE_TTL = max(1.0, float(os.environ.get('API_RESPONSE_CACHE_TTL', '3.0')))
 _API_RESPONSE_CACHE = {}
 _API_RESPONSE_CACHE_LOCK = threading.Lock()
+API_RESPONSE_CACHE_ENABLED = str(
+    os.environ.get('API_RESPONSE_CACHE_ENABLED', '0' if IMMEDIATE_UPDATE_MODE else '1')
+).strip().lower() in ('1', 'true', 'yes', 'on')
 _RATE_LIMIT_BUCKETS = {}
 _RATE_LIMIT_LOCK = threading.Lock()
 REALTIME_HEARTBEAT_SECONDS = max(2, min(10, int(os.environ.get('REALTIME_HEARTBEAT_SECONDS', '5'))))
@@ -239,9 +265,11 @@ REALTIME_STREAM_MAX_SECONDS = max(8, min(28, int(os.environ.get('REALTIME_STREAM
 _REALTIME_SUBSCRIBERS = {}
 _REALTIME_SUBSCRIBERS_LOCK = threading.Lock()
 logger.info(
-    "Realtime config heartbeat=%ss stream_max=%ss",
+    "Realtime config heartbeat=%ss stream_max=%ss immediate_update=%s api_cache_enabled=%s",
     REALTIME_HEARTBEAT_SECONDS,
-    REALTIME_STREAM_MAX_SECONDS
+    REALTIME_STREAM_MAX_SECONDS,
+    IMMEDIATE_UPDATE_MODE,
+    API_RESPONSE_CACHE_ENABLED
 )
 MOD_BLOCKLIST = [
     token.strip().lower()
@@ -658,6 +686,8 @@ def _build_in_clause_params(db_type, values):
     return ",".join([placeholder] * len(safe_values)), tuple(safe_values)
 
 def _api_cache_get(key):
+    if not API_RESPONSE_CACHE_ENABLED:
+        return None
     now = time.time()
     with _API_RESPONSE_CACHE_LOCK:
         entry = _API_RESPONSE_CACHE.get(key)
@@ -670,18 +700,26 @@ def _api_cache_get(key):
         return entry.get('value')
 
 def _api_cache_set(key, value, ttl=None):
+    if not API_RESPONSE_CACHE_ENABLED:
+        return
     try:
         payload = json.loads(json.dumps(value))
     except Exception:
         payload = value
     ttl_sec = float(ttl if ttl is not None else API_RESPONSE_CACHE_TTL)
+    if ttl_sec <= 0:
+        with _API_RESPONSE_CACHE_LOCK:
+            _API_RESPONSE_CACHE.pop(key, None)
+        return
     with _API_RESPONSE_CACHE_LOCK:
         _API_RESPONSE_CACHE[key] = {
             'value': payload,
-            'expires_at': time.time() + max(0.5, ttl_sec)
+            'expires_at': time.time() + ttl_sec
         }
 
 def _api_cache_invalidate_prefixes(*prefixes):
+    if not API_RESPONSE_CACHE_ENABLED:
+        return
     clean_prefixes = [p for p in prefixes if p]
     if not clean_prefixes:
         return
@@ -4200,7 +4238,7 @@ class BibleGenerator:
 
 # Global generator instance
 generator = BibleGenerator()
-CURRENT_API_CACHE_TTL = max(0.5, float(os.environ.get('API_CURRENT_CACHE_TTL', '2.0')))
+CURRENT_API_CACHE_TTL = max(0.0, float(os.environ.get('API_CURRENT_CACHE_TTL', '0.0' if IMMEDIATE_UPDATE_MODE else '2.0')))
 _current_api_cache = {}
 _current_api_cache_lock = threading.Lock()
 
@@ -4999,10 +5037,11 @@ def get_current():
     is_banned, reason, _ = check_ban_status(user_id)
     if is_banned:
         return jsonify({"error": "banned", "message": "Account banned", "reason": reason}), 403
-    with _current_api_cache_lock:
-        cached = _current_api_cache.get(user_id)
-        if cached and (now - cached['timestamp']) < CURRENT_API_CACHE_TTL:
-            return jsonify(cached['payload'])
+    if CURRENT_API_CACHE_TTL > 0:
+        with _current_api_cache_lock:
+            cached = _current_api_cache.get(user_id)
+            if cached and (now - cached['timestamp']) < CURRENT_API_CACHE_TTL:
+                return jsonify(cached['payload'])
 
     # Ensure thread is running
     generator.start_thread()
@@ -5014,11 +5053,12 @@ def get_current():
         "session_id": generator.session_id,
         "interval": generator.interval
     }
-    with _current_api_cache_lock:
-        _current_api_cache[user_id] = {
-            "timestamp": now,
-            "payload": payload
-        }
+    if CURRENT_API_CACHE_TTL > 0:
+        with _current_api_cache_lock:
+            _current_api_cache[user_id] = {
+                "timestamp": now,
+                "payload": payload
+            }
     return jsonify(payload)
 
 @app.route('/api/bible/books')
@@ -12779,6 +12819,75 @@ def dm_messages(other_id):
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+@app.route('/api/dm/upload', methods=['POST'])
+def dm_upload_attachment():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    is_banned, _, _ = check_ban_status(session['user_id'])
+    if is_banned:
+        return jsonify({"error": "banned"}), 403
+
+    is_restricted, reason, expires_at = check_comment_restriction(session['user_id'])
+    if is_restricted:
+        expires_str = datetime.fromisoformat(expires_at).strftime("%Y-%m-%d %H:%M") if expires_at else "soon"
+        return jsonify({
+            "error": "restricted",
+            "message": f"You have been restricted from chatting due to {reason}",
+            "reason": reason,
+            "expires_at": expires_str
+        }), 403
+
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({"error": "No file provided"}), 400
+
+    raw_name = str(file.filename or '').strip()
+    if not allowed_dm_attachment_file(raw_name):
+        return jsonify({"error": "Unsupported file type"}), 400
+
+    ext = raw_name.rsplit('.', 1)[1].lower()
+    safe_original = secure_filename(raw_name) or f"attachment.{ext}"
+    kind = dm_attachment_kind(raw_name)
+    dm_dir = os.path.join(UPLOAD_ROOT, 'dm')
+    os.makedirs(dm_dir, exist_ok=True)
+
+    stamp = int(time.time() * 1000)
+    unique_name = secure_filename(f"dm_{session['user_id']}_{stamp}_{secrets.token_hex(4)}.{ext}")
+    path = os.path.join(dm_dir, unique_name)
+    file.save(path)
+
+    try:
+        size_bytes = int(os.path.getsize(path))
+    except Exception:
+        size_bytes = 0
+
+    if size_bytes <= 0:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+        return jsonify({"error": "Empty file"}), 400
+
+    if size_bytes > DM_ATTACHMENT_MAX_BYTES:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+        return jsonify({
+            "error": "File too large",
+            "max_bytes": DM_ATTACHMENT_MAX_BYTES
+        }), 413
+
+    return jsonify({
+        "success": True,
+        "url": f"/static/uploads/dm/{unique_name}",
+        "name": safe_original,
+        "kind": kind,
+        "size": size_bytes,
+        "mime": (file.mimetype or '').strip().lower()
+    })
 
 @app.route('/api/dm/send', methods=['POST'])
 def dm_send():

@@ -2336,6 +2336,137 @@
             border-radius: 14px;
             padding: 9px;
         }
+        .dm-compose-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .dm-compose-tab {
+            border: 1px solid rgba(132, 170, 232, 0.35);
+            background: rgba(22, 36, 64, 0.52);
+            color: rgba(232, 242, 255, 0.9);
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            cursor: pointer;
+        }
+        .dm-compose-tab.active {
+            border-color: rgba(146, 202, 255, 0.75);
+            box-shadow: 0 0 0 1px rgba(116, 184, 255, 0.35);
+            background: linear-gradient(140deg, rgba(60, 120, 220, 0.52), rgba(84, 92, 210, 0.45));
+        }
+        .dm-upload-controls {
+            display: none;
+            margin-bottom: 8px;
+        }
+        .dm-upload-controls.show {
+            display: block;
+        }
+        .dm-upload-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 7px;
+        }
+        .dm-dropzone {
+            border: 1px dashed rgba(142, 182, 242, 0.44);
+            border-radius: 10px;
+            padding: 9px 10px;
+            font-size: 12px;
+            color: rgba(211, 226, 252, 0.86);
+            background: rgba(14, 26, 48, 0.35);
+            margin-bottom: 7px;
+        }
+        .dm-dropzone.drag-over {
+            border-color: rgba(144, 216, 255, 0.78);
+            box-shadow: 0 0 0 1px rgba(144, 216, 255, 0.4), 0 8px 18px rgba(34, 84, 164, 0.28);
+        }
+        .dm-dropzone.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .dm-pending-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .dm-pending-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 7px;
+            border-radius: 9px;
+            background: rgba(27, 48, 84, 0.6);
+            border: 1px solid rgba(126, 166, 228, 0.35);
+            max-width: 100%;
+        }
+        .dm-pending-thumb {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            object-fit: cover;
+            border: 1px solid rgba(180, 208, 247, 0.42);
+            background: rgba(7, 12, 23, 0.58);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .dm-pending-meta {
+            min-width: 0;
+            max-width: 190px;
+            font-size: 11px;
+            line-height: 1.3;
+            color: rgba(225, 236, 255, 0.9);
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+        .dm-pending-remove {
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            background: rgba(218, 92, 116, 0.82);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+        .dm-attachment-card {
+            margin-top: 7px;
+            border: 1px solid rgba(157, 192, 241, 0.36);
+            border-radius: 10px;
+            background: rgba(13, 22, 42, 0.42);
+            overflow: hidden;
+        }
+        .dm-attachment-image {
+            display: block;
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+        }
+        .dm-attachment-file {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 9px;
+            color: rgba(230, 240, 255, 0.92);
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .dm-attachment-file:hover {
+            background: rgba(33, 56, 94, 0.46);
+        }
+        .dm-attachment-name {
+            min-width: 0;
+            max-width: 260px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
         .dm-input {
             background: rgba(4, 8, 16, 0.68);
             border-color: rgba(136, 171, 230, 0.34);
@@ -5768,6 +5899,28 @@
                                     </div>
                                     <div class="dm-typing" id="dmTypingIndicator"></div>
                                     <div class="dm-input-area">
+                                        <div class="dm-compose-tabs">
+                                            <button class="dm-compose-tab active" id="dmComposeTabText" onclick="setDmComposerMode('text')">Text</button>
+                                            <button class="dm-compose-tab" id="dmComposeTabImage" onclick="setDmComposerMode('image')">Picture</button>
+                                            <button class="dm-compose-tab" id="dmComposeTabFile" onclick="setDmComposerMode('file')">File</button>
+                                        </div>
+                                        <div class="dm-upload-actions">
+                                            <button class="dm-action-btn" onclick="insertDmQuickSnippet('prayer')">Prayer</button>
+                                            <button class="dm-action-btn" onclick="insertDmQuickSnippet('encourage')">Encourage</button>
+                                            <button class="dm-action-btn" onclick="insertDmQuickSnippet('checkin')">Check-in</button>
+                                        </div>
+                                        <div class="dm-upload-controls" id="dmUploadControls">
+                                            <div class="dm-upload-actions">
+                                                <button class="dm-action-btn" id="dmAttachImageBtn" onclick="triggerDmImagePick()">Add Picture</button>
+                                                <button class="dm-action-btn" id="dmAttachFileBtn" onclick="triggerDmFilePick()">Add File</button>
+                                            </div>
+                                            <input type="file" id="dmImageInput" accept="image/*" multiple style="display:none;" onchange="onDmPickedFiles(event, 'image')">
+                                            <input type="file" id="dmFileInput" multiple style="display:none;" onchange="onDmPickedFiles(event, 'file')">
+                                            <div class="dm-dropzone" id="dmDropZone" ondragover="onDmDropOver(event)" ondragleave="onDmDropLeave(event)" ondrop="onDmDrop(event)">
+                                                Drop files here to attach.
+                                            </div>
+                                            <div class="dm-pending-list" id="dmPendingAttachments"></div>
+                                        </div>
                                         <input type="text" id="dmInput" class="dm-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendDm()" oninput="scheduleTypingPing()">
                                         <button class="send-btn dm-action-btn dm-send-btn" id="dmSendBtn" onclick="sendDm()">Send</button>
                                     </div>
@@ -6809,17 +6962,17 @@
             purchases: 0,
             liked_comments: 0
         };
-        const VERSE_POLL_INTERVAL_MS = 5000;
-        const STATUS_REFRESH_INTERVAL_MS = 15000;
-        const COMMENTS_POLL_INTERVAL_MS = 5000;
-        const COMMUNITY_POLL_INTERVAL_MS = 5000;
-        const DM_THREADS_POLL_INTERVAL_MS = 7000;
-        const DM_MESSAGES_POLL_INTERVAL_MS = 1800;
-        const DM_TYPING_POLL_INTERVAL_MS = 2200;
-        const ONLINE_USERS_POLL_INTERVAL_MS = 15000;
-        const REALTIME_STALE_AFTER_MS = 45000;
-        const NOTIFICATION_POLL_ACTIVE_MS = 30000;
-        const NOTIFICATION_POLL_REALTIME_MS = 90000;
+        const VERSE_POLL_INTERVAL_MS = 1200;
+        const STATUS_REFRESH_INTERVAL_MS = 2000;
+        const COMMENTS_POLL_INTERVAL_MS = 1000;
+        const COMMUNITY_POLL_INTERVAL_MS = 1000;
+        const DM_THREADS_POLL_INTERVAL_MS = 1200;
+        const DM_MESSAGES_POLL_INTERVAL_MS = 900;
+        const DM_TYPING_POLL_INTERVAL_MS = 1000;
+        const ONLINE_USERS_POLL_INTERVAL_MS = 5000;
+        const REALTIME_STALE_AFTER_MS = 12000;
+        const NOTIFICATION_POLL_ACTIVE_MS = 4000;
+        const NOTIFICATION_POLL_REALTIME_MS = 12000;
         let verseFetchInFlight = false;
         let lastStatusRefreshAt = 0;
         let lastStatusVerseId = null;
@@ -6851,6 +7004,10 @@
         let dmTypingCooldown = null;
         let currentAvatarDecoration = '';
         const dmThreadsCache = {};
+        let dmComposerMode = 'text';
+        let dmAttachmentQueue = [];
+        let dmUploadInFlight = false;
+        const DM_ATTACH_MAX_PER_MESSAGE = 4;
         const commentDmSuggestionTimers = {};
         const commentDmSuggestionLastShownAt = {};
         let aboutIsSliding = false;
@@ -6906,6 +7063,7 @@
                 notificationPollInterval = null;
             }
             const intervalMs = isRealtimeFresh() ? NOTIFICATION_POLL_REALTIME_MS : NOTIFICATION_POLL_ACTIVE_MS;
+            pollNotifications(true);
             notificationPollInterval = setInterval(() => {
                 if (document.hidden) return;
                 pollNotifications();
@@ -6917,7 +7075,7 @@
             onlineUsersInterval = setInterval(() => {
                 if (document.hidden) return;
                 if (currentTab === 'comments') updateOnlineUsers();
-            }, 30000);
+            }, ONLINE_USERS_POLL_INTERVAL_MS);
         }
 
         async function init() {
@@ -6955,8 +7113,10 @@
             updateOnlineUsers();
             updateTabThemeClass(currentTab);
             switchCommentsView('verse');
+            setDmComposerMode('text');
+            renderDmPendingAttachments();
             updateRestrictionUI();
-            setInterval(updateRestrictionUI, 60000);
+            setInterval(updateRestrictionUI, 10000);
             setupAboutSliderGestures();
             initAboutVideoEvents();
             initAboutVolumeControl();
@@ -6964,7 +7124,7 @@
             setupGlobalShortcuts();
             pingPresence();
             if (presencePingInterval) clearInterval(presencePingInterval);
-            presencePingInterval = setInterval(pingPresence, 45000);
+            presencePingInterval = setInterval(pingPresence, 10000);
             connectRealtimeStream();
             pollNotifications(true);
             refreshNotificationPollingMode();
@@ -7078,12 +7238,7 @@
                 try { source.close(); } catch (_) {}
                 if (realtimeSource === source) realtimeSource = null;
                 realtimeErrorCount += 1;
-                let delay = Math.min(60000, 2000 * Math.pow(2, Math.min(realtimeErrorCount, 5)));
-                if (realtimeErrorCount >= 6) {
-                    realtimePausedUntil = Date.now() + 120000;
-                    delay = 120000;
-                    if (settings.notifications) showToast('Live updates paused briefly to reduce server load.');
-                }
+                const delay = Math.min(8000, 800 + (realtimeErrorCount * 600));
                 realtimeReconnectTimer = setTimeout(() => {
                     connectRealtimeStream();
                 }, delay);
@@ -9461,8 +9616,8 @@
                 }
                 applyRestrictionState();
                 
-                // Apply shop effects to comments
-                setTimeout(() => applyShopEffectsToComments(), 100);
+                // Apply shop effects immediately after rendering.
+                applyShopEffectsToComments();
                 
                 // Setup DM button handlers
                 setupDmButtonHandlers();
@@ -9619,8 +9774,8 @@
                 }
                 applyRestrictionState();
                 
-                // Apply shop effects to community messages
-                setTimeout(() => applyShopEffectsToComments(), 100);
+                // Apply shop effects immediately after rendering.
+                applyShopEffectsToComments();
                 
                 // Setup DM button handlers
                 setupDmButtonHandlers();
@@ -9717,7 +9872,8 @@
             if (dmSelectedUserSafety.blocked) statusBits.push('blocked');
             if (dmSelectedUserSafety.blocked_by) statusBits.push('blocked by user');
             if (dmSelectedUserSafety.muted_all || dmSelectedUserSafety.muted_dm) statusBits.push('muted');
-            const baseSub = thread.last_message ? `Last: ${thread.last_message}` : 'Direct message channel';
+            const preview = dmThreadPreviewFromMessage(thread.last_message || '');
+            const baseSub = preview ? `Last: ${preview}` : 'Direct message channel';
             if (sub) sub.textContent = statusBits.length ? `${baseSub} • ${statusBits.join(' • ')}` : baseSub;
             if (avatarSlot) {
                 avatarSlot.innerHTML = renderAvatarMarkup(
@@ -9740,12 +9896,29 @@
             const dmBlockBtn = document.getElementById('dmBlockBtn');
             const dmMuteBtn = document.getElementById('dmMuteBtn');
             const dmReportBtn = document.getElementById('dmReportBtn');
+            const dmAttachImageBtn = document.getElementById('dmAttachImageBtn');
+            const dmAttachFileBtn = document.getElementById('dmAttachFileBtn');
+            const dmImageInput = document.getElementById('dmImageInput');
+            const dmFileInput = document.getElementById('dmFileInput');
+            const dmComposeTabText = document.getElementById('dmComposeTabText');
+            const dmComposeTabImage = document.getElementById('dmComposeTabImage');
+            const dmComposeTabFile = document.getElementById('dmComposeTabFile');
+            const dmDropZone = document.getElementById('dmDropZone');
+            const lockComposer = restricted || !hasThread;
             if (dmInput) dmInput.disabled = restricted || !hasThread;
-            if (dmSendBtn) dmSendBtn.disabled = restricted || !hasThread;
+            if (dmSendBtn) dmSendBtn.disabled = lockComposer || dmUploadInFlight;
             if (dmDeleteBtn) dmDeleteBtn.disabled = !hasThread;
             if (dmBlockBtn) dmBlockBtn.disabled = !hasThread;
             if (dmMuteBtn) dmMuteBtn.disabled = !hasThread;
             if (dmReportBtn) dmReportBtn.disabled = !hasThread;
+            if (dmAttachImageBtn) dmAttachImageBtn.disabled = lockComposer || dmUploadInFlight;
+            if (dmAttachFileBtn) dmAttachFileBtn.disabled = lockComposer || dmUploadInFlight;
+            if (dmImageInput) dmImageInput.disabled = lockComposer || dmUploadInFlight;
+            if (dmFileInput) dmFileInput.disabled = lockComposer || dmUploadInFlight;
+            if (dmComposeTabText) dmComposeTabText.disabled = lockComposer;
+            if (dmComposeTabImage) dmComposeTabImage.disabled = lockComposer;
+            if (dmComposeTabFile) dmComposeTabFile.disabled = lockComposer;
+            if (dmDropZone) dmDropZone.classList.toggle('disabled', lockComposer || dmUploadInFlight);
             updateDmSafetyButtons();
         }
 
@@ -9802,12 +9975,13 @@
                 const active = dmSelectedUserId === t.user_id ? 'active' : '';
                 const avatarHtml = renderAvatarMarkup(t.picture || '', t.name || 'User', t.avatar_decoration || '', 'dm-thread-avatar');
                 const lastTime = formatDmThreadTime(t.last_at || '');
+                const previewText = dmThreadPreviewFromMessage(t.last_message || '') || 'No messages yet';
                 return `
                     <div class="dm-thread ${active}" onclick="openDmThread(${t.user_id})">
                         ${avatarHtml}
                         <div class="dm-thread-main">
                             <div class="dm-thread-name">${escapeHtml(t.name || 'User')}</div>
-                            <div class="dm-thread-last">${escapeHtml(t.last_message || 'No messages yet')}</div>
+                            <div class="dm-thread-last">${escapeHtml(previewText)}</div>
                         </div>
                         <div class="dm-thread-meta">
                             <div class="dm-thread-time">${escapeHtml(lastTime)}</div>
@@ -9861,8 +10035,6 @@
             const box = document.getElementById(containerId);
             if (!box) return;
             const now = Date.now();
-            const lastShown = Number(commentDmSuggestionLastShownAt[containerId] || 0);
-            if (lastShown && (now - lastShown) < 30000) return;
             try {
                 const res = await fetch('/api/users/recent?limit=8', { cache: 'no-store' });
                 const data = await res.json().catch(() => ([]));
@@ -9897,6 +10069,263 @@
             }
         }
 
+        function formatDmAttachmentSize(bytes) {
+            const n = Number(bytes || 0);
+            if (!Number.isFinite(n) || n <= 0) return '0 B';
+            if (n < 1024) return `${n} B`;
+            if (n < (1024 * 1024)) return `${(n / 1024).toFixed(1)} KB`;
+            return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+        }
+
+        function sanitizeDmAttachmentUrl(url) {
+            const raw = String(url || '').trim();
+            if (!raw) return '';
+            if (!raw.startsWith('/static/uploads/dm/')) return '';
+            if (!/^\/static\/uploads\/dm\/[a-zA-Z0-9._\-/%]+$/.test(raw)) return '';
+            return raw;
+        }
+
+        function encodeDmAttachmentToken(att) {
+            try {
+                const safe = {
+                    url: sanitizeDmAttachmentUrl(att?.url || ''),
+                    kind: (att?.kind === 'image' ? 'image' : 'file'),
+                    name: String(att?.name || 'attachment').slice(0, 180),
+                    size: Number(att?.size || 0),
+                    mime: String(att?.mime || '').slice(0, 120)
+                };
+                if (!safe.url) return '';
+                return `[[DM_ATTACH:${encodeURIComponent(JSON.stringify(safe))}]]`;
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function parseDmMessageContent(rawMessage) {
+            const source = String(rawMessage || '');
+            const attachments = [];
+            const text = source.replace(/\[\[DM_ATTACH:([^\]]+)\]\]/g, (_, payload) => {
+                try {
+                    const parsed = JSON.parse(decodeURIComponent(payload));
+                    const safeUrl = sanitizeDmAttachmentUrl(parsed?.url || '');
+                    if (!safeUrl) return '';
+                    attachments.push({
+                        url: safeUrl,
+                        kind: parsed?.kind === 'image' ? 'image' : 'file',
+                        name: String(parsed?.name || 'attachment'),
+                        size: Number(parsed?.size || 0),
+                        mime: String(parsed?.mime || '')
+                    });
+                } catch (_) {}
+                return '';
+            }).trim();
+            return { text, attachments };
+        }
+
+        function dmThreadPreviewFromMessage(rawMessage) {
+            const parsed = parseDmMessageContent(rawMessage);
+            if (parsed.text) return parsed.text;
+            if (parsed.attachments.length) {
+                return parsed.attachments[0].kind === 'image' ? '📷 Photo attachment' : '📎 File attachment';
+            }
+            return '';
+        }
+
+        function renderDmAttachmentHtml(att) {
+            const url = sanitizeDmAttachmentUrl(att?.url || '');
+            if (!url) return '';
+            const kind = att?.kind === 'image' ? 'image' : 'file';
+            const name = escapeHtml(att?.name || 'attachment');
+            const sizeLabel = escapeHtml(formatDmAttachmentSize(att?.size || 0));
+            const safeUrl = escapeHtml(url);
+            if (kind === 'image') {
+                return `
+                    <a class="dm-attachment-card" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
+                        <img class="dm-attachment-image" src="${safeUrl}" alt="${name}">
+                    </a>
+                `;
+            }
+            return `
+                <div class="dm-attachment-card">
+                    <a class="dm-attachment-file" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
+                        <span>📎</span>
+                        <span class="dm-attachment-name">${name}</span>
+                        <span style="opacity:0.72;">${sizeLabel}</span>
+                    </a>
+                </div>
+            `;
+        }
+
+        function renderDmPendingAttachments() {
+            const box = document.getElementById('dmPendingAttachments');
+            if (!box) return;
+            if (!dmAttachmentQueue.length) {
+                box.innerHTML = '';
+                return;
+            }
+            box.innerHTML = dmAttachmentQueue.map((att, idx) => {
+                const url = sanitizeDmAttachmentUrl(att.url || '');
+                const isImage = att.kind === 'image' && !!url;
+                const thumb = isImage
+                    ? `<img class="dm-pending-thumb" src="${escapeHtml(url)}" alt="">`
+                    : `<span class="dm-pending-thumb">📎</span>`;
+                return `
+                    <div class="dm-pending-item">
+                        ${thumb}
+                        <div class="dm-pending-meta">${escapeHtml(att.name || 'attachment')} • ${escapeHtml(formatDmAttachmentSize(att.size || 0))}</div>
+                        <button class="dm-pending-remove" onclick="removeDmPendingAttachment(${idx})">×</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function clearDmPendingAttachments() {
+            dmAttachmentQueue = [];
+            renderDmPendingAttachments();
+        }
+
+        function removeDmPendingAttachment(index) {
+            if (!Number.isFinite(Number(index))) return;
+            dmAttachmentQueue.splice(Number(index), 1);
+            renderDmPendingAttachments();
+        }
+
+        function setDmComposerMode(mode) {
+            dmComposerMode = (mode === 'image' || mode === 'file') ? mode : 'text';
+            const tabText = document.getElementById('dmComposeTabText');
+            const tabImage = document.getElementById('dmComposeTabImage');
+            const tabFile = document.getElementById('dmComposeTabFile');
+            const controls = document.getElementById('dmUploadControls');
+            if (tabText) tabText.classList.toggle('active', dmComposerMode === 'text');
+            if (tabImage) tabImage.classList.toggle('active', dmComposerMode === 'image');
+            if (tabFile) tabFile.classList.toggle('active', dmComposerMode === 'file');
+            if (controls) controls.classList.toggle('show', dmComposerMode !== 'text');
+            const drop = document.getElementById('dmDropZone');
+            if (drop) {
+                drop.textContent = dmComposerMode === 'image'
+                    ? 'Drop image files here.'
+                    : (dmComposerMode === 'file' ? 'Drop documents/files here.' : 'Drop files here to attach.');
+            }
+            updateDmActionState();
+        }
+
+        function insertDmQuickSnippet(type) {
+            const input = document.getElementById('dmInput');
+            if (!input || input.disabled) return;
+            const snippets = {
+                prayer: '🙏 How can I pray for you today?',
+                encourage: '💛 You are not alone. I am here for you.',
+                checkin: '👋 Quick check-in: how are you doing right now?'
+            };
+            const next = snippets[type] || '';
+            if (!next) return;
+            const current = String(input.value || '').trim();
+            input.value = current ? `${current} ${next}` : next;
+            input.focus();
+            try {
+                const len = input.value.length;
+                input.setSelectionRange(len, len);
+            } catch (_) {}
+            scheduleTypingPing();
+        }
+
+        function triggerDmImagePick() {
+            if (!dmSelectedUserId || commentRestriction.restricted) return;
+            const input = document.getElementById('dmImageInput');
+            if (input) input.click();
+        }
+
+        function triggerDmFilePick() {
+            if (!dmSelectedUserId || commentRestriction.restricted) return;
+            const input = document.getElementById('dmFileInput');
+            if (input) input.click();
+        }
+
+        async function uploadDmAttachment(file, forcedKind = null) {
+            if (!file) return null;
+            const form = new FormData();
+            form.append('file', file);
+            const res = await fetch('/api/dm/upload', { method: 'POST', body: form });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) {
+                throw new Error(data.message || data.error || 'Upload failed');
+            }
+            const kind = forcedKind === 'image' ? 'image' : (data.kind === 'image' ? 'image' : 'file');
+            return {
+                url: sanitizeDmAttachmentUrl(data.url || ''),
+                name: data.name || file.name || 'attachment',
+                kind,
+                size: Number(data.size || file.size || 0),
+                mime: data.mime || file.type || ''
+            };
+        }
+
+        async function queueDmAttachments(fileList, forcedKind = null) {
+            if (!dmSelectedUserId) {
+                showToast('Pick a conversation first');
+                return;
+            }
+            if (commentRestriction.restricted) {
+                showToast('Chat is currently restricted');
+                return;
+            }
+            const files = Array.from(fileList || []);
+            if (!files.length) return;
+            const slots = Math.max(0, DM_ATTACH_MAX_PER_MESSAGE - dmAttachmentQueue.length);
+            if (slots <= 0) {
+                showToast(`Maximum ${DM_ATTACH_MAX_PER_MESSAGE} attachments per message`);
+                return;
+            }
+            const toUpload = files.slice(0, slots);
+            dmUploadInFlight = true;
+            updateDmActionState();
+            for (const file of toUpload) {
+                if (forcedKind === 'image' && !(file.type || '').startsWith('image/')) {
+                    showToast(`Skipped non-image file: ${file.name}`);
+                    continue;
+                }
+                try {
+                    const attachment = await uploadDmAttachment(file, forcedKind);
+                    if (attachment && attachment.url) dmAttachmentQueue.push(attachment);
+                } catch (e) {
+                    showToast(e.message || 'Attachment upload failed');
+                }
+            }
+            dmUploadInFlight = false;
+            renderDmPendingAttachments();
+            updateDmActionState();
+        }
+
+        async function onDmPickedFiles(event, forcedKind = null) {
+            const input = event?.target;
+            const files = input?.files;
+            if (!files || !files.length) return;
+            await queueDmAttachments(files, forcedKind);
+            try { input.value = ''; } catch (_) {}
+        }
+
+        function onDmDropOver(event) {
+            event.preventDefault();
+            if (!dmSelectedUserId || commentRestriction.restricted || dmUploadInFlight) return;
+            const zone = document.getElementById('dmDropZone');
+            if (zone) zone.classList.add('drag-over');
+        }
+
+        function onDmDropLeave(event) {
+            event.preventDefault();
+            const zone = document.getElementById('dmDropZone');
+            if (zone) zone.classList.remove('drag-over');
+        }
+
+        async function onDmDrop(event) {
+            event.preventDefault();
+            const zone = document.getElementById('dmDropZone');
+            if (zone) zone.classList.remove('drag-over');
+            if (!dmSelectedUserId || commentRestriction.restricted || dmUploadInFlight) return;
+            const forced = dmComposerMode === 'image' ? 'image' : (dmComposerMode === 'file' ? 'file' : null);
+            await queueDmAttachments(event?.dataTransfer?.files, forced);
+        }
+
         function renderDmMessages(messages) {
             const box = document.getElementById('dmMessages');
             if (!box) return;
@@ -9906,10 +10335,14 @@
             }
             box.innerHTML = messages.map(m => {
                 const self = m.sender_id === {{ user.id }};
+                const parsed = parseDmMessageContent(m.message || '');
+                const textHtml = parsed.text ? `<div>${escapeHtml(parsed.text)}</div>` : '';
+                const attachmentsHtml = parsed.attachments.map(renderDmAttachmentHtml).join('');
                 return `
                     <div class="dm-message-row ${self ? 'self' : ''}">
                         <div class="dm-message ${self ? 'self' : ''}">
-                            ${escapeHtml(m.message || '')}
+                            ${textHtml}
+                            ${attachmentsHtml}
                             <div class="dm-time">${formatLocalTimestamp(m.created_at)}</div>
                         </div>
                     </div>
@@ -10019,6 +10452,8 @@
             lastDmThreadsPollAt = 0;
             lastDmMessagesPollAt = 0;
             lastDmTypingPollAt = 0;
+            clearDmPendingAttachments();
+            setDmComposerMode('text');
             refreshDmSafetyState(true);
             loadDmThreads(true);
             loadDmMessages(true);
@@ -10401,8 +10836,17 @@
                 showToast('Pick a user first');
                 return;
             }
+            if (dmUploadInFlight) {
+                showToast('Please wait for uploads to finish');
+                return;
+            }
             const input = document.getElementById('dmInput');
-            const message = (input.value || '').trim();
+            const messageText = (input.value || '').trim();
+            const tokenPayload = dmAttachmentQueue
+                .map(encodeDmAttachmentToken)
+                .filter(Boolean)
+                .join(' ');
+            const message = [messageText, tokenPayload].filter(Boolean).join('\n').trim();
             if (!message) return;
             const res = await fetch('/api/dm/send', {
                 method: 'POST',
@@ -10415,6 +10859,8 @@
                 return;
             }
             input.value = '';
+            clearDmPendingAttachments();
+            setDmComposerMode('text');
             loadDmMessages(true);
             loadDmThreads(true);
         }
@@ -10435,6 +10881,8 @@
             dmMessagesSignature = '';
             lastDmMessagesPollAt = 0;
             lastDmTypingPollAt = 0;
+            clearDmPendingAttachments();
+            setDmComposerMode('text');
             updateDmHeader(null);
             const box = document.getElementById('dmMessages');
             if (box) box.innerHTML = '<div class="empty-state"><div class="empty-state-text">Select a conversation to start chatting.</div></div>';
@@ -13105,6 +13553,10 @@ async function checkAchievement(type, value) {
             replyActiveKey = null;
             if (currentCommentsView !== 'verse') hideCommentDmSuggestions('verseDmSuggestions');
             if (currentCommentsView !== 'community') hideCommentDmSuggestions('communityDmSuggestions');
+            if (currentCommentsView !== 'dm') {
+                clearDmPendingAttachments();
+                setDmComposerMode('text');
+            }
             const verseSection = document.getElementById('verseCommentsSection');
             const communitySection = document.getElementById('communityCommentsSection');
             const dmSection = document.getElementById('dmCommentsSection');
@@ -15561,10 +16013,6 @@ async function checkAchievement(type, value) {
         }
 
         async function loadGlobalLeaderboard(force = false) {
-            if (!force && leaderboardCache.length) {
-                renderGlobalLeaderboard(leaderboardCache, leaderboardCache.find((x) => x.user_id === Number(document.getElementById('profile')?.dataset?.userId || 0)) || null);
-                return leaderboardCache;
-            }
             const res = await fetch('/api/leaderboard/global?limit=30', { cache: 'no-store' });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'leaderboard_failed');
